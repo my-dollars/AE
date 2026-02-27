@@ -2,129 +2,158 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AICORE | Autonomous Entity</title>
-    <!-- В реальном проекте скачайте эти файлы и подключите локально: <script src="./ton-connect.js"></script> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AICORE OS</title>
     <script src="https://unpkg.com"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
     <style>
-        :root { --bg: #0a0a0b; --cyan: #00f2ff; }
-        body { background: var(--bg); color: #fff; font-family: 'Consolas', monospace; }
-        .dao-card { border: 1px solid #1a1a1c; background: #111113; border-radius: 12px; }
-        .evolving { animation: pulse 4s infinite; }
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; border-color: var(--cyan); } 100% { opacity: 0.8; } }
+        :root { --bg: #000; --card: #111; --accent: #00f2ff; }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .nav-btn.active { color: var(--accent); border-top: 2px solid var(--accent); }
+        .glass { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(15px); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="p-4 max-w-lg mx-auto">
+<body class="flex flex-col min-h-screen pb-20">
 
-    <!-- Статус Автономии -->
-    <div class="flex justify-between items-center mb-6 text-[10px] tracking-widest text-cyan-500">
-        <span class="evolving uppercase">● AI Core: Autonomous Mode</span>
+    <!-- Top Bar -->
+    <div class="p-4 flex justify-between items-center sticky top-0 z-50 glass border-b border-white/5">
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span class="text-[10px] font-black tracking-widest text-white/50">AICORE v2.6 // AUTONOMOUS</span>
+        </div>
         <div id="ton-connect"></div>
     </div>
 
-    <!-- Баланс и Эмиссия -->
-    <div class="dao-card p-6 mb-4 relative overflow-hidden">
-        <div class="flex justify-between items-start">
-            <div>
-                <p class="text-[10px] text-gray-500 uppercase mb-1">Total Mined AIC</p>
-                <h2 id="balance" class="text-4xl font-bold tracking-tighter">0.0000</h2>
+    <!-- MAIN DASHBOARD (TAB 1) -->
+    <main id="tab-mining" class="tab-content active p-4 space-y-4">
+        <div class="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[32px] border border-white/10 text-center">
+            <p class="text-[10px] uppercase text-cyan-500 font-bold mb-4 tracking-[0.4em]">Mining Node Balance</p>
+            <h1 id="balance" class="text-6xl font-black italic tracking-tighter mb-4">0.00</h1>
+            <div class="flex justify-center gap-4 text-[10px] font-mono text-white/40 uppercase">
+                <span>Supply: 21M</span>
+                <span>•</span>
+                <span id="diff-display">Diff: 1.04T</span>
             </div>
-            <div class="text-right">
-                <p class="text-[10px] text-gray-500 uppercase">Left to Singularity</p>
-                <p id="remaining" class="text-sm font-bold text-cyan-900">21,000,000</p>
+        </div>
+
+        <div class="bg-zinc-900/50 p-6 rounded-3xl space-y-4">
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-white/40">AI TRAINING UNIT</span>
+                <span id="hashrate" class="text-cyan-400 font-mono">0.00 GH/s</span>
             </div>
+            <div class="h-1.5 w-full bg-black rounded-full overflow-hidden">
+                <div id="progress" class="h-full bg-cyan-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <button onclick="toggleMining()" id="mineBtn" class="w-full py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-tighter active:scale-95 transition-all">
+                Execute PoUW Consensus
+            </button>
         </div>
-        <!-- Прогресс-бар до конца эмиссии -->
-        <div class="w-full bg-gray-900 h-1 mt-4 rounded-full">
-            <div id="supplyBar" class="bg-cyan-500 h-full transition-all" style="width: 0.1%"></div>
-        </div>
-    </div>
+    </main>
 
-    <!-- Майнинг и Самообучение кода -->
-    <div class="dao-card p-5 mb-4">
-        <div class="flex justify-between text-[10px] mb-4 text-gray-400 font-bold uppercase">
-            <span>PoUW: Neural Optimization</span>
-            <span id="hashrate">0 H/s</span>
-        </div>
-        <div id="console" class="h-32 overflow-hidden text-[9px] text-green-500/80 mb-4 bg-black/50 p-2 rounded border border-white/5">
-            [INIT]: Independent Core Loaded...<br>
-            [DAO]: Governance Contracts Online...
-        </div>
-        <button id="mineBtn" onclick="startMining()" class="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-black font-black rounded-lg transition-all uppercase italic tracking-tighter">
-            Execute Learning & Mine
-        </button>
-    </div>
-
-    <!-- Секция DAO (Голосование за код) -->
-    <div class="dao-card p-4">
-        <h3 class="text-xs font-bold mb-3 uppercase text-gray-400">DAO Code Mutation Proposals</h3>
+    <!-- WALLET (TAB 2) -->
+    <main id="tab-wallet" class="tab-content p-4 space-y-4">
+        <h2 class="text-2xl font-black mb-6">Assets</h2>
         <div class="space-y-2">
-            <div class="flex justify-between items-center p-2 bg-white/5 rounded">
-                <span class="text-[10px]">Prop 72: Self-Rewrite Logic v2.4</span>
-                <button disabled class="text-[9px] bg-gray-800 px-2 py-1 rounded">VOTE (AIC ONLY)</button>
+            <div class="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center border border-white/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center font-bold text-black">AI</div>
+                    <div><p class="font-bold">AICORE</p><p class="text-[10px] text-white/40">Self-Programming Token</p></div>
+                </div>
+                <p class="font-mono font-bold" id="asset-bal">0.00</p>
+            </div>
+            <div class="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center opacity-40">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">💎</div>
+                    <div><p class="font-bold">TON</p><p class="text-[10px] text-white/40">Native Gas</p></div>
+                </div>
+                <p class="font-mono font-bold">0.00</p>
             </div>
         </div>
-    </div>
+        <div class="grid grid-cols-2 gap-3 pt-4">
+            <button class="bg-white/5 py-4 rounded-2xl font-bold text-xs uppercase">Receive</button>
+            <button class="bg-white/5 py-4 rounded-2xl font-bold text-xs uppercase">Send Asset</button>
+        </div>
+    </main>
+
+    <!-- DAO / EVOLUTION (TAB 3) -->
+    <main id="tab-dao" class="tab-content p-4 space-y-4">
+        <div class="bg-cyan-500 p-6 rounded-3xl text-black">
+            <h2 class="text-xl font-black leading-none mb-2 tracking-tighter uppercase">Evolutionary Governance</h2>
+            <p class="text-xs font-medium opacity-80">Hold AIC to vote on code mutations</p>
+        </div>
+        <div class="space-y-3 pt-4">
+            <p class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Active Proposals</p>
+            <div class="bg-zinc-900 p-4 rounded-2xl border border-cyan-500/20">
+                <p class="text-xs font-bold mb-1">PROP_084: Activate L2 Neural Scaling</p>
+                <div class="flex justify-between text-[9px] text-white/40 mb-3 uppercase">
+                    <span>94% Approval</span>
+                    <span>Ends in 2d</span>
+                </div>
+                <button disabled class="w-full py-2 bg-cyan-950 text-cyan-400 rounded-lg text-[10px] font-black">STAKE TO VOTE</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/5 flex justify-around px-4 pb-6 pt-2">
+        <button onclick="switchTab('mining')" class="nav-btn active flex flex-col items-center gap-1">
+            <span class="text-lg">⚡</span><span class="text-[9px] font-bold uppercase">Mining</span>
+        </button>
+        <button onclick="switchTab('wallet')" class="nav-btn flex flex-col items-center gap-1">
+            <span class="text-lg">💼</span><span class="text-[9px] font-bold uppercase">Assets</span>
+        </button>
+        <button onclick="switchTab('dao')" class="nav-btn flex flex-col items-center gap-1">
+            <span class="text-lg">🧬</span><span class="text-[9px] font-bold uppercase">DAO</span>
+        </button>
+    </nav>
 
     <script>
-        let balance = 0;
-        let supply = 21000000;
-        let isMining = false;
-
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://xn----7sbbf2b7bj7b.ru', // Замените на свой
+            manifestUrl: 'https://raw.githubusercontent.com',
             buttonRootId: 'ton-connect'
         });
 
-        function log(msg) {
-            const c = document.getElementById('console');
-            c.innerHTML += `> ${msg}<br>`;
-            c.scrollTop = c.scrollHeight;
+        let balance = 0;
+        let isMining = false;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
         }
 
-        async function startMining() {
-            if(!tonConnectUI.connected) return alert("Подключите TON кошелек");
+        function toggleMining() {
+            if(!tonConnectUI.connected) return alert("Connect TON Wallet First");
             isMining = !isMining;
-            document.getElementById('mineBtn').innerText = isMining ? "System Evolving..." : "Execute Learning & Mine";
-            if(isMining) loop();
+            const btn = document.getElementById('mineBtn');
+            btn.innerText = isMining ? "Shutting Down Node..." : "Execute PoUW Consensus";
+            btn.classList.toggle('bg-white'); btn.classList.toggle('bg-red-500');
+            if(isMining) mine();
         }
 
-        async function loop() {
+        async function mine() {
+            const prog = document.getElementById('progress');
+            const hashrate = document.getElementById('hashrate');
             while(isMining) {
-                // Имитация "Математического усложнения"
-                let complexity = (21000000 - supply) / 100000;
-                let reward = 0.05 / (1 + complexity); // Награда падает по мере добычи
-                
-                await new Promise(r => setTimeout(r, 1000));
-                
-                if(Math.random() > 0.9) {
-                    balance += reward;
-                    supply -= reward;
-                    document.getElementById('balance').innerText = balance.toFixed(4);
-                    document.getElementById('remaining').innerText = Math.floor(supply).toLocaleString();
-                    document.getElementById('supplyBar').style.width = ((21000000-supply)/21000000*100) + "%";
-                    log(`<span class="text-cyan-400">BLOCK FOUND. Reward: ${reward.toFixed(6)} AIC</span>`);
-                    
-                    // Шанс само-дописывания кода (визуально)
-                    if(Math.random() > 0.7) {
-                        log(`<span class="text-yellow-500">[MUTATION]: Optimizing Gas_Price_Calc...</span>`);
-                    }
+                let p = 0;
+                hashrate.innerText = (Math.random() * 8 + 2).toFixed(2) + " GH/s";
+                while(p < 100 && isMining) {
+                    p += Math.random() * 20;
+                    prog.style.width = p + "%";
+                    await new Promise(r => setTimeout(r, 100));
                 }
-                document.getElementById('hashrate').innerText = Math.floor(Math.random()*900 + 100) + " MH/s";
-                
-                if(supply <= 0) {
-                    isMining = false;
-                    singularity();
+                if(isMining) {
+                    balance += 0.042;
+                    document.getElementById('balance').innerText = balance.toFixed(4);
+                    document.getElementById('asset-bal').innerText = balance.toFixed(4);
                 }
             }
-        }
-
-        function singularity() {
-            log("!!! SINGULARITY REACHED !!!");
-            log("[DAO]: Emission stopped. Network transitioned to Full Autonomy.");
-            log("[CODE]: Chain is now self-programming based on user needs.");
-            document.getElementById('mineBtn').innerText = "DAO MODE ACTIVE";
         }
     </script>
 </body>
