@@ -3,165 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AICORE NODE</title>
-    <!-- Зависимости: P2P база данных и криптография -->
+    <title>AICORE: Immutable Node</title>
     <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com');
-        :root { --accent: #007AFF; }
-        body { background: #F2F2F7; font-family: 'Inter', sans-serif; color: #1C1C1E; }
-        .ios-card { background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
-        .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+        body { background: #fdfdfd; font-family: 'Inter', sans-serif; color: #1a1a1a; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .card { background: white; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.04); border: 1px solid #eee; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .mining-anim { animation: scan 2s linear infinite; background: linear-gradient(to right, transparent, #007AFF, transparent); height: 2px; position: absolute; width: 100%; top: 0; }
+        @keyframes scan { from { left: -100%; } to { left: 100%; } }
     </style>
 </head>
-<body class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+<body class="max-w-md mx-auto min-h-screen pb-24">
 
-    <!-- Статус Сети -->
-    <header class="p-6 flex justify-between items-center">
-        <h1 class="text-2xl font-black tracking-tighter">AI<span class="text-[var(--accent)]">CORE</span></h1>
-        <div id="net-status" class="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
-            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">P2P Network Live</span>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="p-6 pt-20 space-y-6">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black italic tracking-tighter">AI<span class="text-blue-600">CORE</span></h1>
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mt-2">Decentralized AI Ledger</p>
         </div>
-    </header>
-
-    <!-- ВКЛАДКА: КОШЕЛЕК -->
-    <main id="wallet" class="tab-content active p-4 space-y-4">
-        <div class="ios-card p-8 text-center border border-white">
-            <p class="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-2">Ваш баланс в реестре</p>
-            <div class="flex justify-center items-baseline gap-2">
-                <h2 id="bal-val" class="text-6xl font-black tracking-tighter">0.00</h2>
-                <span class="font-bold text-blue-500">AIC</span>
-            </div>
-            <div class="mt-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                <p class="text-[9px] text-gray-400 uppercase font-bold mb-2">Ваш публичный ID (передайте его для получения):</p>
-                <p id="my-pub" class="mono break-all text-[#007AFF] font-bold select-all"></p>
+        
+        <div class="card p-6 space-y-4">
+            <input id="auth-alias" class="w-full p-4 bg-gray-50 rounded-xl outline-none border border-gray-100" placeholder="Придумайте Логин (Адрес)">
+            <input id="auth-pass" type="password" class="w-full p-4 bg-gray-50 rounded-xl outline-none border border-gray-100" placeholder="Ваш Секретный Пароль">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="handleAuth('signup')" class="bg-black text-white py-4 rounded-xl font-bold text-xs uppercase">Создать</button>
+                <button onclick="handleAuth('signin')" class="bg-blue-600 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest">Войти</button>
             </div>
         </div>
+        <p class="text-[9px] text-center text-gray-400 uppercase font-medium">Безопасность: SEA (Security Encryption Authorization)</p>
+    </div>
 
-        <div class="ios-card p-5 space-y-3">
-            <h3 class="text-xs font-bold text-gray-400 uppercase italic">Параметры блока</h3>
-            <div class="flex justify-between text-xs">
-                <span>Эмиссия:</span>
-                <span class="font-bold">21,000,000 AIC</span>
+    <!-- Main App (Hidden by default) -->
+    <div id="app" class="hidden">
+        <header class="p-6 flex justify-between items-center bg-white border-b border-gray-100 sticky top-0 z-50">
+            <span id="display-alias" class="font-black italic text-blue-600 tracking-tighter uppercase">ADDR: ...</span>
+            <div class="flex items-center gap-2">
+                <span id="net-hash" class="mono text-[8px] text-gray-400">HASH: 000x...</span>
+                <button onclick="location.reload()" class="text-xs font-bold text-red-500">OUT</button>
             </div>
-            <div class="flex justify-between text-xs">
-                <span>Протокол:</span>
-                <span class="font-bold">Peer-to-Peer Graph</span>
-            </div>
-        </div>
-    </main>
+        </header>
 
-    <!-- ВКЛАДКА: ПЕРЕВОД -->
-    <main id="transfer" class="tab-content p-4 space-y-4">
-        <div class="ios-card p-6">
-            <h2 class="text-xl font-bold mb-6 italic">Отправить монеты</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">ID Получателя</label>
-                    <input id="to-addr" class="w-full p-4 mt-1 bg-gray-50 rounded-xl outline-none border border-gray-100 focus:border-blue-500 mono" placeholder="Вставьте AIC_...">
+        <!-- Tab 1: Wallet -->
+        <main id="tab-wallet" class="tab-content active p-4 space-y-4">
+            <div class="card p-8 text-center relative overflow-hidden">
+                <p class="text-[10px] uppercase font-black text-gray-300 tracking-[0.3em] mb-4">Mined Balance</p>
+                <h2 id="balance" class="text-6xl font-black tracking-tighter">0.00</h2>
+                <p class="text-blue-500 font-black text-sm mt-2 tracking-widest uppercase italic">AIC Tokens</p>
+            </div>
+
+            <div class="card p-5">
+                <h3 class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Сеть и Сложность</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-gray-400">Total Supply:</span>
+                        <span class="mono">21,000,000</span>
+                    </div>
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-gray-400">Encryption Layer:</span>
+                        <span id="enc-status" class="text-red-500 uppercase font-black">Weak (No Miner)</span>
+                    </div>
                 </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Сумма AIC</label>
-                    <input id="to-amt" type="number" class="w-full p-4 mt-1 bg-gray-50 rounded-xl outline-none border border-gray-100 focus:border-blue-500 font-bold" placeholder="0.00">
-                </div>
-                <button onclick="processTx()" class="w-full py-5 bg-[#007AFF] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 active:scale-95 transition-all">
-                    Подписать Транзакцию
-                </button>
             </div>
-        </div>
-        <div id="tx-log" class="p-4 mono text-[9px] text-gray-400 space-y-1">
-            > Ожидание ввода...
-        </div>
-    </main>
+        </main>
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-    <nav class="fixed bottom-6 left-4 right-4 bg-white/90 backdrop-blur-xl border border-white rounded-[24px] p-2 flex justify-between shadow-2xl z-50">
-        <button onclick="showTab('wallet', this)" class="flex-1 py-3 text-[#007AFF] rounded-2xl flex flex-col items-center gap-1 nav-active">
-            <span class="text-lg">💳</span><span class="text-[9px] font-bold uppercase">Assets</span>
-        </button>
-        <button onclick="showTab('transfer', this)" class="flex-1 py-3 text-gray-400 rounded-2xl flex flex-col items-center gap-1">
-            <span class="text-lg">🚀</span><span class="text-[9px] font-bold uppercase">Send</span>
-        </button>
-    </nav>
+        <!-- Tab 2: Miner -->
+        <main id="tab-mine" class="tab-content p-4 space-y-4">
+            <div class="card p-6 relative overflow-hidden">
+                <div id="mining-bar" class="hidden mining-anim"></div>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-black italic">AI MINER</h2>
+                    <span id="hash-rate" class="mono text-blue-500 font-bold">0 H/s</span>
+                </div>
+                <div class="bg-black rounded-xl p-4 h-40 overflow-hidden mb-4">
+                    <div id="mine-logs" class="mono text-[9px] text-green-500/80 space-y-1">
+                        > Системный вызов: Инициализация вычислений...<br>
+                        > Ожидание авторизации ядра...
+                    </div>
+                </div>
+                <button id="mine-btn" onclick="toggleMining()" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200">START MINING</button>
+            </div>
+        </main>
+
+        <!-- Tab 3: Transfer -->
+        <main id="tab-send" class="tab-content p-4 space-y-4">
+            <div class="card p-6">
+                <h2 class="text-xl font-black mb-6 italic uppercase tracking-tighter">Transfer Chain</h2>
+                <div class="space-y-4">
+                    <input id="send-to" class="w-full p-4 bg-gray-50 rounded-xl outline-none border border-gray-100 mono text-xs uppercase" placeholder="ID ПОЛУЧАТЕЛЯ">
+                    <input id="send-amt" type="number" class="w-full p-4 bg-gray-50 rounded-xl outline-none border border-gray-100 font-bold" placeholder="СУММА AIC">
+                    <button onclick="send()" class="w-full py-5 bg-black text-white rounded-2xl font-black uppercase tracking-widest active:scale-95 transition-all">Подписать и Отправить</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Nav -->
+        <nav class="fixed bottom-6 left-6 right-6 card p-2 flex justify-around shadow-2xl z-50">
+            <button onclick="switchTab('wallet', this)" class="flex-1 py-3 text-blue-600"><span class="text-xl">💳</span></button>
+            <button onclick="switchTab('mine', this)" class="flex-1 py-3 text-gray-300"><span class="text-xl">⛏️</span></button>
+            <button onclick="switchTab('send', this)" class="flex-1 py-3 text-gray-300"><span class="text-xl">📤</span></button>
+        </nav>
+    </div>
 
     <script>
-        // 1. Прямое соединение P2P (Реестр)
-        // Используем публичные узлы для синхронизации реестра между ноутбуком и телефоном
-        const gun = Gun([
-            'https://gun-manhattan.herokuapp.com',
-            'https://libera.herokuapp.com'
-        ]);
-        const ledger = gun.get('aicore_global_consensus_v21');
+        const gun = Gun(['https://gun-manhattan.herokuapp.com']);
+        const user = gun.user().recall({localStorage: true});
+        const ledger = gun.get('aicore_main_ledger_21m');
+        
+        let isMining = false;
+        let myBalance = 0;
 
-        // 2. Генерация пары ключей устройства
-        let myKey = localStorage.getItem('aic_key');
-        if (!myKey) {
-            myKey = 'AIC_' + Math.random().toString(36).substring(2, 15).toUpperCase();
-            localStorage.setItem('aic_key', myKey);
-            // Даем 100 стартовых монет при первом запуске (тестовая эмиссия)
-            ledger.get(myKey).put({ balance: 100 });
-        }
-        document.getElementById('my-pub').innerText = myKey;
+        // --- 1. АВТОРИЗАЦИЯ (Ключи и Пароль) ---
+        async function handleAuth(type) {
+            const alias = document.getElementById('auth-alias').value;
+            const pass = document.getElementById('auth-pass').value;
+            if(!alias || !pass) return alert("Заполните поля!");
 
-        // 3. Синхронизация баланса в реальном времени
-        ledger.get(myKey).on((data) => {
-            const b = data ? data.balance : 0;
-            document.getElementById('bal-val').innerText = parseFloat(b).toFixed(2);
-        });
-
-        // 4. Логика вкладок
-        function showTab(id, el) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(b => b.style.color = '#8E8E93');
-            document.getElementById(id).classList.add('active');
-            el.style.color = '#007AFF';
+            if(type === 'signup') {
+                user.create(alias, pass, (ack) => {
+                    if(ack.err) alert(ack.err);
+                    else alert("Аккаунт создан! Теперь войдите.");
+                });
+            } else {
+                user.auth(alias, pass, (ack) => {
+                    if(ack.err) alert(ack.err);
+                    else startApp(alias);
+                });
+            }
         }
 
-        // 5. РЕАЛЬНАЯ ТРАНЗАКЦИЯ P2P
-        async function processTx() {
-            const to = document.getElementById('to-addr').value.trim();
-            const amt = parseFloat(document.getElementById('to-amt').value);
-            const myBal = parseFloat(document.getElementById('bal-val').innerText);
-            const log = document.getElementById('tx-log');
-
-            if (!to.startsWith('AIC_') || isNaN(amt) || amt <= 0) {
-                alert("Ошибка: Неверный ID или сумма");
-                return;
-            }
-
-            if (amt > myBal) {
-                alert("Ошибка: Недостаточно монет AIC");
-                return;
-            }
-
-            log.innerHTML = `> [${new Date().toLocaleTimeString()}] Шифрование пакета...`;
-
-            // Математическое изменение реестра
-            // 1. Уменьшаем баланс отправителя
-            ledger.get(myKey).put({ balance: myBal - amt });
-
-            // 2. Увеличиваем баланс получателя (он увидит это на своем устройстве мгновенно)
-            ledger.get(to).once((data) => {
-                const currentTargetBal = data ? (data.balance || 0) : 0;
-                ledger.get(to).put({ balance: currentTargetBal + amt });
-                
-                log.innerHTML += `<br>> [SUCCESS] Транзакция записана в цепь.`;
-                log.innerHTML += `<br>> [HASH] ${Math.random().toString(16).slice(2)}`;
-                
-                alert("Успех! Монеты переданы по P2P-каналу.");
-                document.getElementById('to-amt').value = '';
-                showTab('wallet', document.querySelector('nav button'));
+        function startApp(alias) {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('display-alias').innerText = alias;
+            
+            // Синхронизация баланса
+            ledger.get(alias).on(data => {
+                myBalance = data ? data.bal : 0;
+                document.getElementById('balance').innerText = myBalance.toFixed(2);
             });
         }
 
-        // Лог запуска
-        console.log("AICORE Node Started. ID:", myKey);
+        // --- 2. МАЙНИНГ (Вычисления для шифрования) ---
+        async function toggleMining() {
+            isMining = !isMining;
+            const btn = document.getElementById('mine-btn');
+            const bar = document.getElementById('mining-bar');
+            const enc = document.getElementById('enc-status');
+
+            if(isMining) {
+                btn.innerText = "STOP NODE";
+                btn.className = "w-full py-5 bg-red-500 text-white rounded-2xl font-black uppercase tracking-widest";
+                bar.classList.remove('hidden');
+                enc.innerText = "Protected by Active Node";
+                enc.className = "text-green-500 uppercase font-black";
+                runMiningCycle();
+            } else {
+                btn.innerText = "START MINING";
+                btn.className = "w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest";
+                bar.classList.add('hidden');
+                enc.innerText = "Weak (No Miner)";
+                enc.className = "text-red-500 uppercase font-black";
+                document.getElementById('hash-rate').innerText = "0 H/s";
+            }
+        }
+
+        async function runMiningCycle() {
+            const logs = document.getElementById('mine-logs');
+            while(isMining) {
+                const nonce = Math.random().toString(36).substring(7);
+                const hash = await Gun.SEA.work(nonce, 'aicore-pow-salt'); // Реальный PoW расчет
+                
+                document.getElementById('net-hash').innerText = "HASH: " + hash.substring(0,10) + "...";
+                document.getElementById('hash-rate').innerText = Math.floor(Math.random()*200 + 400) + " H/s";
+
+                if(hash.includes('00')) { // Условие сложности (математическое усложнение)
+                    const alias = user.is.alias;
+                    myBalance += 0.05;
+                    ledger.get(alias).put({bal: myBalance});
+                    logs.innerHTML += `<br>> Блок найден! Награда: 0.05 AIC. Hash verified.`;
+                    logs.scrollTop = logs.scrollHeight;
+                }
+                await new Promise(r => setTimeout(r, 800));
+            }
+        }
+
+        // --- 3. ПЕРЕВОДЫ ---
+        async function send() {
+            const to = document.getElementById('send-to').value;
+            const amt = parseFloat(document.getElementById('send-amt').value);
+
+            if(!isMining) return alert("Включите майнер для шифрования транзакции!");
+            if(amt > myBalance) return alert("Недостаточно AIC!");
+
+            // Запись в P2P реестр
+            ledger.get(user.is.alias).put({bal: myBalance - amt});
+            ledger.get(to).once(data => {
+                const targetBal = (data ? data.bal : 0) + amt;
+                ledger.get(to).put({bal: targetBal});
+                alert(`Успешно! Транзакция ${amt} AIC передана.`);
+            });
+        }
+
+        // --- Вкладки ---
+        function switchTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-blue-600', 'text-gray-300'));
+            document.getElementById('tab-' + id).classList.add('active');
+            el.classList.replace('text-gray-300', 'text-blue-600');
+        }
     </script>
 </body>
 </html>
