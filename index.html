@@ -2,133 +2,130 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Core DAO | Web3 Wallet</title>
-    <script src="https://cdn.ethers.io" type="application/javascript"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AICORE | Autonomous Entity</title>
+    <!-- В реальном проекте скачайте эти файлы и подключите локально: <script src="./ton-connect.js"></script> -->
+    <script src="https://unpkg.com"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --tg-bg: #0e1621;
-            --tg-card: #17212b;
-            --tg-blue: #2481cc;
-            --accent: #00fbff;
-        }
-        body { background: var(--tg-bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .glass { background: var(--tg-card); border: 1px solid rgba(255,255,255,0.1); }
-        .shimmer { animation: shimmer 2s infinite; background: linear-gradient(90deg, #2481cc, #00fbff, #2481cc); background-size: 200% 100%; }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        :root { --bg: #0a0a0b; --cyan: #00f2ff; }
+        body { background: var(--bg); color: #fff; font-family: 'Consolas', monospace; }
+        .dao-card { border: 1px solid #1a1a1c; background: #111113; border-radius: 12px; }
+        .evolving { animation: pulse 4s infinite; }
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; border-color: var(--cyan); } 100% { opacity: 0.8; } }
     </style>
 </head>
-<body class="max-w-md mx-auto min-h-screen flex flex-col p-4">
+<body class="p-4 max-w-lg mx-auto">
 
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-xl font-bold tracking-tighter uppercase">Quantum<span class="text-blue-500">Core</span></h1>
-            <div class="flex items-center gap-2">
-                <span class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-[10px] text-gray-400 uppercase tracking-widest">Mainnet Live 2026</span>
+    <!-- Статус Автономии -->
+    <div class="flex justify-between items-center mb-6 text-[10px] tracking-widest text-cyan-500">
+        <span class="evolving uppercase">● AI Core: Autonomous Mode</span>
+        <div id="ton-connect"></div>
+    </div>
+
+    <!-- Баланс и Эмиссия -->
+    <div class="dao-card p-6 mb-4 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-[10px] text-gray-500 uppercase mb-1">Total Mined AIC</p>
+                <h2 id="balance" class="text-4xl font-bold tracking-tighter">0.0000</h2>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-500 uppercase">Left to Singularity</p>
+                <p id="remaining" class="text-sm font-bold text-cyan-900">21,000,000</p>
             </div>
         </div>
-        <button id="connectBtn" class="glass px-4 py-2 rounded-full text-xs font-bold border-blue-500/50 hover:bg-blue-600 transition">
-            Connect Wallet
+        <!-- Прогресс-бар до конца эмиссии -->
+        <div class="w-full bg-gray-900 h-1 mt-4 rounded-full">
+            <div id="supplyBar" class="bg-cyan-500 h-full transition-all" style="width: 0.1%"></div>
+        </div>
+    </div>
+
+    <!-- Майнинг и Самообучение кода -->
+    <div class="dao-card p-5 mb-4">
+        <div class="flex justify-between text-[10px] mb-4 text-gray-400 font-bold uppercase">
+            <span>PoUW: Neural Optimization</span>
+            <span id="hashrate">0 H/s</span>
+        </div>
+        <div id="console" class="h-32 overflow-hidden text-[9px] text-green-500/80 mb-4 bg-black/50 p-2 rounded border border-white/5">
+            [INIT]: Independent Core Loaded...<br>
+            [DAO]: Governance Contracts Online...
+        </div>
+        <button id="mineBtn" onclick="startMining()" class="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-black font-black rounded-lg transition-all uppercase italic tracking-tighter">
+            Execute Learning & Mine
         </button>
     </div>
 
-    <!-- Wallet Card (The Real Part) -->
-    <div class="glass rounded-3xl p-6 mb-6 relative overflow-hidden">
-        <div class="relative z-10">
-            <p class="text-sm text-gray-400 mb-1">Ваш баланс</p>
-            <div class="flex items-end gap-2">
-                <h2 id="balance" class="text-4xl font-mono font-bold">0.00</h2>
-                <span class="text-blue-400 font-bold mb-1">QTC</span>
+    <!-- Секция DAO (Голосование за код) -->
+    <div class="dao-card p-4">
+        <h3 class="text-xs font-bold mb-3 uppercase text-gray-400">DAO Code Mutation Proposals</h3>
+        <div class="space-y-2">
+            <div class="flex justify-between items-center p-2 bg-white/5 rounded">
+                <span class="text-[10px]">Prop 72: Self-Rewrite Logic v2.4</span>
+                <button disabled class="text-[9px] bg-gray-800 px-2 py-1 rounded">VOTE (AIC ONLY)</button>
             </div>
-            <p id="walletAddress" class="text-[10px] text-gray-500 mt-4 font-mono truncate">Wallet not connected</p>
-        </div>
-        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚛️</div>
-    </div>
-
-    <!-- Blockchain Stats (Math & Scarcity) -->
-    <div class="grid grid-cols-2 gap-3 mb-6">
-        <div class="glass rounded-2xl p-4">
-            <p class="text-[10px] text-gray-500 uppercase">Max Supply</p>
-            <p class="font-mono text-sm">21,000,000</p>
-        </div>
-        <div class="glass rounded-2xl p-4">
-            <p class="text-[10px] text-gray-500 uppercase">Difficulty</p>
-            <p class="font-mono text-sm text-blue-400">14.2T Hash</p>
-        </div>
-    </div>
-
-    <!-- DAO Governance Section -->
-    <div class="flex-1">
-        <h3 class="text-xs font-bold text-gray-500 uppercase px-2 mb-3 tracking-widest">DAO Governance</h3>
-        <div class="space-y-3">
-            <div class="glass rounded-2xl p-4 flex justify-between items-center">
-                <div>
-                    <p class="text-sm font-medium">Proposal #104: ZK-Privacy</p>
-                    <p class="text-[10px] text-green-400">Status: Voting Active</p>
-                </div>
-                <button class="bg-blue-600 px-3 py-1 rounded-lg text-xs">Vote</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Real-time Log -->
-    <div class="mt-6 glass rounded-xl p-3 h-20 overflow-hidden">
-        <div id="log" class="text-[9px] font-mono text-blue-300/60 leading-tight">
-            [SYS]: Awaiting Web3 Handshake...<br>
-            [MATH]: Verifying Zero-Knowledge Proof Layer...
         </div>
     </div>
 
     <script>
-        const connectBtn = document.getElementById('connectBtn');
-        const balanceEl = document.getElementById('balance');
-        const addressEl = document.getElementById('walletAddress');
-        const logEl = document.getElementById('log');
+        let balance = 0;
+        let supply = 21000000;
+        let isMining = false;
 
-        function addLog(msg) {
-            const div = document.createElement('div');
-            div.innerHTML = `[${new Date().toLocaleTimeString()}]: ${msg}`;
-            logEl.prepend(div);
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://xn----7sbbf2b7bj7b.ru', // Замените на свой
+            buttonRootId: 'ton-connect'
+        });
+
+        function log(msg) {
+            const c = document.getElementById('console');
+            c.innerHTML += `> ${msg}<br>`;
+            c.scrollTop = c.scrollHeight;
         }
 
-        async function connect() {
-            if (window.ethereum) {
-                try {
-                    addLog("Requesting account access...");
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    const signer = provider.getSigner();
-                    const address = await signer.getAddress();
-                    const balance = await provider.getBalance(address);
-                    const ethBalance = ethers.utils.formatEther(balance);
+        async function startMining() {
+            if(!tonConnectUI.connected) return alert("Подключите TON кошелек");
+            isMining = !isMining;
+            document.getElementById('mineBtn').innerText = isMining ? "System Evolving..." : "Execute Learning & Mine";
+            if(isMining) loop();
+        }
 
-                    addressEl.innerText = address;
-                    balanceEl.innerText = parseFloat(ethBalance).toFixed(4);
-                    connectBtn.innerText = "Connected";
-                    connectBtn.classList.add('bg-green-600');
+        async function loop() {
+            while(isMining) {
+                // Имитация "Математического усложнения"
+                let complexity = (21000000 - supply) / 100000;
+                let reward = 0.05 / (1 + complexity); // Награда падает по мере добычи
+                
+                await new Promise(r => setTimeout(r, 1000));
+                
+                if(Math.random() > 0.9) {
+                    balance += reward;
+                    supply -= reward;
+                    document.getElementById('balance').innerText = balance.toFixed(4);
+                    document.getElementById('remaining').innerText = Math.floor(supply).toLocaleString();
+                    document.getElementById('supplyBar').style.width = ((21000000-supply)/21000000*100) + "%";
+                    log(`<span class="text-cyan-400">BLOCK FOUND. Reward: ${reward.toFixed(6)} AIC</span>`);
                     
-                    addLog("Encryption Layer: Active (AES-GCM)");
-                    addLog(`Wallet linked: ${address.substring(0,6)}...`);
-                } catch (error) {
-                    addLog("Connection failed!");
-                    console.error(error);
+                    // Шанс само-дописывания кода (визуально)
+                    if(Math.random() > 0.7) {
+                        log(`<span class="text-yellow-500">[MUTATION]: Optimizing Gas_Price_Calc...</span>`);
+                    }
                 }
-            } else {
-                alert("Пожалуйста, установите MetaMask или другой Web3 кошелек!");
-                addLog("Error: No Web3 Provider found.");
+                document.getElementById('hashrate').innerText = Math.floor(Math.random()*900 + 100) + " MH/s";
+                
+                if(supply <= 0) {
+                    isMining = false;
+                    singularity();
+                }
             }
         }
 
-        connectBtn.addEventListener('click', connect);
-
-        // Имитация математической сложности
-        setInterval(() => {
-            const hashes = ["0x4a2b...", "0x9f1c...", "0xbc33...", "0x110a..."];
-            addLog(`Verifying block hash: ${hashes[Math.floor(Math.random()*hashes.length)]}`);
-        }, 8000);
+        function singularity() {
+            log("!!! SINGULARITY REACHED !!!");
+            log("[DAO]: Emission stopped. Network transitioned to Full Autonomy.");
+            log("[CODE]: Chain is now self-programming based on user needs.");
+            document.getElementById('mineBtn').innerText = "DAO MODE ACTIVE";
+        }
     </script>
 </body>
 </html>
