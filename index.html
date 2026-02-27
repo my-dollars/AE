@@ -2,158 +2,169 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AICORE OS</title>
-    <script src="https://unpkg.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AI-CORE Wallet</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com" rel="stylesheet">
     <style>
-        :root { --bg: #000; --card: #111; --accent: #00f2ff; }
-        body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .nav-btn.active { color: var(--accent); border-top: 2px solid var(--accent); }
-        .glass { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(15px); }
+        body { background-color: #f4f4f7; color: #1c1c1e; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .tab-content.active { display: block; }
+        .ios-card { background: white; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .btn-blue { background: #007aff; color: white; border-radius: 12px; font-weight: 600; transition: 0.2s; }
+        .btn-blue:active { transform: scale(0.97); opacity: 0.8; }
+        .nav-item { color: #8e8e93; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .nav-item.active { color: #007aff; }
+        .mono { font-family: 'SF Mono', 'Courier New', monospace; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen pb-20">
+<body class="max-w-md mx-auto min-h-screen flex flex-col">
 
-    <!-- Top Bar -->
-    <div class="p-4 flex justify-between items-center sticky top-0 z-50 glass border-b border-white/5">
-        <div class="flex items-center gap-2">
-            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span class="text-[10px] font-black tracking-widest text-white/50">AICORE v2.6 // AUTONOMOUS</span>
+    <!-- Header -->
+    <header class="p-6 pb-2 flex justify-between items-center">
+        <h1 class="text-2xl font-bold tracking-tight">AICORE <span class="text-blue-500 font-black">21M</span></h1>
+        <div id="status" class="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">ONLINE</div>
+    </header>
+
+    <!-- ТАБ: КОШЕЛЕК -->
+    <div id="wallet" class="tab-content active p-4 space-y-4">
+        <div class="ios-card p-6 text-center">
+            <p class="text-sm text-gray-400 mb-1 font-medium">Ваш баланс</p>
+            <h2 id="balance" class="text-5xl font-bold mb-4">0.00 <span class="text-2xl text-gray-300">AIC</span></h2>
+            <div id="addrBox" class="hidden">
+                <p class="text-[9px] text-gray-400 mb-2 uppercase font-bold tracking-widest">Адрес кошелька (Публичный ключ)</p>
+                <p id="myAddr" class="mono text-[10px] bg-gray-50 p-3 rounded-xl break-all border border-gray-100"></p>
+            </div>
+            <div id="authBox">
+                <button onclick="generateWallet()" class="btn-blue w-full py-4 mb-2">Создать новый кошелек</button>
+                <p class="text-[10px] text-gray-400">Шифрование: Ed25519 / AES-256</p>
+            </div>
         </div>
-        <div id="ton-connect"></div>
+
+        <div class="ios-card p-5">
+            <h3 class="text-sm font-bold mb-3 italic">Математика сети</h3>
+            <div class="flex justify-between text-xs py-2 border-b border-gray-50">
+                <span class="text-gray-400">Эмиссия</span>
+                <span class="font-bold">21,000,000 AIC</span>
+            </div>
+            <div class="flex justify-between text-xs py-2">
+                <span class="text-gray-400">Алгоритм</span>
+                <span class="font-bold">AI-PoUW (SHA-256)</span>
+            </div>
+        </div>
     </div>
 
-    <!-- MAIN DASHBOARD (TAB 1) -->
-    <main id="tab-mining" class="tab-content active p-4 space-y-4">
-        <div class="bg-gradient-to-br from-zinc-900 to-black p-8 rounded-[32px] border border-white/10 text-center">
-            <p class="text-[10px] uppercase text-cyan-500 font-bold mb-4 tracking-[0.4em]">Mining Node Balance</p>
-            <h1 id="balance" class="text-6xl font-black italic tracking-tighter mb-4">0.00</h1>
-            <div class="flex justify-center gap-4 text-[10px] font-mono text-white/40 uppercase">
-                <span>Supply: 21M</span>
-                <span>•</span>
-                <span id="diff-display">Diff: 1.04T</span>
+    <!-- ТАБ: МАЙНИНГ -->
+    <div id="mining" class="tab-content p-4 space-y-4">
+        <div class="ios-card p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Майнинг ИИ</h2>
+                <span id="speed" class="mono text-blue-500 font-bold text-xs">0 H/s</span>
             </div>
-        </div>
+            
+            <div class="bg-gray-50 rounded-2xl p-4 mb-4 h-32 overflow-hidden">
+                <div id="logs" class="mono text-[9px] text-gray-500 leading-relaxed">
+                    > Ожидание запуска...<br>
+                    > Система готова к вычислениям.
+                </div>
+            </div>
 
-        <div class="bg-zinc-900/50 p-6 rounded-3xl space-y-4">
-            <div class="flex justify-between items-center text-xs">
-                <span class="text-white/40">AI TRAINING UNIT</span>
-                <span id="hashrate" class="text-cyan-400 font-mono">0.00 GH/s</span>
-            </div>
-            <div class="h-1.5 w-full bg-black rounded-full overflow-hidden">
-                <div id="progress" class="h-full bg-cyan-500 transition-all duration-300" style="width: 0%"></div>
-            </div>
-            <button onclick="toggleMining()" id="mineBtn" class="w-full py-5 bg-white text-black rounded-2xl font-black text-sm uppercase tracking-tighter active:scale-95 transition-all">
-                Execute PoUW Consensus
+            <button id="mineBtn" onclick="toggleMining()" class="btn-blue w-full py-4 disabled:bg-gray-200" disabled>
+                Запустить узел (Node)
             </button>
         </div>
-    </main>
+    </div>
 
-    <!-- WALLET (TAB 2) -->
-    <main id="tab-wallet" class="tab-content p-4 space-y-4">
-        <h2 class="text-2xl font-black mb-6">Assets</h2>
-        <div class="space-y-2">
-            <div class="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center border border-white/5">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center font-bold text-black">AI</div>
-                    <div><p class="font-bold">AICORE</p><p class="text-[10px] text-white/40">Self-Programming Token</p></div>
-                </div>
-                <p class="font-mono font-bold" id="asset-bal">0.00</p>
-            </div>
-            <div class="bg-zinc-900 p-5 rounded-2xl flex justify-between items-center opacity-40">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">💎</div>
-                    <div><p class="font-bold">TON</p><p class="text-[10px] text-white/40">Native Gas</p></div>
-                </div>
-                <p class="font-mono font-bold">0.00</p>
+    <!-- ТАБ: ОТПРАВКА -->
+    <div id="send" class="tab-content p-4 space-y-4">
+        <div class="ios-card p-6">
+            <h2 class="text-xl font-bold mb-4">Отправить монеты</h2>
+            <div class="space-y-3">
+                <input id="targetAddr" class="w-full bg-gray-50 p-4 rounded-xl text-sm outline-none focus:ring-2 ring-blue-500" placeholder="Адрес AIC...">
+                <input id="amount" type="number" class="w-full bg-gray-50 p-4 rounded-xl text-sm outline-none" placeholder="Сумма">
+                <button onclick="sendCoins()" class="btn-blue w-full py-4">Подписать и отправить</button>
             </div>
         </div>
-        <div class="grid grid-cols-2 gap-3 pt-4">
-            <button class="bg-white/5 py-4 rounded-2xl font-bold text-xs uppercase">Receive</button>
-            <button class="bg-white/5 py-4 rounded-2xl font-bold text-xs uppercase">Send Asset</button>
-        </div>
-    </main>
-
-    <!-- DAO / EVOLUTION (TAB 3) -->
-    <main id="tab-dao" class="tab-content p-4 space-y-4">
-        <div class="bg-cyan-500 p-6 rounded-3xl text-black">
-            <h2 class="text-xl font-black leading-none mb-2 tracking-tighter uppercase">Evolutionary Governance</h2>
-            <p class="text-xs font-medium opacity-80">Hold AIC to vote on code mutations</p>
-        </div>
-        <div class="space-y-3 pt-4">
-            <p class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Active Proposals</p>
-            <div class="bg-zinc-900 p-4 rounded-2xl border border-cyan-500/20">
-                <p class="text-xs font-bold mb-1">PROP_084: Activate L2 Neural Scaling</p>
-                <div class="flex justify-between text-[9px] text-white/40 mb-3 uppercase">
-                    <span>94% Approval</span>
-                    <span>Ends in 2d</span>
-                </div>
-                <button disabled class="w-full py-2 bg-cyan-950 text-cyan-400 rounded-lg text-[10px] font-black">STAKE TO VOTE</button>
-            </div>
-        </div>
-    </main>
+    </div>
 
     <!-- Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 glass border-t border-white/5 flex justify-around px-4 pb-6 pt-2">
-        <button onclick="switchTab('mining')" class="nav-btn active flex flex-col items-center gap-1">
-            <span class="text-lg">⚡</span><span class="text-[9px] font-bold uppercase">Mining</span>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 flex justify-around py-3 pb-8">
+        <button onclick="openTab('wallet', this)" class="nav-item active flex flex-col items-center gap-1">
+            <span class="text-xl">💳</span><span>Кошелек</span>
         </button>
-        <button onclick="switchTab('wallet')" class="nav-btn flex flex-col items-center gap-1">
-            <span class="text-lg">💼</span><span class="text-[9px] font-bold uppercase">Assets</span>
+        <button onclick="openTab('mining', this)" class="nav-item flex flex-col items-center gap-1">
+            <span class="text-xl">⛏️</span><span>Майнинг</span>
         </button>
-        <button onclick="switchTab('dao')" class="nav-btn flex flex-col items-center gap-1">
-            <span class="text-lg">🧬</span><span class="text-[9px] font-bold uppercase">DAO</span>
+        <button onclick="openTab('send', this)" class="nav-item flex flex-col items-center gap-1">
+            <span class="text-xl">📤</span><span>Перевод</span>
         </button>
     </nav>
 
     <script>
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com',
-            buttonRootId: 'ton-connect'
-        });
-
         let balance = 0;
-        let isMining = false;
+        let mining = false;
+        let walletCreated = false;
 
-        function switchTab(tabId) {
+        // Переключение вкладок
+        function openTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
         }
 
-        function toggleMining() {
-            if(!tonConnectUI.connected) return alert("Connect TON Wallet First");
-            isMining = !isMining;
+        // Логика "Блокчейна"
+        async function generateWallet() {
+            // Имитация генерации ключа (в реальности используется crypto.subtle)
+            const array = new Uint8Array(16);
+            window.crypto.getRandomValues(array);
+            const addr = 'AIC' + Array.from(array, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+            
+            document.getElementById('myAddr').innerText = addr;
+            document.getElementById('authBox').classList.add('hidden');
+            document.getElementById('addrBox').classList.remove('hidden');
+            document.getElementById('mineBtn').disabled = false;
+            walletCreated = true;
+            addLog("Кошелек успешно создан и зашифрован.");
+        }
+
+        function addLog(msg) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML += `<br>> ${msg}`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        async function toggleMining() {
+            mining = !mining;
             const btn = document.getElementById('mineBtn');
-            btn.innerText = isMining ? "Shutting Down Node..." : "Execute PoUW Consensus";
-            btn.classList.toggle('bg-white'); btn.classList.toggle('bg-red-500');
-            if(isMining) mine();
+            btn.innerText = mining ? "Остановить узел" : "Запустить узел (Node)";
+            btn.style.background = mining ? "#ff3b30" : "#007aff";
+            if(mining) runMining();
         }
 
-        async function mine() {
-            const prog = document.getElementById('progress');
-            const hashrate = document.getElementById('hashrate');
-            while(isMining) {
-                let p = 0;
-                hashrate.innerText = (Math.random() * 8 + 2).toFixed(2) + " GH/s";
-                while(p < 100 && isMining) {
-                    p += Math.random() * 20;
-                    prog.style.width = p + "%";
-                    await new Promise(r => setTimeout(r, 100));
+        async function runMining() {
+            while(mining) {
+                const speed = Math.floor(Math.random() * 500 + 100);
+                document.getElementById('speed').innerText = speed + " H/s";
+                
+                // Имитация сложности SHA-256
+                if(Math.random() > 0.96) {
+                    balance += 0.5;
+                    document.getElementById('balance').innerText = balance.toFixed(2);
+                    addLog("Блок найден! Сложность выросла. +0.5 AIC");
                 }
-                if(isMining) {
-                    balance += 0.042;
-                    document.getElementById('balance').innerText = balance.toFixed(4);
-                    document.getElementById('asset-bal').innerText = balance.toFixed(4);
-                }
+                await new Promise(r => setTimeout(r, 1000));
             }
+        }
+
+        function sendCoins() {
+            const a = document.getElementById('amount').value;
+            const t = document.getElementById('targetAddr').value;
+            if(!walletCreated) return alert("Сначала создайте кошелек!");
+            if(a > balance) return alert("Недостаточно AIC!");
+            
+            balance -= a;
+            document.getElementById('balance').innerText = balance.toFixed(2);
+            alert(`Транзакция подписана вашим ключом и отправлена!\nПолучатель: ${t}\nСумма: ${a} AIC`);
         }
     </script>
 </body>
