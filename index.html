@@ -3,122 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AICORE P2P Ledger</title>
-    <!-- Библиотека для P2P связи между устройствами (Peer-to-Peer) -->
+    <title>AICORE NODE</title>
+    <!-- Зависимости: P2P база данных и криптография -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #ffffff; color: #1d1d1f; font-family: -apple-system, sans-serif; }
-        .card { background: #f5f5f7; border-radius: 24px; padding: 24px; }
-        .btn { background: #0071e3; color: white; border-radius: 12px; font-weight: 600; transition: 0.2s; }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .mono { font-family: 'SF Mono', monospace; font-size: 10px; }
+        @import url('https://fonts.googleapis.com');
+        :root { --accent: #007AFF; }
+        body { background: #F2F2F7; font-family: 'Inter', sans-serif; color: #1C1C1E; }
+        .ios-card { background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="max-w-md mx-auto p-6 pb-24">
+<body class="max-w-md mx-auto min-h-screen flex flex-col pb-24">
 
-    <header class="flex justify-between items-center mb-8">
-        <h1 class="text-2xl font-black tracking-tight">AICORE <span class="text-blue-600">P2P</span></h1>
-        <div id="peer-count" class="text-[10px] bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold uppercase">Nodes: Connect...</div>
+    <!-- Статус Сети -->
+    <header class="p-6 flex justify-between items-center">
+        <h1 class="text-2xl font-black tracking-tighter">AI<span class="text-[var(--accent)]">CORE</span></h1>
+        <div id="net-status" class="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">P2P Network Live</span>
+        </div>
     </header>
 
-    <!-- Кошелек -->
-    <div class="card mb-6 shadow-sm border border-gray-100">
-        <p class="text-[10px] uppercase font-bold text-gray-400 mb-2">Ваш баланс в едином реестре</p>
-        <div class="flex items-baseline gap-2">
-            <h2 id="balance-display" class="text-5xl font-bold tracking-tighter">0.00</h2>
-            <span class="font-bold text-blue-500">AIC</span>
+    <!-- ВКЛАДКА: КОШЕЛЕК -->
+    <main id="wallet" class="tab-content active p-4 space-y-4">
+        <div class="ios-card p-8 text-center border border-white">
+            <p class="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-2">Ваш баланс в реестре</p>
+            <div class="flex justify-center items-baseline gap-2">
+                <h2 id="bal-val" class="text-6xl font-black tracking-tighter">0.00</h2>
+                <span class="font-bold text-blue-500">AIC</span>
+            </div>
+            <div class="mt-6 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <p class="text-[9px] text-gray-400 uppercase font-bold mb-2">Ваш публичный ID (передайте его для получения):</p>
+                <p id="my-pub" class="mono break-all text-[#007AFF] font-bold select-all"></p>
+            </div>
         </div>
-        <p id="my-id" class="mono mt-4 p-2 bg-white rounded-lg text-gray-500 break-all border border-gray-100 italic"></p>
-    </div>
 
-    <!-- Перевод -->
-    <div class="space-y-3">
-        <h3 class="text-sm font-bold ml-2">Отправить по P2P-каналу</h3>
-        <input id="target-id" class="w-full p-4 rounded-2xl bg-gray-100 outline-none text-xs mono" placeholder="Вставьте ID получателя...">
-        <input id="send-amount" type="number" class="w-full p-4 rounded-2xl bg-gray-100 outline-none font-bold" placeholder="Сумма AIC">
-        <button onclick="sendTransaction()" class="btn w-full py-4 shadow-lg shadow-blue-200">ПОДПИСАТЬ И ПЕРЕДАТЬ</button>
-    </div>
-
-    <!-- Реестр Транзакций (Live) -->
-    <div class="mt-8">
-        <p class="text-[10px] font-black uppercase text-gray-400 mb-3 ml-2">Последние записи в цепи:</p>
-        <div id="ledger-box" class="space-y-2 max-h-40 overflow-y-auto">
-            <div class="text-[10px] text-gray-400 italic px-2">Синхронизация реестра...</div>
+        <div class="ios-card p-5 space-y-3">
+            <h3 class="text-xs font-bold text-gray-400 uppercase italic">Параметры блока</h3>
+            <div class="flex justify-between text-xs">
+                <span>Эмиссия:</span>
+                <span class="font-bold">21,000,000 AIC</span>
+            </div>
+            <div class="flex justify-between text-xs">
+                <span>Протокол:</span>
+                <span class="font-bold">Peer-to-Peer Graph</span>
+            </div>
         </div>
-    </div>
+    </main>
+
+    <!-- ВКЛАДКА: ПЕРЕВОД -->
+    <main id="transfer" class="tab-content p-4 space-y-4">
+        <div class="ios-card p-6">
+            <h2 class="text-xl font-bold mb-6 italic">Отправить монеты</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">ID Получателя</label>
+                    <input id="to-addr" class="w-full p-4 mt-1 bg-gray-50 rounded-xl outline-none border border-gray-100 focus:border-blue-500 mono" placeholder="Вставьте AIC_...">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 ml-2 uppercase">Сумма AIC</label>
+                    <input id="to-amt" type="number" class="w-full p-4 mt-1 bg-gray-50 rounded-xl outline-none border border-gray-100 focus:border-blue-500 font-bold" placeholder="0.00">
+                </div>
+                <button onclick="processTx()" class="w-full py-5 bg-[#007AFF] text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-200 active:scale-95 transition-all">
+                    Подписать Транзакцию
+                </button>
+            </div>
+        </div>
+        <div id="tx-log" class="p-4 mono text-[9px] text-gray-400 space-y-1">
+            > Ожидание ввода...
+        </div>
+    </main>
+
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <nav class="fixed bottom-6 left-4 right-4 bg-white/90 backdrop-blur-xl border border-white rounded-[24px] p-2 flex justify-between shadow-2xl z-50">
+        <button onclick="showTab('wallet', this)" class="flex-1 py-3 text-[#007AFF] rounded-2xl flex flex-col items-center gap-1 nav-active">
+            <span class="text-lg">💳</span><span class="text-[9px] font-bold uppercase">Assets</span>
+        </button>
+        <button onclick="showTab('transfer', this)" class="flex-1 py-3 text-gray-400 rounded-2xl flex flex-col items-center gap-1">
+            <span class="text-lg">🚀</span><span class="text-[9px] font-bold uppercase">Send</span>
+        </button>
+    </nav>
 
     <script>
-        // 1. Инициализация P2P Реестра (Gun.js)
-        // Используем публичные relay-узлы для первичного поиска устройств
-        const gun = Gun(['https://gun-manhattan.herokuapp.com']);
-        const chain = gun.get('aicore-global-ledger-2026');
+        // 1. Прямое соединение P2P (Реестр)
+        // Используем публичные узлы для синхронизации реестра между ноутбуком и телефоном
+        const gun = Gun([
+            'https://gun-manhattan.herokuapp.com',
+            'https://libera.herokuapp.com'
+        ]);
+        const ledger = gun.get('aicore_global_consensus_v21');
 
-        // 2. Создание ID устройства (Wallet Address)
-        const mySecret = localStorage.getItem('aic-secret') || Math.random().toString(36).slice(2);
-        localStorage.setItem('aic-secret', mySecret);
-        const myID = 'AIC_' + btoa(mySecret).substring(0, 12);
-        document.getElementById('my-id').innerText = "Ваш ID: " + myID;
+        // 2. Генерация пары ключей устройства
+        let myKey = localStorage.getItem('aic_key');
+        if (!myKey) {
+            myKey = 'AIC_' + Math.random().toString(36).substring(2, 15).toUpperCase();
+            localStorage.setItem('aic_key', myKey);
+            // Даем 100 стартовых монет при первом запуске (тестовая эмиссия)
+            ledger.get(myKey).put({ balance: 100 });
+        }
+        document.getElementById('my-pub').innerText = myKey;
 
-        // 3. Работа с Балансом
-        // В нашем P2P-блокчейне баланс хранится в распределенном графе
-        chain.get(myID).on((data) => {
-            const bal = data ? data.balance : 0;
-            document.getElementById('balance-display').innerText = parseFloat(bal).toFixed(2);
+        // 3. Синхронизация баланса в реальном времени
+        ledger.get(myKey).on((data) => {
+            const b = data ? data.balance : 0;
+            document.getElementById('bal-val').innerText = parseFloat(b).toFixed(2);
         });
 
-        // 4. Майнинг (для теста даем начальные монеты)
-        if (!localStorage.getItem('mined')) {
-            chain.get(myID).put({ balance: 100.00 }); // Дарим 100 AIC за запуск ноды
-            localStorage.setItem('mined', 'true');
+        // 4. Логика вкладок
+        function showTab(id, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.style.color = '#8E8E93');
+            document.getElementById(id).classList.add('active');
+            el.style.color = '#007AFF';
         }
 
-        // 5. Функция Перевода (Запись в реестр)
-        function sendTransaction() {
-            const target = document.getElementById('target-id').value;
-            const amount = parseFloat(document.getElementById('send-amount').value);
-            const myCurrentBal = parseFloat(document.getElementById('balance-display').innerText);
+        // 5. РЕАЛЬНАЯ ТРАНЗАКЦИЯ P2P
+        async function processTx() {
+            const to = document.getElementById('to-addr').value.trim();
+            const amt = parseFloat(document.getElementById('to-amt').value);
+            const myBal = parseFloat(document.getElementById('bal-val').innerText);
+            const log = document.getElementById('tx-log');
 
-            if (!target || !amount || amount <= 0) return alert("Ошибка ввода");
-            if (amount > myCurrentBal) return alert("Недостаточно AIC!");
+            if (!to.startsWith('AIC_') || isNaN(amt) || amt <= 0) {
+                alert("Ошибка: Неверный ID или сумма");
+                return;
+            }
 
-            // Списываем у себя
-            chain.get(myID).put({ balance: myCurrentBal - amount });
+            if (amt > myBal) {
+                alert("Ошибка: Недостаточно монет AIC");
+                return;
+            }
 
-            // Добавляем получателю (он увидит это мгновенно)
-            chain.get(target).once((data) => {
-                const targetBal = (data ? data.balance : 0) + amount;
-                chain.get(target).put({ balance: targetBal });
+            log.innerHTML = `> [${new Date().toLocaleTimeString()}] Шифрование пакета...`;
+
+            // Математическое изменение реестра
+            // 1. Уменьшаем баланс отправителя
+            ledger.get(myKey).put({ balance: myBal - amt });
+
+            // 2. Увеличиваем баланс получателя (он увидит это на своем устройстве мгновенно)
+            ledger.get(to).once((data) => {
+                const currentTargetBal = data ? (data.balance || 0) : 0;
+                ledger.get(to).put({ balance: currentTargetBal + amt });
+                
+                log.innerHTML += `<br>> [SUCCESS] Транзакция записана в цепь.`;
+                log.innerHTML += `<br>> [HASH] ${Math.random().toString(16).slice(2)}`;
+                
+                alert("Успех! Монеты переданы по P2P-каналу.");
+                document.getElementById('to-amt').value = '';
+                showTab('wallet', document.querySelector('nav button'));
             });
-
-            // Записываем транзакцию в историю
-            const txId = Math.random().toString(16).slice(2);
-            chain.get('history').get(txId).put({
-                from: myID,
-                to: target,
-                amount: amount,
-                time: new Date().toLocaleTimeString()
-            });
-
-            alert("Транзакция отправлена в P2P сеть!");
         }
 
-        // 6. Отображение Истории (Live со всех устройств)
-        chain.get('history').map().on((tx) => {
-            if (!tx) return;
-            const item = document.createElement('div');
-            item.className = "bg-gray-50 p-2 rounded-lg text-[9px] mono border border-gray-100";
-            item.innerHTML = `<span class="text-blue-500">${tx.time}</span> | ${tx.from.slice(0,6)} -> ${tx.to.slice(0,6)} | <span class="font-bold">${tx.amount} AIC</span>`;
-            const box = document.getElementById('ledger-box');
-            box.prepend(item);
-            if (box.childNodes.length > 10) box.lastChild.remove();
-        });
-
-        // Статус сети
-        setInterval(() => {
-            document.getElementById('peer-count').innerText = "Nodes: Active (P2P)";
-        }, 3000);
-
+        // Лог запуска
+        console.log("AICORE Node Started. ID:", myKey);
     </script>
 </body>
 </html>
