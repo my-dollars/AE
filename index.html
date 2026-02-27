@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AETERNA L1 // DECENTRALIZED DAO</title>
+    <style>
+        :root { --bg: #0f171e; --panel: #1c2733; --blue: #3390ec; --text: #fff; --hint: #708499; --burn: #ff4b4b; --green: #31b545; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; font-size: 14px; }
+        .header { background: var(--panel); padding: 15px; text-align: center; font-weight: bold; border-bottom: 1px solid #000; letter-spacing: 2px; }
+        .tabs { display: flex; background: var(--panel); border-bottom: 1px solid #000; }
+        .tab { flex: 1; padding: 12px; text-align: center; font-size: 11px; cursor: pointer; color: var(--hint); }
+        .tab.active { color: var(--blue); border-bottom: 2px solid var(--blue); }
+        .content { flex: 1; padding: 15px; overflow-y: auto; display: none; flex-direction: column; gap: 15px; }
+        .content.active { display: flex; }
+        .card { background: var(--panel); padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .balance { font-size: 38px; font-weight: bold; text-align: center; color: var(--blue); margin: 10px 0; }
+        .burn-info { font-size: 10px; color: var(--burn); text-align: center; margin-bottom: 10px; font-weight: bold; }
+        .addr { font-family: monospace; font-size: 10px; color: var(--hint); background: #000; padding: 10px; border-radius: 10px; word-break: break-all; text-align: center; }
+        textarea { background: #000; border: 1px solid #333; color: #00ff41; padding: 10px; border-radius: 10px; width: calc(100% - 22px); font-size: 9px; height: 60px; resize: none; margin-top: 10px; }
+        input { background: #000; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; width: calc(100% - 26px); outline: none; margin-bottom: 10px; }
+        .btn { background: var(--blue); color: #fff; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        .btn-mine { background: var(--green); }
+        .log { font-size: 11px; color: var(--hint); background: #000; padding: 12px; border-radius: 12px; height: 80px; overflow-y: auto; border: 1px solid #1c2733; }
+    </style>
+</head>
+<body>
+
+<div class="header">AETERNA L1 // DAO</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="showTab('wallet')">КОШЕЛЕК</div>
+    <div class="tab" onclick="showTab('network')">P2P СЕТЬ</div>
+    <div class="tab" onclick="showTab('send')">ОТПРАВИТЬ</div>
+</div>
+
+<!-- ВКЛАДКА: КОШЕЛЕК -->
+<div id="wallet" class="content active">
+    <div class="card">
+        <div class="balance" id="bal">0.00 AE</div>
+        <div class="burn-info">СОЖЖЕНО: <span id="total-burned">0.00</span> AE</div>
+        <div class="addr" id="my-addr">Генерация адреса...</div>
+    </div>
+    <button class="btn btn-mine" onclick="mine()">GENERATE BLOCK (MINE)</button>
+    <div class="log" id="sys-log">> Система Aeterna готова.</div>
+</div>
+
+<!-- ВКЛАДКА: СЕТЬ (P2P Handshake) -->
+<div id="network" class="content">
+    <div class="card">
+        <div style="font-weight: bold; font-size: 12px;">СВЯЗЬ С ДРУГИМ ГОРОДОМ (WebRTC)</div>
+        <p style="font-size: 11px; color: var(--hint);">1. Нажмите "Создать сигнал" и отправьте другу.<br>2. Вставьте сигнал друга ниже и нажмите "Соединить".</p>
+        <textarea id="local-sig" readonly placeholder="Ваш сигнал появится здесь..."></textarea>
+        <button class="btn" style="background:#2b3744; margin-top:5px;" onclick="createP2POffer()">СОЗДАТЬ СИГНАЛ</button>
+        <textarea id="remote-sig" placeholder="Вставьте сигнал друга сюда..."></textarea>
+        <button class="btn" onclick="connectToPeer()">СОЕДИНИТЬ УЗЛЫ</button>
+    </div>
+</div>
+
+<!-- ВКЛАДКА: ОТПРАВИТЬ -->
+<div id="send" class="content">
+    <div class="card">
+        <div style="font-size: 12px; margin-bottom: 10px;">ОТПРАВКА С СЖИГАНИЕМ 1%</div>
+        <input type="text" id="to-addr" placeholder="Адрес получателя (AE_...)">
+        <input type="number" id="amt" placeholder="Сумма AE">
+        <button class="btn" onclick="sendTransaction()">ОТПРАВИТЬ ПО КАНАЛУ</button>
+    </div>
+</div>
+
+<script>
+    let state = { balance: 0, burned: 0, id: '' };
+    let pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    let dc;
+
+    // 1. ИНИЦИАЛИЗАЦИЯ
+    function init() {
+        state.id = "AE_" + Math.random().toString(16).slice(2,12).toUpperCase();
+        document.getElementById('my-addr').innerText = state.id;
+        
+        pc.ondatachannel = (e) => setupChannel(e.channel);
+        updateUI();
+    }
+
+    function showTab(id) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // 2. P2P ЛОГИКА (WEB RTC)
+    async function createP2POffer() {
+        dc = pc.createDataChannel("aeterna_p2p");
+        setupChannel(dc);
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        pc.onicecandidate = (e) => {
+            if (!e.candidate) document.getElementById('local-sig').value = btoa(JSON.stringify(pc.localDescription));
+        };
+        log("Сигнал создан. Отправьте его партнеру.");
+    }
+
+    async function connectToPeer() {
+        const raw = document.getElementById('remote-sig').value;
+        if(!raw) return;
+        const desc = new RTCSessionDescription(JSON.parse(atob(raw)));
+        await pc.setRemoteDescription(desc);
+        if (desc.type === "offer") {
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            document.getElementById('local-sig').value = btoa(JSON.stringify(pc.localDescription));
+            log("Ответ создан. Отправьте его инициатору.");
+        } else {
+            log("Соединение установлено!");
+        }
+    }
+
+    function setupChannel(channel) {
+        dc = channel;
+        dc.onopen = () => log("ПРЯМОЙ КАНАЛ СВЯЗИ ОТКРЫТ.");
+        dc.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if(data.type === "SEND") {
+                state.balance += data.amt;
+                log(`ПОЛУЧЕНО: +${data.amt} AE от удаленного узла.`);
+                updateUI();
+            }
+        };
+    }
+
+    // 3. ТРАНЗАКЦИЯ И СЖИГАНИЕ
+    function sendTransaction() {
+        const amt = parseFloat(document.getElementById('amt').value);
+        if(!dc || dc.readyState !== "open") return log("Ошибка: Нет P2P соединения!");
+        if(state.balance < amt || amt <= 0) return log("Недостаточно средств!");
+
+        const burn = amt * 0.01; // 1% сжигается
+        const netAmt = amt - burn;
+
+        state.balance -= amt;
+        state.burned += burn;
+        
+        dc.send(JSON.stringify({ type: "SEND", amt: netAmt }));
+        log(`ОТПРАВЛЕНО: ${netAmt.toFixed(2)}. СОЖЖЕНО: ${burn.toFixed(2)} AE.`);
+        updateUI();
+    }
+
+    function mine() {
+        state.balance += 12.5;
+        log("Блок добыт. Эмиссия: +12.5 AE.");
+        updateUI();
+    }
+
+    function log(m) {
+        const l = document.getElementById('sys-log');
+        l.innerHTML = `<div>> ${m}</div>` + l.innerHTML;
+    }
+
+    function updateUI() {
+        document.getElementById('bal').innerText = state.balance.toFixed(2) + " AE";
+        document.getElementById('total-burned').innerText = state.burned.toFixed(2);
+    }
+
+    init();
+</script>
+</body>
+</html>
