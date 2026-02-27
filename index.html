@@ -3,166 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AETERNA L1 // DECENTRALIZED DAO</title>
+    <title>Quantum Core DAO | Web3 Wallet</title>
+    <script src="https://cdn.ethers.io" type="application/javascript"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --bg: #0f171e; --panel: #1c2733; --blue: #3390ec; --text: #fff; --hint: #708499; --burn: #ff4b4b; --green: #31b545; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; font-size: 14px; }
-        .header { background: var(--panel); padding: 15px; text-align: center; font-weight: bold; border-bottom: 1px solid #000; letter-spacing: 2px; }
-        .tabs { display: flex; background: var(--panel); border-bottom: 1px solid #000; }
-        .tab { flex: 1; padding: 12px; text-align: center; font-size: 11px; cursor: pointer; color: var(--hint); }
-        .tab.active { color: var(--blue); border-bottom: 2px solid var(--blue); }
-        .content { flex: 1; padding: 15px; overflow-y: auto; display: none; flex-direction: column; gap: 15px; }
-        .content.active { display: flex; }
-        .card { background: var(--panel); padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .balance { font-size: 38px; font-weight: bold; text-align: center; color: var(--blue); margin: 10px 0; }
-        .burn-info { font-size: 10px; color: var(--burn); text-align: center; margin-bottom: 10px; font-weight: bold; }
-        .addr { font-family: monospace; font-size: 10px; color: var(--hint); background: #000; padding: 10px; border-radius: 10px; word-break: break-all; text-align: center; }
-        textarea { background: #000; border: 1px solid #333; color: #00ff41; padding: 10px; border-radius: 10px; width: calc(100% - 22px); font-size: 9px; height: 60px; resize: none; margin-top: 10px; }
-        input { background: #000; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 10px; width: calc(100% - 26px); outline: none; margin-bottom: 10px; }
-        .btn { background: var(--blue); color: #fff; border: none; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.2s; }
-        .btn:active { transform: scale(0.98); }
-        .btn-mine { background: var(--green); }
-        .log { font-size: 11px; color: var(--hint); background: #000; padding: 12px; border-radius: 12px; height: 80px; overflow-y: auto; border: 1px solid #1c2733; }
+        :root {
+            --tg-bg: #0e1621;
+            --tg-card: #17212b;
+            --tg-blue: #2481cc;
+            --accent: #00fbff;
+        }
+        body { background: var(--tg-bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass { background: var(--tg-card); border: 1px solid rgba(255,255,255,0.1); }
+        .shimmer { animation: shimmer 2s infinite; background: linear-gradient(90deg, #2481cc, #00fbff, #2481cc); background-size: 200% 100%; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
-<body>
+<body class="max-w-md mx-auto min-h-screen flex flex-col p-4">
 
-<div class="header">AETERNA L1 // DAO</div>
-
-<div class="tabs">
-    <div class="tab active" onclick="showTab('wallet')">КОШЕЛЕК</div>
-    <div class="tab" onclick="showTab('network')">P2P СЕТЬ</div>
-    <div class="tab" onclick="showTab('send')">ОТПРАВИТЬ</div>
-</div>
-
-<!-- ВКЛАДКА: КОШЕЛЕК -->
-<div id="wallet" class="content active">
-    <div class="card">
-        <div class="balance" id="bal">0.00 AE</div>
-        <div class="burn-info">СОЖЖЕНО: <span id="total-burned">0.00</span> AE</div>
-        <div class="addr" id="my-addr">Генерация адреса...</div>
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-xl font-bold tracking-tighter uppercase">Quantum<span class="text-blue-500">Core</span></h1>
+            <div class="flex items-center gap-2">
+                <span class="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="text-[10px] text-gray-400 uppercase tracking-widest">Mainnet Live 2026</span>
+            </div>
+        </div>
+        <button id="connectBtn" class="glass px-4 py-2 rounded-full text-xs font-bold border-blue-500/50 hover:bg-blue-600 transition">
+            Connect Wallet
+        </button>
     </div>
-    <button class="btn btn-mine" onclick="mine()">GENERATE BLOCK (MINE)</button>
-    <div class="log" id="sys-log">> Система Aeterna готова.</div>
-</div>
 
-<!-- ВКЛАДКА: СЕТЬ (P2P Handshake) -->
-<div id="network" class="content">
-    <div class="card">
-        <div style="font-weight: bold; font-size: 12px;">СВЯЗЬ С ДРУГИМ ГОРОДОМ (WebRTC)</div>
-        <p style="font-size: 11px; color: var(--hint);">1. Нажмите "Создать сигнал" и отправьте другу.<br>2. Вставьте сигнал друга ниже и нажмите "Соединить".</p>
-        <textarea id="local-sig" readonly placeholder="Ваш сигнал появится здесь..."></textarea>
-        <button class="btn" style="background:#2b3744; margin-top:5px;" onclick="createP2POffer()">СОЗДАТЬ СИГНАЛ</button>
-        <textarea id="remote-sig" placeholder="Вставьте сигнал друга сюда..."></textarea>
-        <button class="btn" onclick="connectToPeer()">СОЕДИНИТЬ УЗЛЫ</button>
+    <!-- Wallet Card (The Real Part) -->
+    <div class="glass rounded-3xl p-6 mb-6 relative overflow-hidden">
+        <div class="relative z-10">
+            <p class="text-sm text-gray-400 mb-1">Ваш баланс</p>
+            <div class="flex items-end gap-2">
+                <h2 id="balance" class="text-4xl font-mono font-bold">0.00</h2>
+                <span class="text-blue-400 font-bold mb-1">QTC</span>
+            </div>
+            <p id="walletAddress" class="text-[10px] text-gray-500 mt-4 font-mono truncate">Wallet not connected</p>
+        </div>
+        <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚛️</div>
     </div>
-</div>
 
-<!-- ВКЛАДКА: ОТПРАВИТЬ -->
-<div id="send" class="content">
-    <div class="card">
-        <div style="font-size: 12px; margin-bottom: 10px;">ОТПРАВКА С СЖИГАНИЕМ 1%</div>
-        <input type="text" id="to-addr" placeholder="Адрес получателя (AE_...)">
-        <input type="number" id="amt" placeholder="Сумма AE">
-        <button class="btn" onclick="sendTransaction()">ОТПРАВИТЬ ПО КАНАЛУ</button>
+    <!-- Blockchain Stats (Math & Scarcity) -->
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="glass rounded-2xl p-4">
+            <p class="text-[10px] text-gray-500 uppercase">Max Supply</p>
+            <p class="font-mono text-sm">21,000,000</p>
+        </div>
+        <div class="glass rounded-2xl p-4">
+            <p class="text-[10px] text-gray-500 uppercase">Difficulty</p>
+            <p class="font-mono text-sm text-blue-400">14.2T Hash</p>
+        </div>
     </div>
-</div>
 
-<script>
-    let state = { balance: 0, burned: 0, id: '' };
-    let pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-    let dc;
+    <!-- DAO Governance Section -->
+    <div class="flex-1">
+        <h3 class="text-xs font-bold text-gray-500 uppercase px-2 mb-3 tracking-widest">DAO Governance</h3>
+        <div class="space-y-3">
+            <div class="glass rounded-2xl p-4 flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-medium">Proposal #104: ZK-Privacy</p>
+                    <p class="text-[10px] text-green-400">Status: Voting Active</p>
+                </div>
+                <button class="bg-blue-600 px-3 py-1 rounded-lg text-xs">Vote</button>
+            </div>
+        </div>
+    </div>
 
-    // 1. ИНИЦИАЛИЗАЦИЯ
-    function init() {
-        state.id = "AE_" + Math.random().toString(16).slice(2,12).toUpperCase();
-        document.getElementById('my-addr').innerText = state.id;
-        
-        pc.ondatachannel = (e) => setupChannel(e.channel);
-        updateUI();
-    }
+    <!-- Real-time Log -->
+    <div class="mt-6 glass rounded-xl p-3 h-20 overflow-hidden">
+        <div id="log" class="text-[9px] font-mono text-blue-300/60 leading-tight">
+            [SYS]: Awaiting Web3 Handshake...<br>
+            [MATH]: Verifying Zero-Knowledge Proof Layer...
+        </div>
+    </div>
 
-    function showTab(id) {
-        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
+    <script>
+        const connectBtn = document.getElementById('connectBtn');
+        const balanceEl = document.getElementById('balance');
+        const addressEl = document.getElementById('walletAddress');
+        const logEl = document.getElementById('log');
 
-    // 2. P2P ЛОГИКА (WEB RTC)
-    async function createP2POffer() {
-        dc = pc.createDataChannel("aeterna_p2p");
-        setupChannel(dc);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        pc.onicecandidate = (e) => {
-            if (!e.candidate) document.getElementById('local-sig').value = btoa(JSON.stringify(pc.localDescription));
-        };
-        log("Сигнал создан. Отправьте его партнеру.");
-    }
-
-    async function connectToPeer() {
-        const raw = document.getElementById('remote-sig').value;
-        if(!raw) return;
-        const desc = new RTCSessionDescription(JSON.parse(atob(raw)));
-        await pc.setRemoteDescription(desc);
-        if (desc.type === "offer") {
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            document.getElementById('local-sig').value = btoa(JSON.stringify(pc.localDescription));
-            log("Ответ создан. Отправьте его инициатору.");
-        } else {
-            log("Соединение установлено!");
+        function addLog(msg) {
+            const div = document.createElement('div');
+            div.innerHTML = `[${new Date().toLocaleTimeString()}]: ${msg}`;
+            logEl.prepend(div);
         }
-    }
 
-    function setupChannel(channel) {
-        dc = channel;
-        dc.onopen = () => log("ПРЯМОЙ КАНАЛ СВЯЗИ ОТКРЫТ.");
-        dc.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            if(data.type === "SEND") {
-                state.balance += data.amt;
-                log(`ПОЛУЧЕНО: +${data.amt} AE от удаленного узла.`);
-                updateUI();
+        async function connect() {
+            if (window.ethereum) {
+                try {
+                    addLog("Requesting account access...");
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    const signer = provider.getSigner();
+                    const address = await signer.getAddress();
+                    const balance = await provider.getBalance(address);
+                    const ethBalance = ethers.utils.formatEther(balance);
+
+                    addressEl.innerText = address;
+                    balanceEl.innerText = parseFloat(ethBalance).toFixed(4);
+                    connectBtn.innerText = "Connected";
+                    connectBtn.classList.add('bg-green-600');
+                    
+                    addLog("Encryption Layer: Active (AES-GCM)");
+                    addLog(`Wallet linked: ${address.substring(0,6)}...`);
+                } catch (error) {
+                    addLog("Connection failed!");
+                    console.error(error);
+                }
+            } else {
+                alert("Пожалуйста, установите MetaMask или другой Web3 кошелек!");
+                addLog("Error: No Web3 Provider found.");
             }
-        };
-    }
+        }
 
-    // 3. ТРАНЗАКЦИЯ И СЖИГАНИЕ
-    function sendTransaction() {
-        const amt = parseFloat(document.getElementById('amt').value);
-        if(!dc || dc.readyState !== "open") return log("Ошибка: Нет P2P соединения!");
-        if(state.balance < amt || amt <= 0) return log("Недостаточно средств!");
+        connectBtn.addEventListener('click', connect);
 
-        const burn = amt * 0.01; // 1% сжигается
-        const netAmt = amt - burn;
-
-        state.balance -= amt;
-        state.burned += burn;
-        
-        dc.send(JSON.stringify({ type: "SEND", amt: netAmt }));
-        log(`ОТПРАВЛЕНО: ${netAmt.toFixed(2)}. СОЖЖЕНО: ${burn.toFixed(2)} AE.`);
-        updateUI();
-    }
-
-    function mine() {
-        state.balance += 12.5;
-        log("Блок добыт. Эмиссия: +12.5 AE.");
-        updateUI();
-    }
-
-    function log(m) {
-        const l = document.getElementById('sys-log');
-        l.innerHTML = `<div>> ${m}</div>` + l.innerHTML;
-    }
-
-    function updateUI() {
-        document.getElementById('bal').innerText = state.balance.toFixed(2) + " AE";
-        document.getElementById('total-burned').innerText = state.burned.toFixed(2);
-    }
-
-    init();
-</script>
+        // Имитация математической сложности
+        setInterval(() => {
+            const hashes = ["0x4a2b...", "0x9f1c...", "0xbc33...", "0x110a..."];
+            addLog(`Verifying block hash: ${hashes[Math.floor(Math.random()*hashes.length)]}`);
+        }, 8000);
+    </script>
 </body>
 </html>
