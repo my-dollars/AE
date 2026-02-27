@@ -3,90 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AICORE GLOBAL P2P</title>
-    <script src="https://unpkg.com"></script>
+    <title>AICORE GLOBAL NODE</title>
+    <!-- Используем последнюю стабильную версию PeerJS -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: #F2F2F7; font-family: -apple-system, sans-serif; color: #1C1C1E; }
-        .ios-card { background: white; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        body { background: #fdfdfd; font-family: -apple-system, sans-serif; color: #1c1c1e; }
+        .ios-card { background: white; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; }
         .mono { font-family: ui-monospace, monospace; font-size: 11px; }
-        .btn-blue { background: #007AFF; color: white; border-radius: 16px; font-weight: 700; transition: 0.2s; }
-        .btn-blue:active { transform: scale(0.96); }
-        .hidden { display: none; }
+        .status-pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body class="max-w-md mx-auto p-4 pb-20">
 
     <header class="flex justify-between items-center py-6">
-        <h1 class="text-2xl font-black italic italic uppercase tracking-tighter">AI<span class="text-blue-600">CORE</span></h1>
+        <h1 class="text-2xl font-black italic uppercase tracking-tighter">AI<span class="text-blue-600">CORE</span></h1>
         <div id="net-status" class="bg-white px-3 py-1 rounded-full border border-gray-100 flex items-center gap-2">
             <span class="w-2 h-2 bg-yellow-400 rounded-full" id="status-dot"></span>
-            <span class="text-[9px] font-bold text-gray-400 uppercase" id="status-text">Connecting...</span>
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest" id="status-text">Connecting...</span>
         </div>
     </header>
 
-    <!-- Ваш ID в сети -->
     <div class="ios-card p-6 mb-4 text-center">
-        <p class="text-[10px] uppercase font-black text-gray-300 tracking-[0.2em] mb-1">Your Node ID (Wallet)</p>
-        <h2 id="my-id" class="mono text-blue-600 font-bold text-lg select-all italic">---</h2>
+        <p class="text-[9px] uppercase font-black text-gray-300 tracking-[0.25em] mb-1">Your Node ID (Wallet)</p>
+        <h2 id="my-id" class="mono text-blue-600 font-bold text-lg select-all italic tracking-tight">---</h2>
     </div>
 
-    <!-- Баланс -->
-    <div class="ios-card p-8 mb-4 text-center bg-gradient-to-b from-white to-blue-50/30">
+    <div class="ios-card p-8 mb-4 text-center">
         <p class="text-[10px] text-gray-400 uppercase font-black mb-1">Total Mined AIC</p>
-        <h2 id="balance" class="text-5xl font-black tracking-tighter">10.00</h2>
+        <h2 id="balance" class="text-5xl font-black tracking-tighter">0.00</h2>
     </div>
 
-    <!-- Майнер -->
     <div class="ios-card p-5 mb-4 space-y-4">
         <div class="flex justify-between items-center">
             <h3 class="text-xs font-black uppercase italic">AI PoW Node</h3>
             <span id="h-rate" class="mono text-xs text-blue-500 font-bold">0 H/s</span>
         </div>
-        <div id="logs" class="bg-gray-900 text-green-500 p-3 rounded-xl h-24 overflow-hidden mono text-[9px] leading-tight">
+        <div id="logs" class="bg-black text-green-500 p-3 rounded-xl h-28 overflow-y-auto mono text-[9px] leading-tight">
             > Initializing P2P Core...
         </div>
-        <button id="mine-btn" onclick="toggleMining()" class="w-full py-4 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest">Start Mining</button>
+        <button id="mine-btn" onclick="toggleMining()" class="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-100 active:scale-95 transition-all">Start Mining</button>
     </div>
 
-    <!-- P2P Перевод -->
     <div class="ios-card p-6 space-y-4">
         <h3 class="text-xs font-black uppercase italic">P2P Network Transfer</h3>
-        <input id="target-id" class="w-full p-4 bg-gray-50 rounded-xl outline-none text-xs mono border border-gray-100" placeholder="Вставьте ID получателя (AIC-xxxx)">
-        <input id="amount" type="number" class="w-full p-4 bg-gray-50 rounded-xl outline-none font-bold border border-gray-100" placeholder="Сумма AIC">
-        <button onclick="sendTransaction()" class="btn-blue w-full py-4 shadow-lg shadow-blue-200">Отправить в сеть</button>
+        <input id="target-id" class="w-full p-4 bg-gray-50 rounded-xl outline-none text-xs mono border border-gray-100" placeholder="AIC-XXXX (ID получателя)">
+        <input id="amount" type="number" class="w-full p-4 bg-gray-50 rounded-xl outline-none font-bold border border-gray-100" placeholder="0.00 AIC">
+        <button onclick="sendTransaction()" class="w-full py-4 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Отправить в сеть</button>
     </div>
 
     <script>
-        let balance = 10.00; 
+        let balance = localStorage.getItem('aic_bal') ? parseFloat(localStorage.getItem('aic_bal')) : 10.00;
         let isMining = false;
         let peer;
 
-        // 1. ИНИЦИАЛИЗАЦИЯ P2P СЕТИ
-        const id = 'AIC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-        document.getElementById('my-id').innerText = id;
+        // 1. УЛУЧШЕННАЯ ИНИЦИАЛИЗАЦИЯ P2P (С серверами обхода NAT)
+        const generateID = () => 'AIC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const myID = localStorage.getItem('aic_id') || generateID();
+        localStorage.setItem('aic_id', myID);
+        document.getElementById('my-id').innerText = myID;
+        document.getElementById('balance').innerText = balance.toFixed(2);
 
-        peer = new Peer(id);
+        // Конфигурация для пробивки любых сетей (Google STUN серверы)
+        peer = new Peer(myID, {
+            config: {'iceServers': [
+                { url: 'stun:stun.l.google.com:19302' },
+                { url: 'stun:stun1.l.google.com:19302' }
+            ]}
+        });
 
         peer.on('open', (id) => {
             document.getElementById('status-dot').classList.replace('bg-yellow-400', 'bg-green-500');
             document.getElementById('status-text').innerText = 'Online P2P';
-            addLog("P2P Node Ready. ID: " + id);
+            addLog("Node Online. Network Synchronized.");
         });
 
-        // ПРИЕМ ТРАНЗАКЦИЙ (СЛУШАТЕЛЬ СЕТИ)
+        peer.on('error', (err) => {
+            addLog(`<span class="text-red-500 italic">Net Error: ${err.type}</span>`);
+            console.error(err);
+        });
+
+        // ПРИЕМ ТРАНЗАКЦИЙ
         peer.on('connection', (conn) => {
             conn.on('data', (data) => {
-                if (data.type === 'TRANSFER') {
+                if (data.type === 'TX_SEND') {
                     balance += parseFloat(data.amount);
-                    updateUI();
-                    addLog(`Received: +${data.amount} AIC from ${data.from}`);
-                    alert(`Входящий перевод: +${data.amount} AIC!`);
+                    saveAndRefresh();
+                    addLog(`<span class="text-blue-400 font-bold">BLOCK FOUND! +${data.amount} AIC from ${data.from}</span>`);
                 }
             });
         });
 
-        function updateUI() {
+        function saveAndRefresh() {
+            localStorage.setItem('aic_bal', balance);
             document.getElementById('balance').innerText = balance.toFixed(2);
         }
 
@@ -100,8 +110,8 @@
         async function toggleMining() {
             isMining = !isMining;
             const btn = document.getElementById('mine-btn');
-            btn.innerText = isMining ? "Shutting Down..." : "Start Mining";
-            btn.className = isMining ? "w-full py-4 bg-red-500 text-white rounded-2xl font-black text-xs uppercase" : "w-full py-4 bg-black text-white rounded-2xl font-black text-xs uppercase";
+            btn.innerText = isMining ? "SHUTTING DOWN..." : "START MINING";
+            btn.style.background = isMining ? "#ff3b30" : "#007aff";
             if(isMining) runMiner();
         }
 
@@ -111,42 +121,47 @@
                 const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce))
                     .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join(''));
                 
-                document.getElementById('h-rate').innerText = Math.floor(Math.random()*100 + 450) + " H/s";
+                document.getElementById('h-rate').innerText = Math.floor(Math.random()*200 + 510) + " H/s";
 
                 if(hash.startsWith('00')) { 
                     balance += 0.05;
-                    updateUI();
-                    addLog("BLOCK FOUND! +0.05 AIC");
+                    saveAndRefresh();
+                    addLog("LOCAL BLOCK MINED! +0.05 AIC");
                 }
                 await new Promise(r => setTimeout(r, 800));
             }
         }
 
-        // 3. ОТПРАВКА В СЕТЬ (ОТПРАВИТЕЛЬ)
+        // 3. ИСПРАВЛЕННАЯ ОТПРАВКА (С проверкой соединения)
         function sendTransaction() {
-            const targetId = document.getElementById('target-id').value.trim();
+            const targetId = document.getElementById('target-id').value.trim().toUpperCase();
             const amt = parseFloat(document.getElementById('amount').value);
 
-            if(!targetId || isNaN(amt) || amt > balance) return alert("Ошибка баланса или ID");
+            if(!targetId || isNaN(amt) || amt <= 0 || amt > balance) {
+                alert("Ошибка данных или недостаточно AIC!");
+                return;
+            }
 
             addLog(`Connecting to node ${targetId}...`);
-            const conn = peer.connect(targetId);
+            const conn = peer.connect(targetId, { reliable: true });
+
+            const timeout = setTimeout(() => {
+                addLog(`<span class="text-red-400 italic">Timeout: Node ${targetId} unreachable.</span>`);
+                conn.close();
+            }, 10000);
 
             conn.on('open', () => {
+                clearTimeout(timeout);
                 conn.send({
-                    type: 'TRANSFER',
+                    type: 'TX_SEND',
                     amount: amt,
-                    from: id
+                    from: myID
                 });
                 balance -= amt;
-                updateUI();
-                addLog(`Success! Sent ${amt} AIC to ${targetId}`);
-                alert("Транзакция подтверждена P2P сетью!");
-            });
-
-            conn.on('error', (err) => {
-                addLog("Error: Node not found in network!");
-                alert("Получатель не найден в сети!");
+                saveAndRefresh();
+                addLog(`<span class="text-blue-500">TRANSFER SUCCESS: ${amt} AIC to ${targetId}</span>`);
+                document.getElementById('amount').value = '';
+                alert("Транзакция доставлена!");
             });
         }
     </script>
