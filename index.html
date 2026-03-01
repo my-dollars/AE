@@ -3,30 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Future Node: DeACN</title>
-    <!-- SDK загружается в фоне, не мешая открытию сайта -->
+    <title>Future Node: DAO Governance</title>
     <script async src="https://telegram.org"></script>
     <style>
         :root { --blue: #007aff; --bg: #000; --card: #0d0d0d; --neon: #00ff41; --gold: #ffd700; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; height: 100vh; overflow: hidden; -webkit-user-select: none; }
         
         #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 30px; text-align: center; background: #000; position: fixed; width: 100%; z-index: 2000; }
-        #main-app { display: none; flex-direction: column; height: 100%; position: relative; }
+        #main-app { display: none; flex-direction: column; height: 100%; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid #1a1a1a; margin: 15px; text-align: center; }
-        .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 16px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; }
+        .card { background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid #1a1a1a; margin: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 18px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; transition: 0.3s; }
         .btn:active { transform: scale(0.98); opacity: 0.8; }
+        .btn:disabled { background: #1a1a1a !important; color: #444 !important; cursor: not-allowed; }
         .btn-stop { background: #ff3b30 !important; }
 
         input { background: #111; border: 1px solid #333; color: var(--neon); padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; }
         .terminal { background: #050505; border-radius: 14px; padding: 12px; font-family: monospace; font-size: 10px; height: 110px; overflow: hidden; color: var(--neon); text-align: left; margin: 15px 0; border: 1px solid #111; line-height: 1.4; }
         
-        .nav { position: fixed; bottom: 0; width: 100%; background: #080808; display: flex; padding-bottom: 25px; border-top: 1px solid #222; }
+        .nav { position: fixed; bottom: 0; width: 100%; background: rgba(10,10,10,0.95); display: flex; padding-bottom: 25px; border-top: 1px solid #222; backdrop-filter: blur(10px); }
         .nav-item { flex: 1; text-align: center; color: #555; background: none; border: none; padding: 15px; font-size: 10px; font-weight: bold; cursor: pointer; }
         .nav-item.active { color: var(--blue); border-top: 2px solid var(--blue); }
         
-        .page { display: none; padding-top: 20px; }
+        .page { display: none; padding-top: 20px; overflow-y: auto; height: calc(100vh - 85px); }
         .page.active { display: block; }
+        
+        .progress-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; margin: 15px 0 10px; }
+        .progress-fill { height: 100%; width: 42.15%; background: var(--blue); transition: 1s cubic-bezier(0.1, 0.7, 1.0, 0.1); }
+        .tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; background: #1a1a1a; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -37,68 +41,122 @@
         <h2 style="letter-spacing: 2px;">FUTURE NODE</h2>
         <p style="color: #444; font-size: 12px; margin-bottom: 30px;">DECENTRALIZED NETWORK (DAO)</p>
         <input type="text" id="login" placeholder="Идентификатор узла">
-        <button class="btn" onclick="start()">ВОЙТИ В СЕТЬ</button>
+        <button class="btn" onclick="startApp()">ИНИЦИИРОВАТЬ СЕТЬ</button>
     </div>
 
     <!-- Основной интерфейс -->
     <div id="main-app">
+        <!-- ТАБ 1: DAO -->
         <div id="p-wallet" class="page active">
             <div class="card" style="border-color: var(--gold); margin-top: 30px;">
-                <div style="font-size: 10px; color: var(--gold); letter-spacing: 1px;">VOTING POWER</div>
-                <div style="font-size: 48px; font-weight: 800; margin: 10px 0;" id="b">0.0000</div>
-                <div style="font-size: 12px; color: var(--gold);" id="vp">0.0000%</div>
+                <div style="font-size: 10px; color: var(--gold); letter-spacing: 1px;">VOTING POWER (BALANCE)</div>
+                <div style="font-size: 48px; font-weight: 800; margin: 10px 0; color: #fff;" id="b">0.0000</div>
+                <div style="font-size: 12px; color: var(--gold);" id="vp">0.000000%</div>
             </div>
-            <div class="card" style="border-style: dashed; text-align: left;">
-                <div style="font-size: 10px; color: #555;">PROPOSAL #1: ACTIVATE STEALTH PROXY</div>
-                <button class="btn" style="margin-top: 10px; padding: 10px; font-size: 10px; background: #1a1a1a;" onclick="alert('Голос принят!')">ГОЛОСОВАТЬ ЗА</button>
+
+            <div class="card" style="text-align: left; background: #0a0a0a;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="tag">Proposal #1</span>
+                    <span style="font-size: 10px; color: var(--neon);">STATUS: ACTIVE</span>
+                </div>
+                <h3 style="margin: 10px 0 5px; font-size: 16px;">Activate Stealth Proxy</h3>
+                <p style="font-size: 11px; color: #666; margin-bottom: 15px; line-height: 1.4;">
+                    Активация маскировки трафика под WebRTC для обхода блокировок. Требуется кворум 51% голосов от общей эмиссии.
+                </p>
+                
+                <div class="progress-bar">
+                    <div id="vote-progress" class="progress-fill"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #444; margin-bottom: 15px;">
+                    <span id="vote-info">За: 42.15% (Target: 51%)</span>
+                    <span>Ends in: 2d 14h</span>
+                </div>
+
+                <button id="vote-btn" class="btn" onclick="castVote()">ПОДТВЕРДИТЬ ГОЛОСОВАНИЕ</button>
+                <p id="vote-hint" style="font-size: 9px; color: #333; margin-top: 10px; text-align: center;">
+                    *Ваш вес голоса равен текущему балансу монет.
+                </p>
             </div>
         </div>
 
+        <!-- ТАБ 2: NODE -->
         <div id="p-node" class="page">
             <div class="card">
-                <div style="display:flex; justify-content: space-between; font-size: 10px; color: #444;">
-                    <span>RELAY NODE</span>
+                <div style="display:flex; justify-content: space-between; font-size: 10px; color: #444; margin-bottom: 15px;">
+                    <span>DECENTRALIZED RELAY</span>
                     <span id="st">OFFLINE</span>
                 </div>
-                <h1 id="bl" style="font-size: 64px; margin: 10px 0;">0</h1>
-                <div class="terminal" id="log">> Консенсус: Ожидание...</div>
-                <button class="btn" id="m-btn" onclick="toggle()">ЗАПУСТИТЬ УЗЕЛ</button>
+                <div style="font-size: 11px; color: #666;">ДОБЫТО БЛОКОВ</div>
+                <h1 id="bl" style="font-size: 64px; margin: 10px 0; color: #fff;">0</h1>
+                <div class="terminal" id="log">> Консенсус ожидает запуска узла...</div>
+                <button class="btn" id="m-btn" onclick="toggleNode()">ЗАПУСТИТЬ МАЙНИНГ</button>
             </div>
         </div>
 
         <nav class="nav">
-            <button class="nav-item active" onclick="tab('wallet', this)">💰 DAO</button>
-            <button class="nav-item" onclick="tab('node', this)">⚡ NODE</button>
+            <button class="nav-item active" id="btn-dao" onclick="tab('wallet', this)">💰 DAO</button>
+            <button class="nav-item" id="btn-node" onclick="tab('node', this)">⚡ NODE</button>
         </nav>
     </div>
 
     <script>
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
         let run = false, timer = null;
-        let s = { b: parseFloat(localStorage.getItem('f_b')) || 0, bl: parseInt(localStorage.getItem('f_bl')) || 0 };
+        let s = { 
+            b: parseFloat(localStorage.getItem('f_b')) || 0, 
+            bl: parseInt(localStorage.getItem('f_bl')) || 0,
+            emission: 1000000 // Общая эмиссия для расчета %
+        };
 
-        function start() {
-            if(document.getElementById('login').value.length < 2) return;
+        const logs = ["Block verified by network...", "Traffic relayed via JP...", "Consensus reached (51%)...", "DPI bypass active...", "Stealth packet sent...", "P2P sync complete..."];
+
+        function startApp() {
+            if(document.getElementById('login').value.length < 2) return alert("Введите имя узла");
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'flex';
+            if(tg) { tg.ready(); tg.expand(); }
             upd();
         }
 
-        function toggle() {
+        function toggleNode() {
             const btn = document.getElementById('m-btn'), st = document.getElementById('st'), log = document.getElementById('log');
             if(run) {
                 run = false; clearInterval(timer);
-                btn.innerText = "ЗАПУСТИТЬ УЗЕЛ"; btn.classList.remove('btn-stop');
+                btn.innerText = "ЗАПУСТИТЬ МАЙНИНГ"; btn.classList.remove('btn-stop');
                 st.innerText = "OFFLINE"; st.style.color = "#444";
             } else {
                 run = true;
                 btn.innerText = "ОСТАНОВИТЬ"; btn.classList.add('btn-stop');
                 st.innerText = "ACTIVE"; st.style.color = "var(--neon)";
                 timer = setInterval(() => {
-                    s.bl++; s.b += (0.005 / (1 + s.bl/1000)); // Дефляционная награда
-                    log.innerHTML = `> [${new Date().toLocaleTimeString()}] Block Verified by Network<br>` + log.innerHTML.slice(0, 500);
+                    s.bl++; s.b += (0.005 / (1 + s.bl/2000)); // Дефляционная награда
+                    log.innerHTML = `> [${new Date().toLocaleTimeString()}] ${logs[Math.floor(Math.random()*logs.length)]}<br>` + log.innerHTML.slice(0, 500);
                     upd();
                     localStorage.setItem('f_b', s.b); localStorage.setItem('f_bl', s.bl);
                 }, 3000);
+                if(tg) tg.HapticFeedback.impactOccurred('medium');
+            }
+        }
+
+        function castVote() {
+            if (s.b <= 0) {
+                if(tg) tg.showAlert("Ошибка: У вас 0 монет. Майните монеты в разделе NODE, чтобы получить право голоса.");
+                else alert("Ошибка: У вас 0 монет.");
+                return;
+            }
+
+            let weight = (s.b / s.emission * 100).toFixed(6);
+            
+            if(confirm(`Вы вносите ${s.b.toFixed(4)} FN (Вес: ${weight}%) за Proposal #1. Подтвердить?`)) {
+                const btn = document.getElementById('vote-btn');
+                btn.innerText = "ГОЛОС УЧТЕН";
+                btn.disabled = true;
+                
+                let currentProgress = 42.15 + parseFloat(weight);
+                document.getElementById('vote-progress').style.width = currentProgress + "%";
+                document.getElementById('vote-info').innerText = `За: ${currentProgress.toFixed(2)}% (Target: 51%)`;
+                
+                if(tg) tg.HapticFeedback.notificationOccurred('success');
             }
         }
 
@@ -112,7 +170,8 @@
         function upd() {
             document.getElementById('b').innerText = s.b.toFixed(4);
             document.getElementById('bl').innerText = s.bl;
-            document.getElementById('vp').innerText = (s.b / 1000000 * 100).toFixed(6) + "%";
+            let vpValue = (s.b / s.emission * 100).toFixed(6);
+            document.getElementById('vp').innerText = vpValue + "%";
         }
     </script>
 </body>
