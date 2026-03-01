@@ -2,142 +2,90 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AICORE NODE</title>
-    <!-- Подключаем только самое необходимое -->
-    <script src="https://cdn.jsdelivr.net"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TG Blockchain</title>
+    <!-- Подключаем SDK Телеграма и Крипто-библиотеку -->
+    <script src="https://telegram.org"></script>
+    <script src="https://cdnjs.cloudflare.com"></script>
+    
     <style>
-        body { background: #F2F2F7; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .ios-card { background: white; border-radius: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.04); border: 1px solid #E5E5EA; }
-        .btn-blue { background: #007AFF; color: white; border-radius: 16px; font-weight: 700; transition: 0.2s; cursor: pointer; }
-        .btn-blue:active { transform: scale(0.96); opacity: 0.9; }
-        .mono { font-family: ui-monospace, monospace; font-size: 11px; }
+        body { font-family: sans-serif; background: #1a1a1a; color: white; text-align: center; padding: 20px; }
+        .block { border: 2px solid #0088cc; margin: 10px auto; padding: 15px; border-radius: 12px; 
+                background: #252525; max-width: 90%; word-wrap: break-word; font-size: 11px; }
+        button { background: #0088cc; color: white; border: none; padding: 15px 30px; 
+                border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .hash { color: #00ff88; }
     </style>
 </head>
-<body class="max-w-md mx-auto p-4 pb-12">
-
-    <!-- Статус -->
-    <header class="flex justify-between items-center py-6">
-        <h1 class="text-2xl font-black italic uppercase tracking-tighter">AI<span class="text-blue-600">CORE</span></h1>
-        <div class="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-gray-100">
-            <span id="status-dot" class="w-2 h-2 bg-yellow-400 rounded-full"></span>
-            <span id="status-text" class="text-[9px] font-bold text-gray-400 uppercase">Syncing...</span>
-        </div>
-    </header>
-
-    <!-- Кошелек -->
-    <div class="ios-card p-6 mb-4 text-center">
-        <p class="text-[9px] uppercase font-black text-gray-300 tracking-[0.2em] mb-1">Your ID (Wallet)</p>
-        <h2 id="my-id" class="mono text-blue-600 font-bold text-lg select-all">AIC-0000</h2>
-    </div>
-
-    <!-- Баланс -->
-    <div class="ios-card p-8 mb-4 text-center bg-gradient-to-b from-white to-blue-50/20">
-        <p class="text-[10px] text-gray-400 uppercase font-black mb-1">Total Mined AIC</p>
-        <h2 id="balance" class="text-6xl font-black tracking-tighter">0.00</h2>
-    </div>
-
-    <!-- Майнер -->
-    <div class="ios-card p-5 mb-4 space-y-4">
-        <div class="flex justify-between items-center px-1">
-            <h3 class="text-xs font-black uppercase italic text-gray-400">PoW Node</h3>
-            <span id="hashrate" class="mono text-blue-500 font-bold">0 H/s</span>
-        </div>
-        <div id="logs" class="bg-gray-50 text-gray-400 p-4 rounded-2xl h-24 overflow-hidden mono text-[10px] leading-tight border border-gray-100">
-            > Блокчейн готов...
-        </div>
-        <button id="mineBtn" class="btn-blue w-full py-5 shadow-lg shadow-blue-100">START MINING</button>
-    </div>
-
-    <!-- Перевод -->
-    <div class="ios-card p-6 space-y-4">
-        <h3 class="text-xs font-black uppercase italic text-gray-400">Transfer</h3>
-        <input id="target-id" class="w-full p-4 bg-gray-50 rounded-xl outline-none text-xs mono border border-gray-100" placeholder="AIC-XXXX (Кому)">
-        <input id="amount" type="number" class="w-full p-4 bg-gray-50 rounded-xl outline-none font-bold border border-gray-100" placeholder="0.00">
-        <button id="sendBtn" class="w-full py-4 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-2xl">ОТПРАВИТЬ</button>
-    </div>
+<body>
+    <h1>Mini Blockchain</h1>
+    <div id="status">Инициализация...</div>
+    <br>
+    <button id="mineBtn">Майнить блок</button>
+    <div id="chain"></div>
 
     <script>
-        // Глобальные переменные
-        let balance = 0;
-        let isMining = false;
-        
-        // 1. Инициализация ID (сразу, без ожидания сети)
-        const myID = localStorage.getItem('aic_id') || 'AIC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-        localStorage.setItem('aic_id', myID);
-        document.getElementById('my-id').innerText = myID;
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-        // 2. Подключение к сети (в фоне)
-        const gun = Gun(['https://gun-manhattan.herokuapp.com']);
-        const chain = gun.get('aicore_chain_v4');
-
-        // Синхронизация баланса
-        chain.get(myID).on((data) => {
-            if (data && data.bal !== undefined) {
-                balance = parseFloat(data.bal);
-                document.getElementById('balance').innerText = balance.toFixed(2);
-            }
-            document.getElementById('status-dot').className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
-            document.getElementById('status-text').innerText = "Online";
-        });
-
-        // 3. Обработка кнопок (Через addEventListener - это надежнее)
-        document.getElementById('mineBtn').addEventListener('click', () => {
-            isMining = !isMining;
-            const btn = document.getElementById('mineBtn');
-            btn.innerText = isMining ? "STOP NODE" : "START MINING";
-            btn.style.background = isMining ? "#FF3B30" : "#007AFF";
-            if(isMining) runMiner();
-        });
-
-        document.getElementById('sendBtn').addEventListener('click', () => {
-            const target = document.getElementById('target-id').value.trim().toUpperCase();
-            const amt = parseFloat(document.getElementById('amount').value);
-
-            if(!target || isNaN(amt) || amt <= 0 || amt > balance) {
-                alert("Ошибка! Проверьте баланс или ID.");
-                return;
+        // Класс блока
+        class Block {
+            constructor(index, data, prevHash = '') {
+                this.index = index;
+                this.data = data;
+                this.prevHash = prevHash;
+                this.timestamp = Date.now();
+                this.hash = this.calculateHash();
             }
 
-            addLog(`Перевод ${amt} на ${target}...`);
-            
-            // Списываем у себя
-            chain.get(myID).put({ bal: balance - amt });
-            
-            // Находим получателя и добавляем ему
-            chain.get(target).once((data) => {
-                const targetBal = data ? (parseFloat(data.bal) || 0) : 0;
-                chain.get(target).put({ bal: targetBal + amt });
-                alert("Успешно! Транзакция в блокчейне.");
-                document.getElementById('amount').value = '';
-            });
-        });
-
-        // 4. Логика майнинга (PoW)
-        async function runMiner() {
-            while(isMining) {
-                const nonce = Math.random().toString(36);
-                // Реальное хеширование
-                const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce))
-                    .then(b => Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join(''));
-                
-                document.getElementById('hashrate').innerText = Math.floor(Math.random()*100 + 400) + " H/s";
-
-                if(hash.startsWith('00')) { 
-                    balance += 0.05;
-                    chain.get(myID).put({ bal: balance });
-                    addLog("BLOCK FOUND! +0.05 AIC");
-                }
-                await new Promise(r => setTimeout(r, 800));
+            calculateHash() {
+                // Безопасный вызов CryptoJS
+                return CryptoJS.SHA256(
+                    this.index + this.prevHash + this.timestamp + JSON.stringify(this.data)
+                ).toString();
             }
         }
 
-        function addLog(msg) {
-            const logs = document.getElementById('logs');
-            logs.innerHTML += `<br>> ${msg}`;
-            logs.scrollTop = logs.scrollHeight;
+        let blockchain = [];
+
+        function init() {
+            // Создаем первый блок
+            blockchain.push(new Block(0, "Genesis Block", "0"));
+            document.getElementById('status').innerText = "Блокчейн готов!";
+            render();
         }
+
+        function render() {
+            const container = document.getElementById('chain');
+            container.innerHTML = blockchain.map(b => `
+                <div class="block">
+                    <b>Блок #${b.index}</b><br>
+                    <span class="hash">Hash: ${b.hash}</span><br>
+                    <small>Prev: ${b.prevHash.substring(0, 24)}...</small>
+                </div>
+            `).reverse().join('');
+        }
+
+        function addBlock() {
+            const prevBlock = blockchain[blockchain.length - 1];
+            const userName = tg.initDataUnsafe.user?.first_name || "Guest";
+            
+            const newBlock = new Block(
+                blockchain.length, 
+                { user: userName, action: "Mine" }, 
+                prevBlock.hash
+            );
+            
+            blockchain.push(newBlock);
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            render();
+        }
+
+        // Ждем полной загрузки страницы и библиотек
+        window.onload = () => {
+            document.getElementById('mineBtn').onclick = addBlock;
+            init();
+        };
     </script>
 </body>
 </html>
