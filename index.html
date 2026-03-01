@@ -3,173 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Future Node: Anti-Censorship Protocol</title>
+    <title>Future Node: Anti-Censorship</title>
     <script src="https://telegram.org"></script>
     <style>
-        :root { --blue: #007aff; --bg: #000000; --card: #111111; --gold: #ffd700; --neon: #00ff41; }
-        body { background: var(--bg); color: #e0e0e0; font-family: 'Courier New', monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --blue: #007aff; --bg: #000000; --card: #111111; --neon: #00ff41; --gold: #ffd700; }
+        body { background: var(--bg); color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; -webkit-user-select: none; }
         
-        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 25px; text-align: center; }
+        /* Экран входа */
+        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 30px; text-align: center; box-sizing: border-box; }
         #main-app { display: none; flex-direction: column; height: 100%; }
         
-        .card { background: var(--card); padding: 20px; border-radius: 15px; margin: 15px; border: 1px solid #333; position: relative; overflow: hidden; }
-        .card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--blue), transparent); animation: scan 3s linear infinite; }
-        @keyframes scan { 0% { left: -100%; } 100% { left: 100%; } }
+        .shield-icon { font-size: 80px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(0,122,255,0.5)); }
+        h2 { letter-spacing: 4px; margin: 10px 0; font-weight: 900; }
+        .subtitle { color: #666; font-size: 11px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .balance-num { font-size: 45px; font-weight: bold; color: var(--gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-        .terminal { background: #050505; border-radius: 8px; padding: 12px; font-size: 10px; height: 120px; overflow-y: hidden; color: var(--neon); border: 1px solid #222; margin-top: 15px; line-height: 1.4; }
+        .card { background: var(--card); padding: 20px; border-radius: 20px; margin: 15px; border: 1px solid #222; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .balance-num { font-size: 50px; font-weight: 800; color: var(--gold); margin: 10px 0; }
         
-        input { background: #111; border: 1px solid #444; color: var(--neon); padding: 15px; width: 100%; box-sizing: border-box; border-radius: 5px; margin-bottom: 10px; font-size: 16px; }
-        .btn { background: var(--blue); color: white; border: none; padding: 20px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; }
-        .btn:active { background: #0056b3; }
-        .btn-stop { background: #cc0000 !important; }
+        .terminal { background: #050505; border-radius: 12px; padding: 12px; font-family: 'Courier New', monospace; font-size: 10px; height: 100px; overflow: hidden; color: var(--neon); border: 1px solid #222; text-align: left; line-height: 1.5; }
+        
+        input { background: #1a1a1a; border: 1px solid #333; color: white; padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; font-size: 16px; outline: none; text-align: center; }
+        .btn { background: var(--blue); color: white; border: none; padding: 20px; border-radius: 18px; font-weight: bold; width: 100%; cursor: pointer; font-size: 15px; text-transform: uppercase; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,122,255,0.3); }
+        .btn:active { transform: scale(0.97); opacity: 0.8; }
+        .btn-stop { background: #ff3b30 !important; box-shadow: 0 5px 15px rgba(255,59,48,0.3); }
 
-        .nav { position: fixed; bottom: 0; width: 100%; background: #080808; display: flex; padding-bottom: 25px; border-top: 1px solid #222; }
-        .nav-item { flex: 1; text-align: center; color: #555; background: none; border: none; padding: 15px; font-size: 12px; }
-        .nav-item.active { color: var(--blue); border-top: 2px solid var(--blue); }
+        .nav { position: fixed; bottom: 0; width: 100%; background: rgba(10,10,10,0.95); display: flex; padding: 10px 0 30px; border-top: 1px solid #222; backdrop-filter: blur(10px); }
+        .nav-item { flex: 1; text-align: center; color: #555; background: none; border: none; font-size: 11px; font-weight: bold; }
+        .nav-item.active { color: var(--blue); }
         
         .hidden { display: none !important; }
-        .status-tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #222; margin-left: 5px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #333; margin-right: 5px; }
+        .active-dot { background: var(--neon); box-shadow: 0 0 8px var(--neon); }
     </style>
 </head>
 <body>
 
+    <!-- 1. ЭКРАН ВХОДА -->
     <div id="auth-screen">
-        <div style="font-size: 50px; margin-bottom: 10px;">🛡️</div>
-        <h2 style="letter-spacing: 3px;">FUTURE NODE</h2>
-        <p style="color: #888; font-size: 12px; margin-bottom: 25px;">ДЕЦЕНТРАЛИЗОВАННЫЙ ОБХОД БЛОКИРОВОК (DeACN)</p>
-        <input type="text" id="node-name" placeholder="Введите ключ доступа">
-        <button class="btn" id="login-trigger">ИНИЦИИРОВАТЬ УЗЕЛ</button>
+        <div class="shield-icon">🛡️</div>
+        <h2>FUTURE NODE</h2>
+        <div class="subtitle">Decentralized Anti-Censorship Node (DeACN)</div>
+        <input type="text" id="node-id" placeholder="Введите ключ или имя узла">
+        <button class="btn" id="start-btn">Инициировать узел</button>
     </div>
 
+    <!-- 2. ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="main-app">
-        <!-- WALLET -->
+        <!-- ВКЛАДКА: КОШЕЛЕК -->
         <div id="tab-wallet" class="page">
             <div class="card" style="text-align: center; margin-top: 40px;">
-                <div style="font-size: 11px; color: #888; margin-bottom: 10px;">АКТИВЫ ПРОТОКОЛА (FN)</div>
+                <div style="font-size: 12px; color: #888;">NETWORK ASSETS (FN)</div>
                 <div class="balance-num" id="balance-val">0.0000</div>
-                <div id="node-addr" style="font-size: 9px; color: #444; margin-top: 10px; word-break: break-all;"></div>
-                <button class="btn" style="margin-top: 20px; font-size: 12px; padding: 12px;" onclick="tg.showAlert('Транзакции защищены протоколом Stealth')">ОТПРАВИТЬ FN</button>
+                <div id="wallet-addr" style="font-size: 9px; color: #444; word-break: break-all; font-family: monospace;"></div>
+                <div style="margin-top: 25px;">
+                    <button class="btn" style="background: #1a1a1a; font-size: 12px; border: 1px solid #333;" onclick="alert('Вывод будет доступен после TGE')">Вывести токены</button>
+                </div>
             </div>
         </div>
 
-        <!-- MINING (RELAY) -->
-        <div id="tab-mine" class="page hidden">
-            <div class="card" style="margin-top: 20px;">
-                <div style="display:flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 10px;">NETWORK RELAY STATUS</span>
-                    <span id="status-text" style="color: #ff3b30; font-size: 10px;">OFFLINE</span>
-                </div>
-                
-                <div style="text-align: center; margin: 15px 0;">
-                    <div style="font-size: 12px; color: #888;">ПОДТВЕРЖДЕНО ПАКЕТОВ</div>
-                    <h1 id="blocks-val" style="font-size: 50px; margin: 10px 0; color: var(--neon);">0</h1>
-                    <div id="difficulty" style="font-size: 9px; color: #555;">СЛОЖНОСТЬ СЕТИ: 1.00x</div>
+        <!-- ВКЛАДКА: УЗЕЛ (МАЙНИНГ) -->
+        <div id="tab-mine" class="page hidden" style="padding-top: 10px;">
+            <div class="card">
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <span style="font-size: 10px; font-weight: bold; color: #555;">RELAY STATUS</span>
+                    <div style="display: flex; align-items: center;">
+                        <div id="led" class="status-dot"></div>
+                        <span id="status-label" style="font-size: 10px; color: #555;">OFFLINE</span>
+                    </div>
                 </div>
 
-                <div class="terminal" id="term">
-                    > Узел готов к дешифровке...<br>
-                    > Ожидание команды START...<br>
+                <div style="text-align: center;">
+                    <div style="font-size: 12px; color: #888;">ОБРАБОТАНО ТРАФИКА (BLOCKS)</div>
+                    <h1 id="blocks-val" style="font-size: 60px; margin: 5px 0;">0</h1>
+                    <div id="diff-label" style="font-size: 10px; color: var(--blue);">СЛОЖНОСТЬ: 1.00x</div>
                 </div>
-                
-                <button class="btn" id="mine-trigger" style="margin-top: 15px;">ЗАПУСТИТЬ МОСТ</button>
+
+                <div class="terminal" id="term-log">
+                    > Система готова к работе...<br>
+                    > Нажмите START для запуска моста...<br>
+                </div>
+
+                <button class="btn" id="mine-trigger" style="margin-top: 20px;">Запустить Мост</button>
             </div>
         </div>
 
+        <!-- НАВИГАЦИЯ -->
         <nav class="nav">
-            <button class="nav-item active" id="btn-wallet">💰 CRYPTO</button>
-            <button class="nav-item" id="btn-mine">⚡ RELAY</button>
+            <button class="nav-item active" id="nav-wallet-btn">💰 CRYPTO</button>
+            <button class="nav-item" id="nav-mine-btn">⚡ NODE</button>
         </nav>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
+        // Инициализация Telegram SDK (если доступно)
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
 
-        let run = false;
+        let isRunning = false;
         let timer = null;
-        let data = {
-            bal: parseFloat(localStorage.getItem('fn_v3_bal')) || 0,
-            blocks: parseInt(localStorage.getItem('fn_v3_blocks')) || 0
+        let stats = {
+            bal: parseFloat(localStorage.getItem('future_bal')) || 0,
+            blocks: parseInt(localStorage.getItem('future_blocks')) || 0
         };
 
         const logs = [
-            "Маскировка трафика под HTTPS...",
+            "Маскировка под HTTPS-трафик...",
+            "Туннелирование через Relay-сервер...",
             "Обход DPI фильтрации...",
-            "Создание туннеля через CDN...",
-            "Пересылка пакета (128kb)...",
-            "Защита от активного пробинга...",
-            "Генерация Reality-ключа..."
+            "Шифрование пакета (AES-256)...",
+            "Подключение к мосту Shadowsocks...",
+            "Проверка доступности узла..."
         ];
 
-        // ИСПРАВЛЕННЫЙ ЗАПУСК
-        document.getElementById('login-trigger').onclick = function() {
-            const name = document.getElementById('node-name').value;
-            if(!name) return;
+        // КНОПКА ВХОДА (ИСПРАВЛЕНО)
+        document.getElementById('start-btn').addEventListener('click', function() {
+            const input = document.getElementById('node-id').value;
+            if (input.length < 2) {
+                alert("Введите имя узла!");
+                return;
+            }
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('main-app').style.display = 'flex';
-            document.getElementById('node-addr').innerText = "VLESS://" + btoa(name + "salt").slice(0,32) + "@fn_relay:443";
-            updateUI();
-        };
+            document.getElementById('wallet-addr').innerText = "VLESS://" + btoa(input).slice(0,24) + "@deacn_relay";
+            updateDisplay();
+        });
 
-        document.getElementById('mine-trigger').onclick = function() {
+        // КНОПКА МАЙНИНГА (ИСПРАВЛЕНО)
+        document.getElementById('mine-trigger').addEventListener('click', function() {
             const btn = this;
-            const status = document.getElementById('status-text');
-            const term = document.getElementById('term');
+            const led = document.getElementById('led');
+            const statusLabel = document.getElementById('status-label');
+            const term = document.getElementById('term-log');
 
-            if(run) {
-                run = false;
+            if (isRunning) {
+                // ОСТАНОВКА
+                isRunning = false;
                 clearInterval(timer);
-                btn.innerText = "ЗАПУСТИТЬ МОСТ";
+                btn.innerText = "Запустить Мост";
                 btn.classList.remove('btn-stop');
-                status.innerText = "OFFLINE";
-                status.style.color = "#ff3b30";
+                led.classList.remove('active-dot');
+                statusLabel.innerText = "OFFLINE";
+                term.innerHTML = "> Соединение разорвано...<br>" + term.innerHTML;
             } else {
-                run = true;
-                btn.innerText = "ОСТАНОВИТЬ";
+                // ЗАПУСК
+                isRunning = true;
+                btn.innerText = "Остановить";
                 btn.classList.add('btn-stop');
-                status.innerText = "ACTIVE RELAY";
-                status.style.color = var(--neon);
+                led.classList.add('active-dot');
+                statusLabel.innerText = "ACTIVE RELAY";
+                statusLabel.style.color = "#00ff41";
                 
                 timer = setInterval(() => {
-                    // Механика: чем больше блоков, тем сложнее добыча
-                    let diff = 1 + (data.blocks / 250);
-                    let reward = 0.08 / diff;
+                    // Экономика: чем больше блоков, тем выше сложность (дефляция)
+                    let difficulty = 1 + (stats.blocks / 300);
+                    let reward = 0.05 / difficulty;
                     
-                    data.blocks += 1;
-                    data.bal += reward;
+                    stats.blocks += 1;
+                    stats.bal += reward;
                     
-                    let msg = logs[Math.floor(Math.random() * logs.length)];
-                    term.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}<br>` + term.innerHTML;
-                    if(term.innerHTML.length > 600) term.innerHTML = term.innerHTML.slice(0, 600);
+                    // Логи
+                    let logMsg = logs[Math.floor(Math.random() * logs.length)];
+                    term.innerHTML = `> [${new Date().toLocaleTimeString()}] ${logMsg}<br>` + term.innerHTML;
+                    if (term.innerHTML.length > 800) term.innerHTML = term.innerHTML.slice(0, 800);
 
-                    document.getElementById('difficulty').innerText = `СЛОЖНОСТЬ СЕТИ: ${diff.toFixed(2)}x`;
+                    document.getElementById('diff-label').innerText = `СЛОЖНОСТЬ: ${difficulty.toFixed(2)}x`;
                     
-                    save();
-                    updateUI();
-                    if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                }, 2500);
+                    saveData();
+                    updateDisplay();
+                    
+                    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                }, 3000);
             }
-        };
+        });
 
-        document.getElementById('btn-wallet').onclick = () => switchTab('wallet');
-        document.getElementById('btn-mine').onclick = () => switchTab('mine');
+        // НАВИГАЦИЯ
+        document.getElementById('nav-wallet-btn').onclick = () => switchTab('wallet');
+        document.getElementById('nav-mine-btn').onclick = () => switchTab('mine');
 
-        function switchTab(t) {
+        function switchTab(tab) {
             document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('tab-' + t).classList.remove('hidden');
-            document.getElementById('btn-' + t).classList.add('active');
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('nav-' + tab + '-btn').classList.add('active');
         }
 
-        function save() {
-            localStorage.setItem('fn_v3_bal', data.bal);
-            localStorage.setItem('fn_v3_blocks', data.blocks);
+        function saveData() {
+            localStorage.setItem('future_bal', stats.bal);
+            localStorage.setItem('future_blocks', stats.blocks);
         }
 
-        function updateUI() {
-            document.getElementById('balance-val').innerText = data.bal.toFixed(4);
-            document.getElementById('blocks-val').innerText = data.blocks;
+        function updateDisplay() {
+            document.getElementById('balance-val').innerText = stats.bal.toFixed(4);
+            document.getElementById('blocks-val').innerText = stats.blocks;
         }
     </script>
 </body>
