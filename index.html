@@ -3,120 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // P2P MESH LIVE</title>
+    <title>AXON // FINAL MESH</title>
     <script src="https://unpkg.com"></script>
     <style>
         :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
 
-        header { padding: 40px 25px 20px; border-bottom: 1px solid var(--border); background: #050505; }
-        .bal-val { font-size: 36px; font-weight: 900; color: var(--green); }
-        .peer-info { font-size: 8px; color: #444; margin-top: 5px; word-break: break-all; cursor: pointer; }
-
-        .net-status { background: var(--dim); padding: 8px 25px; border-bottom: 1px solid var(--border); font-size: 9px; display: flex; justify-content: space-between; color: #555; }
+        /* AUTH LAYER */
+        #gate { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; padding: 30px; align-items: center; justify-content: center; text-align: center; }
+        .seed-box { background: #050505; border: 1px dashed #444; padding: 15px; color: #ffaa00; font-size: 11px; margin: 15px 0; border-radius: 4px; line-height: 1.6; }
         
-        .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; padding-bottom: 220px; }
-        .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--green); }
+        header { padding: 40px 25px 20px; border-bottom: 1px solid var(--border); background: #050505; }
+        .bal-val { font-size: 38px; font-weight: 900; color: var(--green); }
+        .addr-tag { font-size: 8px; color: #444; margin-top: 5px; word-break: break-all; }
+
+        .net-bar { background: var(--dim); padding: 10px 25px; border-bottom: 1px solid var(--border); font-size: 8px; display: flex; justify-content: space-between; color: #555; }
+        
+        .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; padding-bottom: 240px; }
+        .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--green); animation: slide 0.3s ease; }
         .msg-text { color: #ffaa00; font-size: 10px; margin-top: 8px; font-style: italic; }
 
-        .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--border); padding: 15px 20px calc(15px + env(safe-area-inset-bottom)); z-index: 100; }
-        .input { background: #000; border: 1px solid var(--border); color: var(--green); padding: 10px; font-size: 10px; outline: none; margin-bottom: 8px; width: 100%; }
-        .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 16px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--border); padding: 15px 20px calc(20px + env(safe-area-inset-bottom)); z-index: 100; }
+        .input { background: #000; border: 1px solid var(--border); color: var(--green); padding: 12px; font-size: 10px; outline: none; margin-bottom: 8px; width: 100%; }
+        .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
         .btn:disabled { background: #111; color: #333; }
+
+        @keyframes slide { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:0; } }
     </style>
 </head>
 <body>
 
+<div id="gate">
+    <h2 style="color: var(--green); letter-spacing: 5px; margin-bottom: 10px;">AXON CORE</h2>
+    <div id="setup-ui">
+        <p style="font-size: 10px; color: #666;">ВАША СЕКРЕТНАЯ ФРАЗА (SEED):</p>
+        <div class="seed-box" id="generated-seed">...</div>
+        <button class="btn" onclick="Core.launch(true)">Я СОХРАНИЛ И ВОШЕЛ</button>
+        <p style="margin-top: 20px; font-size: 10px; color: var(--green);" onclick="Core.toggleUI()">У МЕНЯ ЕСТЬ ФРАЗА</p>
+    </div>
+    <div id="import-ui" style="display:none; width: 100%;">
+        <input type="text" id="input-seed" class="input" placeholder="Введите 12 слов">
+        <button class="btn" onclick="Core.launch(false)">ВОССТАНОВИТЬ</button>
+        <p style="margin-top: 20px; font-size: 10px; color: #444;" onclick="Core.toggleUI()">НАЗАД</p>
+    </div>
+</div>
+
 <header>
-    <div class="bal-val"><span id="ui-bal">0.0000</span> <span style="font-size: 12px; color: #444;">AXN</span></div>
-    <div class="peer-info" id="ui-my-id" onclick="navigator.clipboard.writeText(this.innerText)">PEER ID: ИНИЦИАЛИЗАЦИЯ...</div>
+    <div class="bal-val"><span id="ui-bal">0.0000</span> <span style="font-size: 12px; color: #333;">AXN</span></div>
+    <div class="addr-tag" id="ui-addr">ADDR :: OFFLINE</div>
 </header>
 
-<div class="net-status">
-    <div id="ui-conn">КЛИЕНТ: OFFLINE</div>
-    <div id="ui-blocks">БЛОКИ: 0</div>
+<div class="net-bar">
+    <div id="ui-net">P2P: DISCONNECTED</div>
+    <div id="ui-peer" onclick="navigator.clipboard.writeText(this.innerText.split(': ')[1])" style="cursor:pointer">ID: ...</div>
 </div>
 
 <div class="viewport" id="chain-view"></div>
 
 <div class="controls">
-    <div style="display: flex; gap: 5px;">
-        <input type="text" id="remote-id" class="input" placeholder="CONNECT TO PEER ID...">
-        <button class="btn" style="padding: 10px; width: auto; font-size: 8px;" onclick="P2P.connect()">СВЯЗАТЬ</button>
+    <div style="display:flex; gap:5px;">
+        <input type="text" id="remote-id" class="input" style="margin-bottom:0" placeholder="ID УЗЛА ДЛЯ СВЯЗИ...">
+        <button class="btn" style="padding:10px; width:auto; font-size:9px" onclick="Core.connect()">СВЯЗАТЬ</button>
     </div>
-    <input type="text" id="tx-msg" class="input" placeholder="СООБЩЕНИЕ В СЕТЬ...">
-    <button id="mine-btn" class="btn" onclick="P2P.mine()">ПОДТВЕРДИТЬ БЛОК (PoW)</button>
+    <input type="text" id="tx-msg" class="input" style="margin-top:8px" placeholder="СООБЩЕНИЕ В СЕТЬ...">
+    <button id="mine-btn" class="btn" onclick="Core.mine()">ПОДТВЕРДИТЬ БЛОК (PoW)</button>
 </div>
 
 <script>
-const P2P = {
+const Core = {
+    words: ["alpha", "beta", "node", "crypt", "mesh", "zero", "one", "fox", "dark", "core", "axon", "link", "void", "web", "peer", "safe", "key", "bolt", "data", "flow", "july", "pixel", "quant", "river"],
+    chain: [],
     peer: null,
     conn: null,
-    chain: JSON.parse(localStorage.getItem('axon_p2p_chain') || '[]'),
-    
+
     init() {
-        this.peer = new Peer('ax-' + Math.random().toString(36).substr(2, 9));
-        this.peer.on('open', (id) => {
-            document.getElementById('ui-my-id').innerText = `MY ID: ${id} (TAP TO COPY)`;
-        });
+        let s = []; for(let i=0; i<12; i++) s.push(this.words[Math.floor(Math.random()*this.words.length)]);
+        this.genSeed = s.join(' ');
+        document.getElementById('generated-seed').innerText = this.genSeed;
+    },
 
-        // Слушаем входящие соединения
-        this.peer.on('connection', (c) => {
-            this.conn = c;
-            this.setupConn();
-            alert("Узел подключился к вам!");
-        });
+    toggleUI() {
+        const s = document.getElementById('setup-ui');
+        const i = document.getElementById('import-ui');
+        s.style.display = s.style.display === 'none' ? 'block' : 'none';
+        i.style.display = i.style.display === 'none' ? 'block' : 'none';
+    },
 
+    async launch(isNew) {
+        this.seed = isNew ? this.genSeed : document.getElementById('input-seed').value.trim();
+        if(this.seed.split(' ').length < 3) return alert("Слишком короткая фраза");
+
+        const hash = await this.sha256(this.seed);
+        this.address = "AX-" + hash.substring(0, 16).toUpperCase();
+        this.chain = JSON.parse(localStorage.getItem(`ch_${this.address}`) || '[]');
+        
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('ui-addr').innerText = `MY ADDRESS: ${this.address}`;
+        
+        this.initP2P();
         this.render();
         this.updateUI();
     },
 
-    connect() {
-        const remoteId = document.getElementById('remote-id').value;
-        if(!remoteId) return;
-        this.conn = this.peer.connect(remoteId);
-        this.setupConn();
-        alert("Попытка соединения...");
+    initP2P() {
+        // Используем адрес как часть ID, чтобы легче было узнавать
+        this.peer = new Peer('axon-' + this.address.substring(3, 10).toLowerCase() + '-' + Math.floor(Math.random()*1000));
+        
+        this.peer.on('open', (id) => {
+            document.getElementById('ui-peer').innerText = `ID: ${id}`;
+            document.getElementById('ui-net').innerText = "P2P: STANDBY";
+        });
+
+        this.peer.on('connection', (c) => {
+            this.conn = c;
+            this.handleConn();
+            alert("Входящее соединение от узла!");
+        });
     },
 
-    setupConn() {
-        this.conn.on('open', () => {
-            document.getElementById('ui-conn').innerText = "КЛИЕНТ: CONNECTED";
-            document.getElementById('ui-conn').style.color = "#00ff41";
-            // Отправляем свою цепочку при подключении
-            this.conn.send({ type: 'CHAIN', data: this.chain });
-        });
+    connect() {
+        const rid = document.getElementById('remote-id').value;
+        if(!rid) return;
+        this.conn = this.peer.connect(rid);
+        this.handleConn();
+    },
 
-        this.conn.on('data', (data) => {
-            if(data.type === 'BLOCK') {
-                this.addBlock(data.data, false);
-            }
-            if(data.type === 'CHAIN') {
-                this.syncChain(data.data);
-            }
+    handleConn() {
+        this.conn.on('open', () => {
+            document.getElementById('ui-net').innerText = "P2P: CONNECTED";
+            document.getElementById('ui-net').style.color = "#00ff41";
+            this.conn.send({ type: 'SYNC', chain: this.chain });
         });
+        this.conn.on('data', (data) => {
+            if(data.type === 'BLOCK') this.addBlock(data.block, false);
+            if(data.type === 'SYNC') this.sync(data.chain);
+        });
+    },
+
+    async sha256(s) {
+        const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+        return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
     },
 
     async mine() {
         const btn = document.getElementById('mine-btn');
         const msg = document.getElementById('tx-msg').value;
-        btn.disabled = true; btn.innerText = "POW: ВЫЧИСЛЕНИЕ...";
+        btn.disabled = true; btn.innerText = "ПОИСК ХЕША (POW)...";
 
-        let nonce = 0;
-        let prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
-        let hash = "";
-
+        let nonce = 0, hash = "", prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
+        
         while (true) {
             nonce++;
-            const raw = prev + nonce + msg;
-            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-            hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-            if (nonce % 1000 === 0) await new Promise(r => setTimeout(r, 0));
+            hash = await this.sha256(prev + nonce + msg);
+            if (nonce % 1500 === 0) await new Promise(r => setTimeout(r, 0));
             if (hash.startsWith("000")) break;
         }
 
-        const block = { h: this.chain.length + 1, hash: hash, msg: msg, r: 50, ts: new Date().toLocaleTimeString() };
+        const block = { h: this.chain.length + 1, hash, msg, r: 50, ts: new Date().toLocaleTimeString(), addr: this.address };
         this.addBlock(block, true);
         
         document.getElementById('tx-msg').value = '';
@@ -124,27 +168,15 @@ const P2P = {
     },
 
     addBlock(block, broadcast) {
-        // Простая проверка валидности
         if(this.chain.find(b => b.hash === block.hash)) return;
-        
         this.chain.unshift(block);
-        localStorage.setItem('axon_p2p_chain', JSON.stringify(this.chain.slice(0, 50)));
-        
-        if(broadcast && this.conn && this.conn.open) {
-            this.conn.send({ type: 'BLOCK', data: block });
-        }
-        
-        this.render();
-        this.updateUI();
+        localStorage.setItem(`ch_${this.address}`, JSON.stringify(this.chain.slice(0, 50)));
+        if(broadcast && this.conn && this.conn.open) this.conn.send({ type: 'BLOCK', block });
+        this.render(); this.updateUI();
     },
 
-    syncChain(remoteChain) {
-        remoteChain.forEach(b => {
-            if(!this.chain.find(x => x.hash === b.hash)) this.chain.push(b);
-        });
-        this.chain.sort((a,b) => b.h - a.h);
-        this.render();
-        this.updateUI();
+    sync(remoteChain) {
+        remoteChain.forEach(b => this.addBlock(b, false));
     },
 
     render() {
@@ -152,21 +184,20 @@ const P2P = {
         view.innerHTML = this.chain.map(b => `
             <div class="block">
                 <div style="display:flex; justify-content:space-between; font-size:9px;">
-                    <b>BLOCK #${b.h}</b> <span>${b.ts}</span>
+                    <b>BLOCK #${b.h}</b> <span style="color:#333">${b.ts}</span>
                 </div>
-                ${b.msg ? `<div class="msg-text">MESSAGE: ${b.msg}</div>` : ''}
-                <div style="font-size:7px; color:#333; margin-top:5px; word-break:break-all;">HASH: ${b.hash}</div>
+                <div style="font-size:7px; color:#444; margin-top:4px;">FROM: ${b.addr || 'GENESIS'}</div>
+                ${b.msg ? `<div class="msg-text">${b.msg}</div>` : ''}
             </div>
         `).join('');
     },
 
     updateUI() {
-        const bal = this.chain.reduce((s, b) => s + b.r, 0);
+        const bal = this.chain.filter(b => b.addr === this.address).reduce((s, b) => s + b.r, 0);
         document.getElementById('ui-bal').innerText = bal.toFixed(4);
-        document.getElementById('ui-blocks').innerText = `БЛОКИ: ${this.chain.length}`;
     }
 };
-window.onload = () => P2P.init();
+window.onload = () => Core.init();
 </script>
 </body>
 </html>
