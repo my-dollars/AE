@@ -1,23 +1,21 @@
 importScripts('https://cdnjs.cloudflare.com');
 
 onmessage = function(e) {
-    const { height, lastHash, difficulty } = e.data;
+    let { height, diff } = e.data;
     let nonce = 0;
-    const target = "0".repeat(difficulty);
-
-    while (true) {
+    let target = "0".repeat(diff);
+    
+    while(true) {
         nonce++;
-        const data = height + lastHash + nonce + difficulty;
-        const hash = CryptoJS.SHA256(data).toString();
-
-        if (hash.startsWith(target)) {
-            postMessage({ status: 'found', hash: hash, nonce: nonce });
+        // Генерируем хеш
+        let hash = CryptoJS.SHA256(height + "node" + nonce).toString();
+        
+        if(hash.startsWith(target)) {
+            postMessage({type: 'found', hash: hash});
             break;
         }
         
-        if (nonce % 5000 === 0) {
-            postMessage({ status: 'progress', nonce: nonce });
-        }
+        // Отправляем прогресс раз в 10к итераций
+        if(nonce % 10000 === 0) postMessage({type: 'log', n: nonce});
     }
-};
-
+}
