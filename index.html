@@ -1,91 +1,47 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Blockchain</title>
-    <!-- Подключаем SDK Телеграма и Крипто-библиотеку -->
     <script src="https://telegram.org"></script>
-    <script src="https://cdnjs.cloudflare.com"></script>
-    
+    <script src="https://unpkg.com"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; text-align: center; padding: 20px; }
-        .block { border: 2px solid #0088cc; margin: 10px auto; padding: 15px; border-radius: 12px; 
-                background: #252525; max-width: 90%; word-wrap: break-word; font-size: 11px; }
-        button { background: #0088cc; color: white; border: none; padding: 15px 30px; 
-                border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .hash { color: #00ff88; }
+        body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle, #1a1a2e, #16213e); color: #fff; text-align: center; }
+        #ton-connect { margin: 20px auto; }
+        .mining-area { border: 2px solid #4ecca3; padding: 30px; border-radius: 50%; width: 150px; height: 150px; margin: 20px auto; cursor: pointer; transition: 0.2s; }
+        .mining-area:active { transform: scale(0.9); box-shadow: 0 0 20px #4ecca3; }
     </style>
 </head>
 <body>
-    <h1>Mini Blockchain</h1>
-    <div id="status">Инициализация...</div>
-    <br>
-    <button id="mineBtn">Майнить блок</button>
-    <div id="chain"></div>
+    <h1>Future Chain Alpha</h1>
+    <div id="ton-connect"></div> <!-- Кнопка входа через TON -->
+    
+    <div class="mining-area" onclick="mine()">
+        <h2 id="balance">0</h2>
+        <p>TAP TO MINE</p>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand();
+        tg.ready();
 
-        // Класс блока
-        class Block {
-            constructor(index, data, prevHash = '') {
-                this.index = index;
-                this.data = data;
-                this.prevHash = prevHash;
-                this.timestamp = Date.now();
-                this.hash = this.calculateHash();
+        // 1. Подключаем реальный блокчейн TON
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://xn----7sbbf2b7bj7b.github.io',
+            buttonRootId: 'ton-connect'
+        });
+
+        let energy = 100;
+        let coins = 0;
+
+        function mine() {
+            if (energy > 0) {
+                coins += 1;
+                energy -= 1;
+                document.getElementById('balance').innerText = coins;
+                tg.HapticFeedback.impactOccurred('light');
+            } else {
+                tg.showAlert("Энергия на нуле! Жди восстановления.");
             }
-
-            calculateHash() {
-                // Безопасный вызов CryptoJS
-                return CryptoJS.SHA256(
-                    this.index + this.prevHash + this.timestamp + JSON.stringify(this.data)
-                ).toString();
-            }
         }
-
-        let blockchain = [];
-
-        function init() {
-            // Создаем первый блок
-            blockchain.push(new Block(0, "Genesis Block", "0"));
-            document.getElementById('status').innerText = "Блокчейн готов!";
-            render();
-        }
-
-        function render() {
-            const container = document.getElementById('chain');
-            container.innerHTML = blockchain.map(b => `
-                <div class="block">
-                    <b>Блок #${b.index}</b><br>
-                    <span class="hash">Hash: ${b.hash}</span><br>
-                    <small>Prev: ${b.prevHash.substring(0, 24)}...</small>
-                </div>
-            `).reverse().join('');
-        }
-
-        function addBlock() {
-            const prevBlock = blockchain[blockchain.length - 1];
-            const userName = tg.initDataUnsafe.user?.first_name || "Guest";
-            
-            const newBlock = new Block(
-                blockchain.length, 
-                { user: userName, action: "Mine" }, 
-                prevBlock.hash
-            );
-            
-            blockchain.push(newBlock);
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            render();
-        }
-
-        // Ждем полной загрузки страницы и библиотек
-        window.onload = () => {
-            document.getElementById('mineBtn').onclick = addBlock;
-            init();
-        };
     </script>
 </body>
 </html>
