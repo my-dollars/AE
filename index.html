@@ -1,13 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css"> <!-- Если есть стили -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MyNode Wallet</title>
+    <script src="https://telegram.org"></script>
+    <style>
+        :root { --accent: #007aff; --bg: #000000; --card: #1c1c1e; --text: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding-bottom: 80px; }
+        .page { display: none; padding: 20px; animation: fadeIn 0.2s; }
+        .active { display: block; }
+        .wallet-card { background: linear-gradient(135deg, #007aff, #00c6ff); border-radius: 20px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,122,255,0.3); }
+        .address-box { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 8px; font-size: 10px; margin-top: 10px; cursor: pointer; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #121212; display: flex; border-top: 0.5px solid #333; }
+        .nav-item { flex: 1; padding: 15px; text-align: center; font-size: 10px; color: #888; cursor: pointer; }
+        .nav-item.active-nav { color: var(--accent); }
+        input { background: var(--card); border: none; color: white; padding: 15px; width: 100%; box-sizing: border-box; border-radius: 12px; margin-bottom: 10px; }
+        button { background: var(--accent); border: none; color: white; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
 </head>
 <body>
-    <!-- Код экранов auth-screen и main-screen из прошлого сообщения -->
-    
+
+    <!-- ЭКРАН ВХОДА -->
+    <div id="auth-screen" class="page active" style="text-align: center; margin-top: 50px;">
+        <h1 style="font-size: 40px;">🏦</h1>
+        <h2>Future Wallet</h2>
+        <input type="text" id="node-login" placeholder="Логин">
+        <input type="password" id="node-pass" placeholder="Пароль">
+        <button onclick="handleAuth()">Войти в Кошелек</button>
+    </div>
+
+    <!-- ЭКРАН КОШЕЛЬКА -->
+    <div id="page-wallet" class="page">
+        <div class="wallet-card">
+            <div style="font-size: 14px; opacity: 0.8;">Доступный баланс</div>
+            <div style="font-size: 36px; font-weight: bold;" id="bal">0.00</div>
+            <div class="address-box" id="addr-display" onclick="copyAddr()">...</div>
+        </div>
+        <div class="btn-group">
+            <button style="background: #2c2c2e;">📥 Получить</button>
+            <button onclick="tg.showAlert('Функция перевода будет в след. модуле')">📤 Отправить</button>
+        </div>
+        <h3>История</h3>
+        <div id="history" style="font-size: 12px; color: #888;">Нет транзакций</div>
+    </div>
+
+    <!-- ЭКРАН МАЙНИНГА -->
+    <div id="page-mine" class="page">
+        <h2>Майнинг Узел</h2>
+        <div style="background: var(--card); padding: 20px; border-radius: 15px; text-align: center;">
+            <div id="status" style="color: #3fb950;">Готов к работе</div>
+            <h3 id="mine-blocks">Блоки: 0</h3>
+            <button id="mineBtn" onclick="toggleMining()">ЗАПУСТИТЬ</button>
+        </div>
+    </div>
+
+    <nav class="nav-bar hidden" id="main-nav">
+        <div class="nav-item active-nav" onclick="showTab('wallet', this)">💰 Кошелек</div>
+        <div class="nav-item" onclick="showTab('mine', this)">⛏️ Майнинг</div>
+    </nav>
+
     <script src="script.js"></script>
 </body>
 </html>
