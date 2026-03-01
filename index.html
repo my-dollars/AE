@@ -3,32 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // MESH CORE 9.4</title>
-    <!-- Использование проверенной версии библиотеки через надежный CDN -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <title>AXON // MESH CORE 9.5</title>
+    <script src="https://unpkg.com"></script>
     <style>
         :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
-
         #gate { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; padding: 30px; align-items: center; justify-content: center; text-align: center; }
         .seed-box { background: #050505; border: 1px dashed #444; padding: 15px; color: #ffaa00; font-size: 11px; margin: 15px 0; border-radius: 4px; line-height: 1.6; user-select: all; }
-        
         header { padding: 50px 25px 20px; border-bottom: 1px solid var(--border); background: #050505; }
         .bal-val { font-size: 44px; font-weight: 900; color: var(--green); letter-spacing: -2px; }
         .addr-tag { font-size: 8px; color: #444; margin-top: 5px; word-break: break-all; }
-
         .net-bar { background: var(--dim); padding: 10px 25px; border-bottom: 1px solid var(--border); font-size: 8px; display: flex; justify-content: space-between; align-items: center; color: #555; }
-        
         .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; padding-bottom: 240px; }
         .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--green); animation: slide 0.3s ease; }
         .msg-text { color: #ffaa00; font-size: 10px; margin-top: 8px; font-style: italic; border-top: 1px solid #1a1a1a; padding-top: 8px; }
-
         .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--border); padding: 15px 20px calc(20px + env(safe-area-inset-bottom)); z-index: 100; }
         .input { background: #000; border: 1px solid var(--border); color: var(--green); padding: 14px; font-size: 10px; outline: none; margin-bottom: 8px; width: 100%; border-radius: 4px; }
         .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 4px; }
         .btn:disabled { background: #111; color: #333; }
-
         @keyframes slide { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:0; } }
     </style>
 </head>
@@ -56,7 +49,7 @@
 </header>
 
 <div class="net-bar">
-    <div id="ui-net">CONNECTING TO MESH...</div>
+    <div id="ui-net">CONNECTING...</div>
     <div id="ui-peer" style="color: var(--green); font-weight: bold;">ID: ...</div>
 </div>
 
@@ -74,10 +67,7 @@
 <script>
 const Core = {
     words: ["alpha", "beta", "node", "crypt", "mesh", "zero", "one", "fox", "dark", "core", "axon", "link", "void", "web", "peer", "safe", "key", "bolt", "data", "flow", "july", "pixel", "quant", "river"],
-    chain: [],
-    peer: null,
-    conn: null,
-    address: null,
+    chain: [], peer: null, conn: null, address: null,
 
     init() {
         let s = []; for(let i=0; i<12; i++) s.push(this.words[Math.floor(Math.random()*this.words.length)]);
@@ -99,43 +89,32 @@ const Core = {
     async launch(isNew) {
         const seed = isNew ? this.genSeed : document.getElementById('input-seed').value.trim();
         if(!seed) return alert("Введите фразу");
-
         const hash = await this.sha256(seed);
         this.address = "AX-" + hash.substring(0, 16).toUpperCase();
-        
-        const saved = localStorage.getItem(`ch_${this.address}`);
-        this.chain = saved ? JSON.parse(saved) : [];
-        
+        this.chain = JSON.parse(localStorage.getItem(`ch_${this.address}`) || '[]');
         document.getElementById('gate').style.display = 'none';
         document.getElementById('ui-addr').innerText = `MY ADDR: ${this.address}`;
-        
         this.initP2P();
         this.render();
         this.updateUI();
     },
 
     initP2P() {
-        // Генерация сетевого ID
-        const shortId = this.address.substring(3, 11).toLowerCase();
-        const networkId = 'axon-' + shortId + '-' + Math.floor(Math.random()*999);
+        // Уникальный ID на основе хеша адреса
+        const networkId = 'axon-' + this.address.substring(3, 11).toLowerCase() + '-' + Math.floor(Math.random()*999);
         
-        // Настройка серверов для обхода NAT и блокировок
-        const config = {
-            host: '0.peerjs.com',
-            port: 443,
-            secure: true,
-            debug: 3,
+        // Используем публичный сервер PeerJS с резервными настройками
+        this.peer = new Peer(networkId, {
+            debug: 2,
             config: {
                 'iceServers': [
-                    { 'urls': 'stun:stun.l.google.com:19302' },
-                    { 'urls': 'stun:stun1.l.google.com:19302' },
-                    { 'urls': 'stun:stun.services.mozilla.com' }
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun.voiparound.com' },
+                    { urls: 'stun:stun.nextcloud.com:443' }
                 ]
             }
-        };
+        });
 
-        this.peer = new Peer(networkId, config);
-        
         this.peer.on('open', (id) => {
             document.getElementById('ui-peer').innerText = "ID: " + id;
             document.getElementById('ui-net').innerText = "NETWORK ONLINE";
@@ -148,26 +127,24 @@ const Core = {
         });
 
         this.peer.on('error', (err) => {
-            console.error("P2P ERROR:", err.type);
-            document.getElementById('ui-net').innerText = "ERROR: " + err.type;
-            document.getElementById('ui-net').style.color = "#ff4444";
+            console.error("Peer Error:", err.type);
+            document.getElementById('ui-net').innerText = "RETRYING...";
+            setTimeout(() => this.initP2P(), 5000);
         });
     },
 
     connect() {
         const rid = document.getElementById('remote-id').value.trim();
-        if(!rid) return alert("Введите ID узла (axon-...)");
-        this.conn = this.peer.connect(rid, { reliable: true });
+        if(!rid) return alert("Введите ID");
+        this.conn = this.peer.connect(rid);
         this.setupConnHandlers();
     },
 
     setupConnHandlers() {
         this.conn.on('open', () => {
             document.getElementById('ui-net').innerText = "CONNECTED";
-            document.getElementById('ui-net').style.color = "#00ff41";
             this.conn.send({ type: 'SYNC', chain: this.chain });
         });
-
         this.conn.on('data', (data) => {
             if(data.type === 'BLOCK') this.addBlock(data.block, false);
             if(data.type === 'SYNC') data.chain.forEach(b => this.addBlock(b, false));
@@ -175,23 +152,15 @@ const Core = {
     },
 
     async mine() {
-        const btn = document.getElementById('mine-btn');
-        const msg = document.getElementById('tx-msg').value || "EMPTY_BLOCK";
-        btn.disabled = true; btn.innerText = "MINING PoW...";
-
+        const btn = document.getElementById('mine-btn'), msg = document.getElementById('tx-msg').value || "GENESIS";
+        btn.disabled = true; btn.innerText = "MINING...";
         let nonce = 0, hash = "", prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
-        let diff = "00"; 
-
         while(true) {
-            nonce++;
-            hash = await this.sha256(prev + msg + nonce + this.address);
-            if(hash.startsWith(diff)) break;
-            if(nonce % 500 === 0) await new Promise(r => setTimeout(r, 0));
+            nonce++; hash = await this.sha256(prev + msg + nonce);
+            if(hash.startsWith("00")) break;
+            if(nonce % 1000 === 0) await new Promise(r => setTimeout(r, 0));
         }
-
-        const newBlock = { ts: Date.now(), msg: msg, author: this.address, nonce: nonce, hash: hash, prev: prev };
-        this.addBlock(newBlock, true);
-        
+        this.addBlock({ ts: Date.now(), msg: msg, author: this.address, hash: hash }, true);
         btn.disabled = false; btn.innerText = "ПОДТВЕРДИТЬ БЛОК (PoW)";
         document.getElementById('tx-msg').value = "";
     },
@@ -209,8 +178,8 @@ const Core = {
         const view = document.getElementById('chain-view');
         view.innerHTML = this.chain.map(b => `
             <div class="block">
-                <div style="font-size:7px; color:#555">${new Date(b.ts).toLocaleTimeString()} | HASH: ${b.hash.substring(0,16)}...</div>
-                <div style="font-size:8px; color:var(--green)">SENDER: ${b.author}</div>
+                <div style="font-size:7px; color:#555">HASH: ${b.hash.substring(0,16)}...</div>
+                <div style="font-size:8px; color:var(--green)">FROM: ${b.author}</div>
                 <div class="msg-text">${b.msg}</div>
             </div>
         `).join('');
@@ -221,7 +190,6 @@ const Core = {
         document.getElementById('ui-bal').innerText = bal.toFixed(4);
     }
 };
-
 Core.init();
 </script>
 </body>
