@@ -94,6 +94,70 @@
             tg.HapticFeedback.impactOccurred('medium');
         }
 
+                let nonce = 0;
+        let lastHash = "00000000000000000000000000000000";
+
+        // Основной цикл майнинга
+        function startMiningLoop() {
+            if (!isMining) return;
+
+            // Имитируем пачку вычислений (100 попыток за раз, чтобы не вешать браузер)
+            for (let i = 0; i < 100; i++) {
+                nonce++;
+                // Формируем строку данных для блока
+                const data = blockchain.height + lastHash + nonce + blockchain.difficulty;
+                const currentHash = CryptoJS.SHA256(data).toString();
+
+                // Проверка сложности: хеш должен начинаться с N нулей
+                const target = "0".repeat(blockchain.difficulty);
+                
+                if (currentHash.startsWith(target)) {
+                    foundBlock(currentHash);
+                    return; // Прерываем цикл, так как блок найден
+                }
+            }
+
+            // Выводим в консоль текущий процесс раз в 1000 итераций
+            if (nonce % 1000 === 0) {
+                log(`Hash: ${lastHash.substring(0, 16)}... Nonce: ${nonce}`);
+            }
+
+            // Запускаем следующую итерацию через 10мс (даем браузеру "дышать")
+            setTimeout(startMiningLoop, 10);
+        }
+
+        function foundBlock(hash) {
+            blockchain.height++;
+            blockchain.balance += blockchain.reward;
+            lastHash = hash;
+            nonce = 0;
+
+            log(`<span style="color:#4ade80">BLOCK FOUND! Hash: ${hash.substring(0,10)}...</span>`);
+            log(`Reward: +${blockchain.reward} COIN`);
+            
+            // Сохраняем прогресс
+            localStorage.setItem('bc_balance', blockchain.balance);
+            
+            // Экономика: усложнение каждые 5 блоков
+            if (blockchain.height % 5 === 0) {
+                blockchain.difficulty++;
+                log(`System: Difficulty increased to ${blockchain.difficulty}`);
+            }
+
+            // Экономика: Халвинг (уменьшение награды) каждые 20 блоков
+            if (blockchain.height % 20 === 0) {
+                blockchain.reward /= 2;
+                log(`System: HALVING! New reward: ${blockchain.reward}`);
+            }
+
+            tg.HapticFeedback.notificationOccurred('success');
+            updateUI();
+            
+            // Продолжаем майнить следующий блок автоматически
+            if (isMining) startMiningLoop();
+        }
+
+
         updateUI();
     </script>
 </body>
