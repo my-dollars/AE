@@ -205,6 +205,74 @@ const Core = {
     }
 };
 window.onload = () => Core.init();
+
+// Вставь это в Core для завершения логики PoW и синхронизации
+async mine() {
+    const btn = document.getElementById('mine-btn');
+    const msg = document.getElementById('tx-msg').value || "GENESIS_VOID";
+    btn.disabled = true; btn.innerText = "MINING BLOCK...";
+
+    let nonce = 0;
+    let hash = "";
+    let prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
+    let diff = "00"; // Сложность: хеш должен начинаться с '00'
+
+    // Цикл Proof-of-Work
+    const start = Date.now();
+    while (true) {
+        nonce++;
+        hash = await this.sha256(prev + msg + nonce + this.address);
+        if (hash.startsWith(diff)) break;
+        if (nonce % 500 === 0) await new Promise(r => setTimeout(r, 0)); // Не вешаем UI
+    }
+
+    const newBlock = {
+        ts: Date.now(),
+        msg: msg,
+        author: this.address,
+        nonce: nonce,
+        hash: hash,
+        prev: prev
+    };
+
+    this.addBlock(newBlock, true);
+    btn.disabled = false;
+    btn.innerText = "ПОДТВЕРДИТЬ БЛОК (PoW)";
+    document.getElementById('tx-msg').value = "";
+},
+
+addBlock(block, broadcast) {
+    // Валидация перед добавлением
+    if (this.chain.find(b => b.hash === block.hash)) return;
+    
+    this.chain.unshift(block); // Новые блоки сверху
+    this.render();
+    this.updateUI();
+    localStorage.setItem(`ch_${this.address}`, JSON.stringify(this.chain));
+
+    if (broadcast && this.conn) {
+        this.conn.send({ type: 'BLOCK', block: block });
+    }
+},
+
+render() {
+    const view = document.getElementById('chain-view');
+    view.innerHTML = this.chain.map(b => `
+        <div class="block">
+            <div style="font-size:7px; color:#555">HASH: ${b.hash.substring(0,24)}...</div>
+            <div style="font-size:8px; color:var(--green)">FROM: ${b.author}</div>
+            <div class="msg-text">${b.msg}</div>
+            <div style="text-align:right; font-size:7px; color:#333; margin-top:5px">NONCE: ${b.nonce}</div>
+        </div>
+    `).join('');
+},
+
+updateUI() {
+    // Расчет баланса на основе вклада в сеть (добытых блоков)
+    const bal = this.chain.filter(b => b.author === this.address).length * 12.5;
+    document.getElementById('ui-bal').innerText = bal.toFixed(4);
+}
+
 </script>
 </body>
 </html>
