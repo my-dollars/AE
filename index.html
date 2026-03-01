@@ -3,153 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // Quantum-Safe Node</title>
+    <title>AXON // GENESIS v4.0</title>
     <style>
-        :root { --bg: #000; --card: #111; --accent: #00ff41; --text: #fff; --dim: #666; --border: #222; }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* New Entropy Auth Screen */
-        #auth-gate { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
-        #entropy-canvas { border: 1px solid var(--accent); border-radius: 50%; width: 150px; height: 150px; margin: 20px 0; cursor: crosshair; position: relative; overflow: hidden; }
-        #entropy-progress { position: absolute; bottom: 0; left: 0; width: 0%; height: 4px; background: var(--accent); transition: 0.1s; }
-        
-        .header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); }
-        .bal-val { font-size: 40px; font-weight: 800; margin: 5px 0; color: var(--text); }
-        .addr-box { font-family: monospace; font-size: 10px; color: var(--accent); background: #080808; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display: inline-block; }
+        :root {
+            --bg: #000;
+            --card: #111;
+            --accent: #00ff41;
+            --gold: #ffd700;
+            --text: #fff;
+            --dim: #666;
+            --border: #222;
+        }
 
-        .tabs { display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto; scrollbar-width: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Inter', -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        /* --- AUTH SCREEN --- */
+        #auth-gate { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            padding: 30px; text-align: center; transition: 0.5s ease-out;
+        }
+        
+        .entropy-container { position: relative; width: 220px; height: 220px; margin: 30px 0; }
+        #entropy-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .circle-bg { fill: none; stroke: #111; stroke-width: 6; }
+        .circle-progress { 
+            fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; 
+            stroke-dasharray: 628; stroke-dashoffset: 628; transition: stroke-dashoffset 0.1s linear;
+            filter: drop-shadow(0 0 10px var(--accent));
+        }
+        #e-touch { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; z-index: 10; cursor: crosshair; }
+
+        .btn { 
+            width: 100%; max-width: 320px; background: var(--accent); color: #000; 
+            padding: 20px; border-radius: 18px; border: none; font-weight: 800; 
+            font-size: 16px; cursor: pointer; transition: 0.3s; opacity: 0; transform: translateY(20px); pointer-events: none;
+        }
+        .btn.ready { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+        /* --- MAIN UI --- */
+        header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+        .bal-main { font-size: 42px; font-weight: 800; display: flex; align-items: baseline; gap: 8px; }
+        .addr-tag { font-family: monospace; font-size: 11px; color: var(--accent); background: #0a0a0a; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; display: inline-block; }
+
+        .tabs { display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
+        .tabs::-webkit-scrollbar { display: none; }
         .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--dim); padding: 12px 22px; border-radius: 14px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
-        .tab-btn.active { background: var(--text); color: #000; }
+        .tab-btn.active { background: var(--text); color: #000; border-color: var(--text); }
 
-        .content { flex: 1; overflow-y: auto; padding: 10px 20px 100px; }
-        .page { display: none; }
+        .content { flex: 1; overflow-y: auto; padding: 10px 20px 100px; position: relative; }
+        .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
 
-        .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; margin-bottom: 15px; }
-        .log { background: #050505; border: 1px solid var(--border); border-radius: 15px; padding: 15px; font-family: monospace; font-size: 10px; color: var(--accent); height: 180px; overflow-y: auto; line-height: 1.6; }
+        .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 22px; margin-bottom: 15px; }
+        .label { font-size: 10px; color: var(--dim); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 8px; display: block; }
         
-        .btn { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 16px; border: none; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; }
-        .btn:active { transform: scale(0.96); opacity: 0.8; }
+        .log-box { background: #050505; border: 1px solid var(--border); border-radius: 18px; padding: 15px; font-family: monospace; font-size: 11px; color: var(--accent); min-height: 180px; line-height: 1.6; overflow-y: auto; }
+
+        .input { width: 100%; background: var(--card); border: 1px solid var(--border); color: #fff; padding: 18px; border-radius: 16px; margin-bottom: 15px; outline: none; font-size: 16px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
+    <!-- AUTH SCREEN -->
     <div id="auth-gate">
-        <h2 style="letter-spacing: 2px;">AXON GENESIS</h2>
-        <p style="font-size: 12px; color: var(--dim); margin-top: 10px;">Двигайте пальцем по кругу для сбора энтропии</p>
+        <h2 style="letter-spacing: 4px; font-weight: 900;">AXON GENESIS</h2>
+        <p style="font-size: 12px; color: var(--dim); margin-top: 10px;">Двигайте пальцем внутри круга<br>для сбора квантовой энтропии</p>
         
-        <div id="entropy-canvas">
-            <canvas id="e-draw" width="150" height="150"></canvas>
-            <div id="entropy-progress"></div>
+        <div class="entropy-container">
+            <svg id="entropy-svg" viewBox="0 0 200 200">
+                <circle class="circle-bg" cx="100" cy="100" r="95"></circle>
+                <circle id="progress-line" class="circle-progress" cx="100" cy="100" r="95"></circle>
+            </svg>
+            <canvas id="e-touch" width="220" height="220"></canvas>
         </div>
 
-        <div id="key-preview" style="font-family: monospace; font-size: 10px; color: var(--dim); word-break: break-all; margin-top: 10px;">GENERATE_HASH_...</div>
-        <button id="init-btn" class="btn" style="margin-top: 30px; display: none;" onclick="Core.finalizeAuth()">Создать уникальный ключ</button>
+        <div id="status-label" style="font-family: monospace; font-size: 10px; color: var(--dim);">ENTROPY: 0%</div>
+        <button id="init-btn" class="btn" onclick="Core.finalizeAuth()">Создать уникальный ключ</button>
     </div>
 
-    <header class="header">
-        <div style="font-size: 10px; color: var(--dim); text-transform: uppercase;">Node Balance</div>
-        <div class="bal-val"><span id="total-bal">150.00</span> <small style="font-size: 16px; color: var(--dim);">AXN</small></div>
-        <div class="addr-box" id="node-addr">AX-QUANTUM-SHIELD</div>
+    <!-- MAIN APP -->
+    <header>
+        <span class="label">Node Balance</span>
+        <div class="bal-main"><span id="total-bal">150.00</span> <small style="font-size:18px; color:var(--dim)">AXN</small></div>
+        <div class="addr-tag" id="node-addr">AX-LOADING-HASH...</div>
     </header>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="UI.tab(this, 'p-main')">Обзор</button>
         <button class="tab-btn" onclick="UI.tab(this, 'p-mine')">Майнинг</button>
+        <button class="tab-btn" onclick="UI.tab(this, 'p-tx')">Перевод</button>
         <button class="tab-btn" onclick="UI.tab(this, 'p-dao')">Управление</button>
     </div>
 
     <div class="content">
         <div id="p-main" class="page active">
-            <div id="log" class="log">> Ожидание инициализации...</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+                <div class="card"><span class="label">Staked</span><div id="staked-bal" style="font-size:20px; font-weight:700;">0.00</div></div>
+                <div class="card"><span class="label">Nodes</span><div id="nodes-count" style="font-size:20px; font-weight:700;">12</div></div>
+            </div>
+            <span class="label">Protocol Stream</span>
+            <div id="log" class="log-box">> Ожидание инициализации...</div>
         </div>
 
         <div id="p-mine" class="page">
-            <div class="card" style="text-align: center;">
-                <div style="font-size: 12px; color: var(--dim);">Mining Yield</div>
-                <div id="yield" style="font-size: 32px; font-weight: 800; margin: 15px 0;">0.0000</div>
-                <button class="btn" id="mine-btn" onclick="Core.toggleMining()">Активировать узел</button>
+            <div class="card" style="text-align:center; padding: 40px 20px;">
+                <span class="label">Current Yield</span>
+                <div id="yield-val" style="font-size:32px; font-weight:800; color:var(--accent); margin:15px 0;">0.0000</div>
+                <button class="btn ready" id="mine-btn" onclick="Core.toggleMining()">Запустить узел</button>
             </div>
+        </div>
+
+        <div id="p-tx" class="page">
+            <span class="label">Recipient Address</span>
+            <input type="text" id="tx-to" class="input" placeholder="AX-XXXX-XXXX">
+            <span class="label">Amount AXN</span>
+            <input type="number" id="tx-amount" class="input" placeholder="0.00">
+            <button class="btn ready" onclick="Core.transfer()">Подписать транзакцию</button>
         </div>
 
         <div id="p-dao" class="page">
             <div class="card">
-                <h3>BIP-51: Пост-квантовая защита</h3>
-                <div style="height: 4px; background: #222; margin: 20px 0; border-radius: 2px;">
-                    <div id="vote-bar" style="width: 42%; height: 100%; background: var(--accent);"></div>
+                <span class="label">Active BIP-51</span>
+                <h3 style="margin:10px 0;">Deflationary Consensus</h3>
+                <div style="height:6px; background:#222; border-radius:3px; margin: 20px 0;">
+                    <div id="dao-progress" style="width:35%; height:100%; background:var(--gold); border-radius:3px; transition:1s;"></div>
                 </div>
-                <button class="btn" style="background: #fff; color: #000;" onclick="Core.vote()">Поддержать (10 AXN)</button>
+                <button class="btn ready" style="background:var(--gold)" onclick="Core.vote()">Голосовать (10 AXN)</button>
             </div>
         </div>
     </div>
 
     <script>
         const Core = {
-            bal: 150.00,
-            active: false,
-            entropy: [],
-            hash: '',
+            state: { bal: 150.0, staked: 0, active: false, nodes: 12, entropy: [], hash: '', dao: 35 },
 
             collectEntropy(e) {
-                if (this.entropy.length >= 200) return;
+                if (this.state.entropy.length >= 200) return;
                 const touch = e.touches ? e.touches[0] : e;
-                this.entropy.push(`${touch.clientX}${touch.clientY}${Date.now()}`);
+                this.state.entropy.push(`${touch.clientX}${touch.clientY}${Date.now()}`);
                 
-                const progress = (this.entropy.length / 200) * 100;
-                document.getElementById('entropy-progress').style.width = progress + '%';
+                const percent = this.state.entropy.length / 200;
+                const offset = 628 - (percent * 628);
                 
-                if (this.entropy.length === 200) {
-                    document.getElementById('init-btn').style.display = 'block';
-                    document.getElementById('key-preview').innerText = "ENTROPY_READY_HASH_LOCKED";
+                document.getElementById('progress-line').style.strokeDashoffset = offset;
+                document.getElementById('status-label').innerText = `ENTROPY GATHERED: ${Math.round(percent * 100)}%`;
+                
+                if (this.state.entropy.length >= 200) {
+                    document.getElementById('status-label').innerText = "ENTROPY_LOCKED_HASH_READY";
+                    document.getElementById('status-label').style.color = "var(--accent)";
+                    document.getElementById('init-btn').classList.add('ready');
                 }
+                UI.haptic(2);
             },
 
             async finalizeAuth() {
-                // Создание "неподбираемого" ключа через SHA-256 (имитация)
-                const rawString = this.entropy.join('-');
-                const msgBuffer = new TextEncoder().encode(rawString);
+                const raw = this.state.entropy.join('-');
+                const msgBuffer = new TextEncoder().encode(raw);
                 const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
                 const hashArray = Array.from(new Uint8Array(hashBuffer));
-                this.hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-                document.getElementById('auth-gate').style.display = 'none';
-                document.getElementById('node-addr').innerText = 'AX-' + this.hash.substring(0, 14).toUpperCase();
-                this.log("Node Initialized with Quantum-Safe Key.");
-                this.log("Auth Status: <span style='color:#fff'>DETERMINISTIC_LOCK_ON</span>");
+                this.state.hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                
+                document.getElementById('auth-gate').style.opacity = '0';
+                setTimeout(() => document.getElementById('auth-gate').style.display = 'none', 500);
+                
+                document.getElementById('node-addr').innerText = 'AX-' + this.state.hash.substring(0, 12).toUpperCase();
+                this.log("Node Initialized. Quantum-Safe Handshake OK.");
+                this.updateUI();
             },
 
             log(m) {
                 const l = document.getElementById('log');
-                l.innerHTML = `[${new Date().toLocaleTimeString()}] > ${m}<br>` + l.innerHTML;
+                l.innerHTML = `<span style="color:#444">[${new Date().toLocaleTimeString()}]</span> > ${m}<br>` + l.innerHTML;
+            },
+
+            updateUI() {
+                document.getElementById('total-bal').innerText = this.state.bal.toFixed(4);
+                document.getElementById('staked-bal').innerText = this.state.staked.toFixed(2);
+                document.getElementById('nodes-count').innerText = this.state.nodes;
+                document.getElementById('dao-progress').style.width = this.state.dao + '%';
             },
 
             toggleMining() {
-                this.active = !this.active;
-                const btn = document.getElementById('mine-btn');
-                btn.innerText = this.active ? "Остановить" : "Запустить";
-                btn.style.background = this.active ? "#ff4141" : "var(--accent)";
-                if (this.active) this.mine();
+                this.state.active = !this.state.active;
+                const b = document.getElementById('mine-btn');
+                b.innerText = this.state.active ? "Остановить узел" : "Запустить узел";
+                b.style.background = this.state.active ? "#ff4141" : "var(--accent)";
+                if (this.state.active) this.mine();
+                UI.haptic(50);
             },
 
             mine() {
-                if (!this.active) return;
-                const reward = 0.0055;
-                this.bal += reward;
-                document.getElementById('total-bal').innerText = this.bal.toFixed(4);
-                document.getElementById('yield').innerText = reward.toFixed(4);
-                this.log(`Packet Relayed. Reward: +${reward} AXN`);
-                UI.haptic(30);
-                setTimeout(() => this.mine(), 3000);
+                if (!this.state.active) return;
+                const reward = 0.0085 / (this.state.nodes / 10);
+                this.state.bal += reward;
+                document.getElementById('yield-val').innerText = `+${reward.toFixed(4)}`;
+                this.log(`Block verified. Hash: ...${Math.random().toString(16).slice(2,8)} Reward: +${reward.toFixed(4)}`);
+                this.updateUI();
+                if(Math.random() > 0.8) this.state.nodes++;
+                setTimeout(() => this.mine(), 4000);
+            },
+
+            transfer() {
+                const a = parseFloat(document.getElementById('tx-amount').value);
+                if(!a || a > this.state.bal) return alert("Ошибка баланса");
+                this.state.bal -= a;
+                this.log(`Transaction sent: -${a} AXN to ${document.getElementById('tx-to').value || 'Mempool'}`);
+                this.updateUI();
+                UI.haptic(100);
             },
 
             vote() {
-                if(this.bal < 10) return;
-                this.bal -= 10;
-                document.getElementById('total-bal').innerText = this.bal.toFixed(4);
-                document.getElementById('vote-bar').style.width = '55%';
-                this.log("Governance vote signed & broadcasted.");
-                UI.haptic(100);
+                if(this.state.bal < 10) return;
+                this.state.bal -= 10;
+                this.state.dao = Math.min(100, this.state.dao + 5);
+                this.log("Governance BIP-51: Vote signed with Stake.");
+                this.updateUI();
+                UI.haptic(50);
             }
         };
 
@@ -157,16 +230,19 @@
             tab(btn, id) {
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 document.getElementById(id).classList.add('active');
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+                if(btn) {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                }
                 this.haptic(5);
             },
             haptic(ms) { if(window.navigator.vibrate) window.navigator.vibrate(ms); }
         };
 
-        const canvas = document.getElementById('e-draw');
-        canvas.addEventListener('mousemove', (e) => Core.collectEntropy(e));
-        canvas.addEventListener('touchmove', (e) => Core.collectEntropy(e));
+        const canvas = document.getElementById('e-touch');
+        ['mousemove', 'touchmove'].forEach(e => {
+            canvas.addEventListener(e, (ev) => { ev.preventDefault(); Core.collectEntropy(ev); }, { passive: false });
+        });
     </script>
 </body>
 </html>
