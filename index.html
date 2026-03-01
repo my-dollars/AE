@@ -3,217 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // TRUE CHAIN v2.0</title>
+    <title>AXON // AUTONOMOUS CORE</title>
     <style>
-        :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; --text: #888; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
+        :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
+        body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
+
+        header { padding: 40px 25px 20px; border-bottom: 1px solid var(--border); background: #050505; }
+        .bal-val { font-size: 40px; font-weight: 900; color: var(--green); }
+        .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; background: var(--dim); border-bottom: 1px solid var(--border); font-size: 8px; color: #555; text-align: center; }
+        .s-box { padding: 10px; border-right: 1px solid var(--border); }
+        .s-box b { color: #fff; display: block; font-size: 10px; margin-top: 2px; }
+
+        .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; }
+        .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 8px; border-left: 3px solid var(--green); font-size: 10px; }
+        .tx-alert { color: #ffaa00; font-size: 8px; margin-top: 5px; border-top: 1px solid #222; padding-top: 5px; }
+
+        footer { padding: 15px 25px 25px; background: #050505; border-top: 1px solid var(--border); }
+        .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+        .btn:disabled { background: #111; color: #333; }
         
-        body { 
-            background: var(--bg); 
-            color: #fff; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden;
-            padding-bottom: env(safe-area-inset-bottom); /* Защита от полоски iPhone */
-        }
-
-        /* HEADER */
-        header { 
-            padding: 40px 25px 20px; 
-            border-bottom: 1px solid var(--border); 
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px);
-            z-index: 10;
-        }
-        .bal-val { font-size: 44px; font-weight: 900; letter-spacing: -2px; color: var(--green); line-height: 1; }
-        .bal-ticker { font-size: 14px; color: var(--text); vertical-align: middle; margin-left: 5px; }
-        
-        .stats-row { 
-            display: flex; 
-            border-bottom: 1px solid var(--border); 
-            background: var(--dim);
-        }
-        .s-item { 
-            flex: 1; 
-            padding: 12px 25px; 
-            border-right: 1px solid var(--border);
-            font-size: 10px;
-            color: var(--text);
-        }
-        .s-item b { color: #fff; margin-left: 5px; }
-
-        /* BLOCKCHAIN VIEWPORT */
-        .viewport { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column;
-            gap: 15px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .block { 
-            background: #050505; 
-            border: 1px solid var(--border);
-            padding: 15px;
-            position: relative;
-            animation: fadeIn 0.4s ease-out;
-        }
-        .block::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0; bottom: 0;
-            width: 2px; background: var(--green);
-        }
-        .block-header { font-size: 11px; font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; }
-        .hash-data { font-size: 8px; color: #444; word-break: break-all; font-family: monospace; line-height: 1.4; }
-        .hash-data b { color: #666; }
-
-        /* CONTROLS */
-        footer { 
-            padding: 20px 25px 30px; /* Увеличил отступ снизу */
-            background: var(--bg);
-            border-top: 1px solid var(--border);
-            z-index: 10;
-        }
-        
-        .btn { 
-            width: 100%; 
-            background: var(--green); 
-            color: #000; 
-            border: none; 
-            padding: 20px; 
-            font-weight: 900; 
-            font-size: 14px;
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 0 20px rgba(0,255,65,0.1);
-        }
-        .btn:active { transform: scale(0.98); opacity: 0.8; }
-        .btn:disabled { background: #111; color: #333; cursor: not-allowed; box-shadow: none; }
-
-        #mining-status { font-size: 9px; text-align: center; margin-bottom: 10px; color: var(--green); height: 12px; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .tx-form { display: flex; gap: 5px; margin-top: 10px; }
+        .tx-input { flex: 1; background: #000; border: 1px solid var(--border); color: var(--green); padding: 10px; font-size: 10px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div style="font-size: 9px; color: var(--text); margin-bottom: 8px; letter-spacing: 2px;">NETWORK ASSET VALUE</div>
-        <div class="bal-val"><span id="ui-bal">0.0000</span><span class="bal-ticker">AXN</span></div>
-    </header>
+<header>
+    <div style="font-size: 8px; color: #444; letter-spacing: 2px;">NETWORK ASSET VALUE (AXN)</div>
+    <div class="bal-val" id="ui-bal">0.0000</div>
+</header>
 
-    <div class="stats-row">
-        <div class="s-item">БЛОКИ: <b id="ui-height">0</b></div>
-        <div class="s-item">DIFF: <b>000 (SHA-256)</b></div>
+<div class="stats">
+    <div class="s-box">БЛОКИ<b id="ui-h">0</b></div>
+    <div class="s-box">СЛОЖНОСТЬ<b id="ui-d">3</b></div>
+    <div class="s-box">НАГРАДА<b id="ui-r">50.0</b></div>
+</div>
+
+<div class="viewport" id="chain"></div>
+
+<footer>
+    <div id="m-status" style="font-size: 8px; color: var(--green); text-align: center; margin-bottom: 5px; height: 10px;"></div>
+    <button id="mine-btn" class="btn" onclick="Axon.mine()">ПОДТВЕРДИТЬ БЛОК (PoW)</button>
+    
+    <div class="tx-form">
+        <input type="text" id="tx-addr" class="tx-input" placeholder="АДРЕС ПОЛУЧАТЕЛЯ">
+        <input type="number" id="tx-amt" class="tx-input" style="max-width: 80px;" placeholder="СУММА">
+        <button class="btn" style="padding: 10px; width: auto;" onclick="Axon.createTx()">ОТПРАВИТЬ</button>
     </div>
-
-    <div class="viewport" id="chain">
-        <!-- Блоки рендерятся тут -->
-    </div>
-
-    <footer>
-        <div id="mining-status"></div>
-        <button id="mine-btn" class="btn" onclick="Protocol.mine()">Подтвердить блок (PoW)</button>
-    </footer>
+</footer>
 
 <script>
-const Protocol = {
-    history: JSON.parse(localStorage.getItem('axon_chain_v2') || '[]'),
-    difficulty: 3,
+const Axon = {
+    chain: JSON.parse(localStorage.getItem('axon_v3_chain') || '[]'),
+    mempool: [], // Очередь транзакций
+    config: { baseReward: 50, halvingStep: 100, diffStep: 10 },
 
     init() {
         this.render();
-        this.updateStats();
-        if(this.history.length === 0) {
-            this.logEmpty();
-        }
+        this.updateUI();
     },
 
-    async sha256(str) {
-        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    async sha256(s) {
+        const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+        return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+    },
+
+    getDifficulty() {
+        // Каждые 10 блоков сложность может расти
+        return 3 + Math.floor(this.chain.length / this.config.diffStep);
+    },
+
+    getReward() {
+        // Халвинг: награда делится на 2 каждые 100 блоков
+        const halvings = Math.floor(this.chain.length / this.config.halvingStep);
+        return this.config.baseReward / Math.pow(2, halvings);
+    },
+
+    createTx() {
+        const addr = document.getElementById('tx-addr').value;
+        const amt = document.getElementById('tx-amt').value;
+        if(!addr || !amt) return alert("Введите данные");
+        
+        const tx = { to: addr, amt: amt, ts: Date.now() };
+        this.mempool.push(tx);
+        alert("Транзакция добавлена в мемпул. Она будет подтверждена в следующем блоке.");
     },
 
     async mine() {
         const btn = document.getElementById('mine-btn');
-        const status = document.getElementById('mining-status');
+        const status = document.getElementById('m-status');
         btn.disabled = true;
         
         let nonce = 0;
-        let prevHash = this.history.length > 0 ? this.history[0].hash : "0".repeat(64);
+        let prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
         let hash = "";
-        const target = "0".repeat(this.difficulty);
+        const diff = this.getDifficulty();
+        const target = "0".repeat(diff);
 
-        // Реальный цикл Proof of Work
-        const start = Date.now();
         while (true) {
             nonce++;
-            hash = await this.sha256(prevHash + nonce);
-            
-            if (nonce % 200 === 0) {
-                status.innerText = `HASHING: ${hash.substring(0, 24)}...`;
-                await new Promise(r => setTimeout(r, 0)); 
+            hash = await this.sha256(prev + nonce + JSON.stringify(this.mempool));
+            if (nonce % 500 === 0) {
+                status.innerText = `HASHING: ${hash.substring(0, 16)}...`;
+                await new Promise(r => setTimeout(r, 0));
             }
-
             if (hash.startsWith(target)) break;
         }
 
         const block = {
-            h: this.history.length + 1,
-            ts: new Date().toLocaleTimeString(),
-            n: nonce,
-            p: prevHash,
+            h: this.chain.length + 1,
             hash: hash,
-            r: 0.05
+            prev: prev,
+            n: nonce,
+            txs: [...this.mempool],
+            reward: this.getReward(),
+            ts: new Date().toLocaleTimeString()
         };
 
-        this.history.unshift(block);
-        localStorage.setItem('axon_chain_v2', JSON.stringify(this.history.slice(0, 30)));
-        
-        status.innerText = "БЛОК НАЙДЕН!";
-        setTimeout(() => status.innerText = "", 2000);
+        this.chain.unshift(block);
+        this.mempool = []; // Очищаем мемпул после майнинга
+        localStorage.setItem('axon_v3_chain', JSON.stringify(this.chain.slice(0, 20)));
         
         this.render();
-        this.updateStats();
+        this.updateUI();
         btn.disabled = false;
+        status.innerText = "";
     },
 
     render() {
-        const container = document.getElementById('chain');
-        container.innerHTML = this.history.map(b => `
+        const view = document.getElementById('chain');
+        view.innerHTML = this.chain.map(b => `
             <div class="block">
-                <div class="block-header">
-                    <span>BLOCK #${b.h}</span>
-                    <span style="color:var(--text)">${b.ts}</span>
-                </div>
-                <div class="hash-data"><b>NONCE:</b> ${b.n}</div>
-                <div class="hash-data"><b>HASH:</b> ${b.hash}</div>
-                <div class="hash-data"><b>PREV:</b> ${b.p.substring(0, 32)}...</div>
+                <b>BLOCK #${b.h}</b> <span style="float:right; color:#444">${b.ts}</span>
+                <div style="font-size:8px; color:#444; margin-top:5px;">HASH: ${b.hash}</div>
+                ${b.txs.length > 0 ? `<div class="tx-alert">TX: ${b.txs.length} подтверждено</div>` : ''}
             </div>
         `).join('');
     },
 
-    logEmpty() {
-        document.getElementById('chain').innerHTML = `
-            <div style="text-align:center; color:#333; margin-top:50px; font-size:10px;">
-                ЦЕПОЧКА ПУСТА. НАЖМИТЕ КНОПКУ ДЛЯ ГЕНЕРАЦИИ ПЕРВОГО БЛОКА.
-            </div>`;
-    },
-
-    updateStats() {
-        const total = this.history.reduce((s, b) => s + b.r, 0);
-        document.getElementById('ui-bal').innerText = total.toFixed(4);
-        document.getElementById('ui-height').innerText = this.history.length;
+    updateUI() {
+        const bal = this.chain.reduce((s, b) => s + b.reward, 0);
+        document.getElementById('ui-bal').innerText = bal.toFixed(4);
+        document.getElementById('ui-h').innerText = this.chain.length;
+        document.getElementById('ui-d').innerText = this.getDifficulty();
+        document.getElementById('ui-r').innerText = this.getReward().toFixed(1);
     }
 };
 
-window.onload = () => Protocol.init();
+window.onload = () => Axon.init();
 </script>
 </body>
 </html>
