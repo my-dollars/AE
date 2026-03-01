@@ -1,47 +1,178 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Future Mining Elite</title>
     <script src="https://telegram.org"></script>
-    <script src="https://unpkg.com"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: radial-gradient(circle, #1a1a2e, #16213e); color: #fff; text-align: center; }
-        #ton-connect { margin: 20px auto; }
-        .mining-area { border: 2px solid #4ecca3; padding: 30px; border-radius: 50%; width: 150px; height: 150px; margin: 20px auto; cursor: pointer; transition: 0.2s; }
-        .mining-area:active { transform: scale(0.9); box-shadow: 0 0 20px #4ecca3; }
+        :root { 
+            --accent: #00d2ff; 
+            --bg: #050a14; 
+            --card: #111a2d;
+            --energy-color: #ff9f0a;
+        }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: white; margin: 0; overflow: hidden; }
+        
+        /* Хедер с профилем */
+        .header { padding: 15px; background: var(--card); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
+        .level-badge { background: var(--accent); color: #000; padding: 2px 10px; border-radius: 10px; font-weight: bold; font-size: 14px; }
+
+        /* Прогресс-бары */
+        .bar-container { width: 100%; background: #1e293b; height: 8px; border-radius: 4px; margin-top: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+
+        /* Основной экран */
+        .main-container { padding: 20px; text-align: center; height: 70vh; display: flex; flex-direction: column; justify-content: center; }
+        .balance-container { margin-bottom: 30px; }
+        .balance-amount { font-size: 48px; font-weight: 800; letter-spacing: -1px; }
+        .balance-symbol { color: var(--accent); font-size: 20px; }
+
+        /* Майнер (Визуализация) */
+        .mining-core { 
+            width: 200px; height: 200px; margin: 0 auto; border-radius: 50%;
+            background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+            display: flex; align-items: center; justify-content: center;
+            position: relative; cursor: pointer; transition: 0.1s;
+        }
+        .mining-core:active { transform: scale(0.95); opacity: 0.8; }
+        .mining-core::after { content: '⛏️'; font-size: 60px; }
+
+        /* Энергия */
+        .energy-section { margin-top: 20px; }
+        .energy-text { font-size: 18px; color: var(--energy-color); font-weight: bold; }
+
+        /* Навигация */
+        .nav { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; padding: 15px 0; border-top: 1px solid #1e293b; }
+        .nav-btn { flex: 1; text-align: center; font-size: 12px; opacity: 0.6; cursor: pointer; }
+        .nav-btn.active { opacity: 1; color: var(--accent); }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <h1>Future Chain Alpha</h1>
-    <div id="ton-connect"></div> <!-- Кнопка входа через TON -->
-    
-    <div class="mining-area" onclick="mine()">
-        <h2 id="balance">0</h2>
-        <p>TAP TO MINE</p>
+
+    <div class="header">
+        <div>
+            <span id="username">Miner</span>
+            <div class="bar-container" style="width: 100px;"><div id="xp-bar" class="bar-fill" style="background: #a855f7; width: 0%"></div></div>
+        </div>
+        <div class="level-badge">LVL <span id="lvl">1</span></div>
     </div>
+
+    <div id="page-mine" class="main-container">
+        <div class="balance-container">
+            <div class="balance-amount" id="balance">0.000</div>
+            <div class="balance-symbol">FUTURE COIN</div>
+        </div>
+
+        <div class="mining-core" id="tap-zone"></div>
+
+        <div class="energy-section">
+            <div class="energy-text">⚡ <span id="energy">1000</span> / <span id="max-energy">1000</span></div>
+            <div class="bar-container" style="width: 200px; margin: 5px auto;">
+                <div id="energy-bar" class="bar-fill" style="background: var(--energy-color); width: 100%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-upgrades" class="main-container hidden">
+        <h2>Улучшения</h2>
+        <div style="background: var(--card); padding: 15px; border-radius: 15px; margin-bottom: 10px;">
+            <h3>Процессор Quantum X1</h3>
+            <p>+2 к силе клика</p>
+            <button onclick="buyUpgrade()" id="upgrade-btn" style="width:100%; padding:10px; border-radius:10px; border:none; background: var(--accent);">Купить за 50</button>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-btn active" onclick="switchPage('mine')">⛏️ Майнинг</div>
+        <div class="nav-btn" onclick="switchPage('upgrades')">⚡ Бусты</div>
+    </nav>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready();
+        tg.expand();
 
-        // 1. Подключаем реальный блокчейн TON
-        const tonConnectUI = new TONConnectUI.TonConnectUI({
-            manifestUrl: 'https://xn----7sbbf2b7bj7b.github.io',
-            buttonRootId: 'ton-connect'
+        // Состояние игры (загрузка из памяти или дефолт)
+        let user = JSON.parse(localStorage.getItem('mining_user')) || {
+            balance: 0,
+            energy: 1000,
+            maxEnergy: 1000,
+            lvl: 1,
+            xp: 0,
+            nextLvlXp: 100,
+            clickPower: 1
+        };
+
+        function saveData() {
+            localStorage.setItem('mining_user', JSON.stringify(user));
+        }
+
+        function updateUI() {
+            document.getElementById('balance').innerText = user.balance.toFixed(2);
+            document.getElementById('energy').innerText = Math.floor(user.energy);
+            document.getElementById('max-energy').innerText = user.maxEnergy;
+            document.getElementById('lvl').innerText = user.lvl;
+            document.getElementById('energy-bar').style.width = (user.energy / user.maxEnergy * 100) + '%';
+            document.getElementById('xp-bar').style.width = (user.xp / user.nextLvlXp * 100) + '%';
+            document.getElementById('username').innerText = tg.initDataUnsafe.user?.first_name || "Miner";
+        }
+
+        // Логика клика
+        document.getElementById('tap-zone').addEventListener('click', (e) => {
+            if (user.energy >= user.clickPower) {
+                user.balance += (user.clickPower * 0.01);
+                user.energy -= user.clickPower;
+                user.xp += 1;
+
+                // Проверка уровня
+                if (user.xp >= user.nextLvlXp) {
+                    user.lvl++;
+                    user.xp = 0;
+                    user.nextLvlXp *= 2;
+                    user.maxEnergy += 500;
+                    user.energy = user.maxEnergy;
+                    tg.showAlert("Уровень повышен! Энергия восполнена.");
+                }
+
+                tg.HapticFeedback.impactOccurred('light');
+                updateUI();
+                saveData();
+            } else {
+                tg.HapticFeedback.notificationOccurred('error');
+            }
         });
 
-        let energy = 100;
-        let coins = 0;
+        // Регенерация энергии (раз в секунду)
+        setInterval(() => {
+            if (user.energy < user.maxEnergy) {
+                user.energy = Math.min(user.maxEnergy, user.energy + 1);
+                updateUI();
+                saveData();
+            }
+        }, 1000);
 
-        function mine() {
-            if (energy > 0) {
-                coins += 1;
-                energy -= 1;
-                document.getElementById('balance').innerText = coins;
-                tg.HapticFeedback.impactOccurred('light');
+        function switchPage(page) {
+            document.getElementById('page-mine').classList.toggle('hidden', page !== 'mine');
+            document.getElementById('page-upgrades').classList.toggle('hidden', page !== 'upgrades');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.innerText.includes(page === 'mine' ? 'Майнинг' : 'Бусты')));
+        }
+
+        function buyUpgrade() {
+            const cost = 50;
+            if (user.balance >= cost) {
+                user.balance -= cost;
+                user.clickPower += 2;
+                updateUI();
+                saveData();
+                tg.showAlert("Процессор улучшен!");
             } else {
-                tg.showAlert("Энергия на нуле! Жди восстановления.");
+                tg.showAlert("Недостаточно коинов!");
             }
         }
+
+        updateUI();
     </script>
 </body>
 </html>
