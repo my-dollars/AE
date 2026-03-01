@@ -13,55 +13,42 @@
         .stat-card { background: #161b22; padding: 15px; border-radius: 12px; border: 1px solid #30363d; }
         .stat-label { font-size: 10px; color: #8b949e; text-transform: uppercase; }
         .stat-value { font-size: 18px; color: var(--neon); font-weight: bold; }
-        
         #console { background: #000; height: 150px; border: 1px solid #30363d; border-radius: 8px; padding: 10px; font-size: 11px; overflow-y: auto; color: #3fb950; margin-bottom: 20px; }
-        
         .mine-btn { 
             width: 100%; padding: 20px; border: none; border-radius: 15px;
             background: linear-gradient(45deg, #00f2ff, #0066ff);
             color: white; font-weight: bold; font-size: 18px; cursor: pointer;
             box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
         }
-        .mine-btn:active { transform: scale(0.98); }
-        .mining-active { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .mining-active { animation: pulse 1.5s infinite; background: #ff4b2b !important; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
     <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Баланс</div>
-            <div class="stat-value" id="balance">0.00</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Сложность</div>
-            <div class="stat-value" id="difficulty">4</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Блок №</div>
-            <div class="stat-value" id="block-height">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Награда</div>
-            <div class="stat-value" id="reward">50.0</div>
-        </div>
+        <div class="stat-card"><div class="stat-label">Баланс</div><div class="stat-value" id="balance">0.00</div></div>
+        <div class="stat-card"><div class="stat-label">Сложность</div><div class="stat-value" id="difficulty">4</div></div>
+        <div class="stat-card"><div class="stat-label">Блок №</div><div class="stat-value" id="block-height">0</div></div>
+        <div class="stat-card"><div class="stat-label">Награда</div><div class="stat-value" id="reward">50.0</div></div>
     </div>
 
-    <div id="console">Initializing Node v1.0.26...<br>Waiting for operator...</div>
-
-    <button class="mine-btn" id="actionBtn" onclick="toggleMining()">START MINING</button>
+    <div id="console">Initializing Node v1.0.26...<br>Ready to mine.</div>
+    <button class="mine-btn" id="actionBtn">START MINING</button>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
         let isMining = false;
+        let nonce = 0;
+        let lastHash = "00000000000000000000000000000000";
+        
         let blockchain = {
-            height: 0,
+            height: parseInt(localStorage.getItem('bc_height')) || 0,
             balance: parseFloat(localStorage.getItem('bc_balance')) || 0,
-            difficulty: 4,
-            reward: 50
+            difficulty: parseInt(localStorage.getItem('bc_diff')) || 3,
+            reward: parseFloat(localStorage.getItem('bc_reward')) || 50
         };
 
         function log(msg) {
@@ -71,59 +58,33 @@
         }
 
         function updateUI() {
-            document.getElementById('balance').innerText = blockchain.balance.toFixed(2);
+            document.getElementById('balance').innerText = blockchain.balance.toFixed(4);
             document.getElementById('block-height').innerText = blockchain.height;
             document.getElementById('difficulty').innerText = blockchain.difficulty;
-            document.getElementById('reward').innerText = blockchain.reward;
+            document.getElementById('reward').innerText = blockchain.reward.toFixed(2);
         }
 
-        // Базовая функция переключения состояния
-        function toggleMining() {
-            isMining = !isMining;
-            const btn = document.getElementById('actionBtn');
-            if(isMining) {
-                btn.innerText = "MINING IN PROGRESS...";
-                btn.classList.add('mining-active');
-                log("Mining worker started...");
-                startMiningLoop();
-            } else {
-                btn.innerText = "START MINING";
-                btn.classList.remove('mining-active');
-                log("Mining suspended.");
-            }
-            tg.HapticFeedback.impactOccurred('medium');
-        }
-
-                let nonce = 0;
-        let lastHash = "00000000000000000000000000000000";
-
-        // Основной цикл майнинга
         function startMiningLoop() {
             if (!isMining) return;
 
-            // Имитируем пачку вычислений (100 попыток за раз, чтобы не вешать браузер)
-            for (let i = 0; i < 100; i++) {
+            // Пачка из 150 хешей за итерацию (баланс мощности и отклика)
+            const target = "0".repeat(blockchain.difficulty);
+            for (let i = 0; i < 150; i++) {
                 nonce++;
-                // Формируем строку данных для блока
                 const data = blockchain.height + lastHash + nonce + blockchain.difficulty;
                 const currentHash = CryptoJS.SHA256(data).toString();
 
-                // Проверка сложности: хеш должен начинаться с N нулей
-                const target = "0".repeat(blockchain.difficulty);
-                
                 if (currentHash.startsWith(target)) {
                     foundBlock(currentHash);
-                    return; // Прерываем цикл, так как блок найден
+                    return; 
                 }
             }
 
-            // Выводим в консоль текущий процесс раз в 1000 итераций
-            if (nonce % 1000 === 0) {
-                log(`Hash: ${lastHash.substring(0, 16)}... Nonce: ${nonce}`);
+            if (nonce % 1500 === 0) {
+                log(`Mining... Nonce: ${nonce}`);
             }
 
-            // Запускаем следующую итерацию через 10мс (даем браузеру "дышать")
-            setTimeout(startMiningLoop, 10);
+            requestAnimationFrame(startMiningLoop); // Более плавно, чем setTimeout
         }
 
         function foundBlock(hash) {
@@ -132,31 +93,48 @@
             lastHash = hash;
             nonce = 0;
 
-            log(`<span style="color:#4ade80">BLOCK FOUND! Hash: ${hash.substring(0,10)}...</span>`);
-            log(`Reward: +${blockchain.reward} COIN`);
+            log(`<span style="color:#4ade80">BLOCK FOUND!</span>`);
             
-            // Сохраняем прогресс
-            localStorage.setItem('bc_balance', blockchain.balance);
-            
-            // Экономика: усложнение каждые 5 блоков
-            if (blockchain.height % 5 === 0) {
+            // Сложность +1 каждые 3 блока
+            if (blockchain.height % 3 === 0) {
                 blockchain.difficulty++;
-                log(`System: Difficulty increased to ${blockchain.difficulty}`);
+                log(`Difficulty UP: ${blockchain.difficulty}`);
             }
 
-            // Экономика: Халвинг (уменьшение награды) каждые 20 блоков
-            if (blockchain.height % 20 === 0) {
+            // Халвинг каждые 10 блоков
+            if (blockchain.height % 10 === 0) {
                 blockchain.reward /= 2;
-                log(`System: HALVING! New reward: ${blockchain.reward}`);
+                log(`HALVING! Reward: ${blockchain.reward}`);
             }
 
-            tg.HapticFeedback.notificationOccurred('success');
+            saveData();
             updateUI();
+            tg.HapticFeedback.notificationOccurred('success');
             
-            // Продолжаем майнить следующий блок автоматически
             if (isMining) startMiningLoop();
         }
 
+        function saveData() {
+            localStorage.setItem('bc_balance', blockchain.balance);
+            localStorage.setItem('bc_height', blockchain.height);
+            localStorage.setItem('bc_diff', blockchain.difficulty);
+            localStorage.setItem('bc_reward', blockchain.reward);
+        }
+
+        document.getElementById('actionBtn').addEventListener('click', function() {
+            isMining = !isMining;
+            this.classList.toggle('mining-active');
+            
+            if(isMining) {
+                this.innerText = "STOP NODE";
+                log("Worker active...");
+                startMiningLoop();
+            } else {
+                this.innerText = "START MINING";
+                log("Worker stopped.");
+            }
+            tg.HapticFeedback.impactOccurred('medium');
+        });
 
         updateUI();
     </script>
