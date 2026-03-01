@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // MESH CORE 9.1</title>
-    <script src="https://cdnjs.cloudflare.com"></script>
+    <title>AXON // MESH CORE 9.2</title>
+    <!-- ПРЯМОЕ ПОДКЛЮЧЕНИЕ СТАБИЛЬНОЙ ВЕРСИИ -->
+    <script src="https://unpkg.com"></script>
     <style>
         :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
-        body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
 
         #gate { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; padding: 30px; align-items: center; justify-content: center; text-align: center; }
         .seed-box { background: #050505; border: 1px dashed #444; padding: 15px; color: #ffaa00; font-size: 11px; margin: 15px 0; border-radius: 4px; line-height: 1.6; user-select: all; }
@@ -17,13 +18,13 @@
         .bal-val { font-size: 44px; font-weight: 900; color: var(--green); letter-spacing: -2px; }
         .addr-tag { font-size: 8px; color: #444; margin-top: 5px; word-break: break-all; }
 
-        .net-bar { background: var(--dim); padding: 10px 25px; border-bottom: 1px solid var(--border); font-size: 8px; display: flex; justify-content: space-between; color: #555; }
+        .net-bar { background: var(--dim); padding: 10px 25px; border-bottom: 1px solid var(--border); font-size: 8px; display: flex; justify-content: space-between; align-items: center; color: #555; }
         
         .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; padding-bottom: 240px; }
         .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--green); animation: slide 0.3s ease; }
         .msg-text { color: #ffaa00; font-size: 10px; margin-top: 8px; font-style: italic; border-top: 1px solid #1a1a1a; padding-top: 8px; }
 
-        .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--border); padding: 15px 20px 30px; z-index: 100; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--border); padding: 15px 20px calc(20px + env(safe-area-inset-bottom)); z-index: 100; }
         .input { background: #000; border: 1px solid var(--border); color: var(--green); padding: 14px; font-size: 10px; outline: none; margin-bottom: 8px; width: 100%; border-radius: 4px; }
         .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; text-transform: uppercase; cursor: pointer; border-radius: 4px; }
         .btn:disabled { background: #111; color: #333; }
@@ -42,7 +43,7 @@
         <p style="margin-top: 25px; font-size: 10px; color: var(--green); font-weight: bold; cursor:pointer" onclick="Core.toggleUI()">У МЕНЯ ЕСТЬ ФРАЗА</p>
     </div>
     <div id="import-ui" style="display:none; width: 100%;">
-        <input type="text" id="input-seed" class="input" placeholder="Введите фразу через пробел">
+        <input type="text" id="input-seed" class="input" placeholder="Введите 12 слов через пробел">
         <button class="btn" onclick="Core.launch(false)">ВОССТАНОВИТЬ ДОСТУП</button>
         <p style="margin-top: 25px; font-size: 10px; color: #444; cursor:pointer" onclick="Core.toggleUI()">НАЗАД</p>
     </div>
@@ -63,7 +64,7 @@
 
 <div class="controls">
     <div style="display:flex; gap:5px;">
-        <input type="text" id="remote-id" class="input" style="margin-bottom:0" placeholder="ID УЗЛА...">
+        <input type="text" id="remote-id" class="input" style="margin-bottom:0" placeholder="ВСТАВЬТЕ ID УЗЛА (axon-...)">
         <button class="btn" style="padding:10px; width:auto; font-size:9px" onclick="Core.connect()">СВЯЗАТЬ</button>
     </div>
     <input type="text" id="tx-msg" class="input" style="margin-top:8px" placeholder="СООБЩЕНИЕ В СЕТЬ...">
@@ -79,8 +80,7 @@ const Core = {
     address: null,
 
     init() {
-        let s = []; 
-        for(let i=0; i<12; i++) s.push(this.words[Math.floor(Math.random()*this.words.length)]);
+        let s = []; for(let i=0; i<12; i++) s.push(this.words[Math.floor(Math.random()*this.words.length)]);
         this.genSeed = s.join(' ');
         document.getElementById('generated-seed').innerText = this.genSeed;
     },
@@ -99,7 +99,7 @@ const Core = {
 
     async launch(isNew) {
         const seed = isNew ? this.genSeed : document.getElementById('input-seed').value.trim();
-        if(!seed) return alert("Введите фразу");
+        if(!seed || seed.split(' ').length < 2) return alert("Некорректная фраза");
 
         const hash = await this.sha256(seed);
         this.address = "AX-" + hash.substring(0, 16).toUpperCase();
@@ -116,13 +116,19 @@ const Core = {
     },
 
     initP2P() {
-        // Создаем ID на основе адреса
+        // Уникальный сетевой ID
         const shortId = this.address.substring(3, 11).toLowerCase();
-        this.peer = new Peer('axon-' + shortId);
+        const networkId = 'axon-' + shortId + '-' + Math.floor(Math.random()*999);
+        
+        // Настройка Google STUN для прохода через блокировки
+        this.peer = new Peer(networkId, {
+            config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+        });
         
         this.peer.on('open', (id) => {
-            document.getElementById('ui-peer').innerText = id;
-            document.getElementById('ui-net').innerText = "NETWORK READY";
+            document.getElementById('ui-peer').innerText = "ID: " + id;
+            document.getElementById('ui-net').innerText = "NETWORK ONLINE";
+            document.getElementById('ui-net').style.color = "#00ff41";
         });
 
         this.peer.on('connection', (c) => {
@@ -130,19 +136,22 @@ const Core = {
             this.setupConnHandlers();
         });
 
-        this.peer.on('error', (err) => console.error("Peer Error:", err));
+        this.peer.on('error', (err) => {
+            document.getElementById('ui-net').innerText = "PEER ERROR: " + err.type;
+            document.getElementById('ui-net').style.color = "#ff4444";
+        });
     },
 
     connect() {
-        const rid = document.getElementById('remote-id').value;
-        if(!rid) return alert("Введите ID");
+        const rid = document.getElementById('remote-id').value.trim();
+        if(!rid) return alert("Введите сетевой ID (axon-...)");
         this.conn = this.peer.connect(rid);
         this.setupConnHandlers();
     },
 
     setupConnHandlers() {
         this.conn.on('open', () => {
-            document.getElementById('ui-net').innerText = "CONNECTED";
+            document.getElementById('ui-net').innerText = "CONNECTED TO PEER";
             document.getElementById('ui-net').style.color = "#00ff41";
             this.conn.send({ type: 'SYNC', chain: this.chain });
         });
@@ -156,40 +165,26 @@ const Core = {
     async mine() {
         const btn = document.getElementById('mine-btn');
         const msg = document.getElementById('tx-msg').value || "EMPTY_BLOCK";
-        btn.disabled = true;
-        btn.innerText = "MINING...";
+        btn.disabled = true; btn.innerText = "ВЫЧИСЛЕНИЕ (PoW)...";
 
-        let nonce = 0;
-        let hash = "";
-        let prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
+        let nonce = 0, hash = "", prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
         let diff = "00"; 
 
-        // Имитация майнинга (PoW)
-        const mineTask = async () => {
-            for (let i = 0; i < 5000; i++) {
+        const solve = async () => {
+            for(let i=0; i<3000; i++){
                 nonce++;
                 hash = await this.sha256(prev + msg + nonce + this.address);
-                if (hash.startsWith(diff)) return true;
+                if(hash.startsWith(diff)) return true;
             }
             return false;
         };
 
-        while(!(await mineTask())) {
-            await new Promise(r => setTimeout(r, 0));
-        }
+        while(!(await solve())) { await new Promise(r => setTimeout(r, 0)); }
 
-        const newBlock = {
-            ts: Date.now(),
-            msg: msg,
-            author: this.address,
-            nonce: nonce,
-            hash: hash,
-            prev: prev
-        };
-
+        const newBlock = { ts: Date.now(), msg: msg, author: this.address, nonce: nonce, hash: hash, prev: prev };
         this.addBlock(newBlock, true);
-        btn.disabled = false;
-        btn.innerText = "ПОДТВЕРДИТЬ БЛОК (PoW)";
+        
+        btn.disabled = false; btn.innerText = "ПОДТВЕРДИТЬ БЛОК (PoW)";
         document.getElementById('tx-msg').value = "";
     },
 
@@ -202,13 +197,8 @@ const Core = {
         if (broadcast && this.conn) this.conn.send({ type: 'BLOCK', block: block });
     },
 
-    receiveBlock(block) {
-        this.addBlock(block, false);
-    },
-
-    syncChain(remoteChain) {
-        remoteChain.forEach(block => this.addBlock(block, false));
-    },
+    receiveBlock(block) { this.addBlock(block, false); },
+    syncChain(remoteChain) { remoteChain.forEach(b => this.addBlock(b, false)); },
 
     render() {
         const view = document.getElementById('chain-view');
