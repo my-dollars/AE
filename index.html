@@ -2,192 +2,183 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // MESH CORE 9.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AXON // GENESIS NODE</title>
     <style>
-        :root { --bg: #000; --card: #0a0a0a; --accent: #00ff41; --gold: #ffd700; --text: #fff; --dim: #444; --border: #1a1a1a; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
+        :root { --bg: #050505; --accent: #00ff41; --dim: #151515; --text: #d0d0d0; --burn: #ff3e3e; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', 'Courier New', monospace; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* GATE / AUTH */
-        #gate { position: fixed; inset: 0; background: var(--bg); z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; transition: 0.8s cubic-bezier(0.2, 0, 0, 1); }
-        .e-ring { position: relative; width: 240px; height: 240px; margin-bottom: 20px; }
-        #e-canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; z-index: 10; cursor: crosshair; touch-action: none; }
-        .ring-bg { fill: none; stroke: var(--border); stroke-width: 2; }
-        .ring-fill { fill: none; stroke: var(--accent); stroke-width: 4; stroke-dasharray: 628; stroke-dashoffset: 628; transition: 0.1s linear; filter: drop-shadow(0 0 10px var(--accent)); }
+        /* AUTH LAYER */
+        #gate { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; transition: 1.2s cubic-bezier(0.8, 0, 0.2, 1); }
+        .e-ring { position: relative; width: 280px; height: 280px; border-radius: 50%; border: 1px double var(--dim); display: flex; align-items: center; justify-content: center; }
+        #e-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+        .gate-ui { position: relative; z-index: 10; text-align: center; pointer-events: none; }
+        
+        .form { display: none; flex-direction: column; gap: 15px; width: 100%; max-width: 320px; margin-top: 20px; }
+        .input { background: #000; border: 1px solid var(--dim); color: var(--accent); padding: 18px; border-radius: 2px; outline: none; text-align: center; font-size: 14px; }
+        .btn { background: var(--accent); color: #000; padding: 18px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.2s; }
+        .btn:disabled { background: var(--dim); color: #444; }
 
-        .form { width: 100%; max-width: 340px; display: none; flex-direction: column; gap: 12px; }
-        .input { background: var(--card); border: 1px solid var(--border); color: #fff; padding: 18px; border-radius: 14px; outline: none; text-align: center; width: 100%; font-size: 14px; }
-        .btn { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 14px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 13px; letter-spacing: 1px; }
+        /* MAIN INTERFACE */
+        header { padding: 40px 30px; border-bottom: 1px solid var(--dim); background: linear-gradient(to bottom, #080808, #050505); }
+        .bal-val { font-size: 48px; font-weight: 800; letter-spacing: -2px; display: flex; align-items: baseline; gap: 8px; }
+        .bal-val span:last-child { color: var(--accent); font-size: 16px; letter-spacing: 2px; }
+        .node-info { font-size: 10px; color: #666; margin-top: 10px; display: flex; justify-content: space-between; }
 
-        /* UI */
-        header { padding: 50px 25px 25px; border-bottom: 1px solid var(--border); }
-        .bal-val { font-size: 44px; font-weight: 900; letter-spacing: -2px; }
-        .node-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; color: var(--accent); background: rgba(0,255,65,0.05); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(0,255,65,0.2); margin-top: 12px; font-weight: 700; }
+        .viewport { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--dim); }
+        .s-item { padding: 15px 30px; border-right: 1px solid var(--dim); }
+        .s-label { font-size: 9px; color: #444; text-transform: uppercase; margin-bottom: 5px; }
+        .s-data { font-size: 12px; font-weight: bold; }
 
-        .net-stats { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border); }
-        .s-box { background: var(--bg); padding: 15px 25px; border-right: 1px solid var(--border); }
-        .s-label { font-size: 8px; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
-        .s-num { font-size: 13px; font-weight: 700; color: var(--gold); }
+        .terminal { flex: 1; background: #000; padding: 20px; font-size: 11px; color: #008f11; overflow-y: auto; line-height: 1.6; }
+        .t-burn { color: var(--burn); }
+        .t-sys { color: #555; }
 
-        .viewport { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
-        .terminal { background: #020202; border: 1px solid var(--border); padding: 20px; border-radius: 16px; font-size: 10px; color: var(--accent); height: 100%; overflow-y: auto; line-height: 1.6; }
-        .terminal b { color: #fff; }
-
-        nav { position: fixed; bottom: 0; width: 100%; display: flex; padding: 20px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); gap: 10px; border-top: 1px solid var(--border); }
+        footer { padding: 25px; background: #080808; border-top: 1px solid var(--dim); display: flex; gap: 15px; }
+        .progress-container { height: 2px; width: 100%; background: var(--dim); position: absolute; top: 0; left: 0; }
+        #p-bar { height: 100%; width: 0%; background: var(--accent); transition: 0.1s; }
     </style>
 </head>
 <body>
 
-    <!-- AUTH GATE -->
     <div id="gate">
-        <h1 style="font-size: 32px; letter-spacing: 8px; font-weight: 900; margin-bottom: 5px;">AXON</h1>
-        <p id="step-desc" style="font-size: 10px; color: var(--dim); margin-bottom: 30px;">[ PHASE 1: ГЕНЕРАЦИЯ SEED ]</p>
-        
-        <div class="e-ring" id="entropy-ui">
-            <svg viewBox="0 0 210 210" style="transform: rotate(-90deg)">
-                <circle class="ring-bg" cx="105" cy="105" r="100""")/>>
-                <circle id="e-bar" class="ring-fill" cx="105" cy="105" r="100""")/>>
-            </svg>
-            <canvas id="e-canvas" width="240" height="240"></canvas>
+        <div class="e-ring">
+            <canvas id="e-canvas"></canvas>
+            <div class="gate-ui">
+                <div id="gate-status" style="font-size: 10px; letter-spacing: 3px;">ЗАГРУЗКА ЭНТРОПИИ</div>
+                <div id="perc" style="font-size: 24px; font-weight: 800; margin-top: 10px;">0%</div>
+            </div>
         </div>
-
-        <div class="form" id="setup-form">
-            <input type="password" id="p1" class="input" placeholder="МАСТЕР-ПАРОЛЬ (AES-256)">
-            <button class="btn" onclick="Core.setup()">СОЗДАТЬ ЗАШИФРОВАННЫЙ УЗЕЛ</button>
-        </div>
-
-        <div class="form" id="login-form">
-            <input type="password" id="p2" class="input" placeholder="ВВЕДИТЕ ПАРОЛЬ">
-            <button class="btn" onclick="Core.login()">РАЗБЛОКИРОВАТЬ</button>
+        <div class="form" id="gate-form">
+            <input type="password" id="key" class="input" placeholder="PRIVATE_PASSPHRASE">
+            <button class="btn" onclick="Core.activate()">ИНИЦИИРОВАТЬ УЗЕЛ</button>
         </div>
     </div>
 
-    <!-- MAIN UI -->
     <header>
-        <div style="font-size: 9px; color: var(--dim); letter-spacing: 1px; font-weight: 800;">NETWORK ASSET VALUE</div>
-        <div class="bal-val"><span id="bal">0.00000000</span> <span style="font-size: 16px; color: var(--dim); vertical-align: middle;">AXN</span></div>
-        <div class="node-tag" id="addr">NODE::OFFLINE</div>
+        <div class="bal-val"><div id="bal">0.000000</div><span>AXN</span></div>
+        <div class="node-info">
+            <span id="addr">NODE :: STANDBY</span>
+            <span id="block-height">BLOCK :: 000000</span>
+        </div>
     </header>
 
-    <div class="net-stats">
-        <div class="s-box"><div class="s-label">Нагрузка (Load)</div><div class="s-num" id="s-load">0.0%</div></div>
-        <div class="s-box" style="border:none;"><div class="s-label">Сложность</div><div class="s-num" id="s-diff">1.024</div></div>
-    </div>
-
     <div class="viewport">
-        <div class="terminal" id="term">> ОЖИДАНИЕ КВАНТОВОЙ ИНИЦИАЛИЗАЦИИ...</div>
+        <div class="stats">
+            <div class="s-item"><div class="s-label">Сложность (Difficulty)</div><div class="s-data" id="diff">1.0000</div></div>
+            <div class="s-item"><div class="s-label">Цикл эмиссии</div><div class="s-data" id="halving">99.9% LEFT</div></div>
+        </div>
+        <div class="terminal" id="term"></div>
     </div>
 
-    <nav>
-        <button class="btn" id="m-btn" onclick="Core.toggle()" style="display:none">ЗАПУСТИТЬ ТРАНЗИТ</button>
-    </nav>
+    <footer style="position: relative;">
+        <div class="progress-container"><div id="p-bar"></div></div>
+        <button id="mine-btn" class="btn" style="flex:1" onclick="Core.mine()">СЖЕЧЬ ЭНТРОПИЮ (POB)</button>
+    </footer>
 
     <script>
         const Core = {
-            db: { bal: 0, entropy: [], secret: '', active: false, diff: 1.024 },
+            entropy: [],
+            totalMax: 21000000,
+            db: { bal: 0, blocks: 0, diff: 1.0 },
 
             init() {
-                const v = localStorage.getItem('AXON_V9_VAULT');
-                if(v) {
-                    document.getElementById('entropy-ui').style.display = 'none';
-                    document.getElementById('login-form').style.display = 'flex';
-                    document.getElementById('step-desc').innerText = "ТРЕБУЕТСЯ ДЕШИФРОВКА";
-                }
-                this.db.bal = parseFloat(localStorage.getItem('AXON_V9_BAL') || 0);
-                this.db.diff = parseFloat(localStorage.getItem('AXON_V9_DIFF') || 1.024);
+                this.db.bal = parseFloat(localStorage.getItem('ax_b') || 0);
+                this.db.blocks = parseInt(localStorage.getItem('ax_h') || 0);
+                this.updateUI();
+
+                const cvs = document.getElementById('e-canvas');
+                const ctx = cvs.getContext('2d');
+                cvs.width = 280; cvs.height = 280;
+
+                const gather = (e) => {
+                    if(this.entropy.length >= 400) return;
+                    const x = e.touches ? e.touches[0].clientX : e.clientX;
+                    const y = e.touches ? e.touches[0].clientY : e.clientY;
+                    this.entropy.push(x % 16);
+                    
+                    ctx.strokeStyle = '#00ff41';
+                    ctx.beginPath();
+                    ctx.arc(Math.random()*280, Math.random()*280, 1, 0, Math.PI*2);
+                    ctx.stroke();
+
+                    let p = Math.floor((this.entropy.length / 400) * 100);
+                    document.getElementById('perc').innerText = p + '%';
+                    if(p >= 100) {
+                        document.getElementById('gate-form').style.display = 'flex';
+                        document.getElementById('gate-status').innerText = "ЭНТРОПИЯ СТАБИЛЬНА";
+                    }
+                };
+
+                cvs.addEventListener('mousemove', gather);
+                cvs.addEventListener('touchmove', gather);
+                this.log("AXON CORE v9.0: Ожидание протокола...");
+            },
+
+            async activate() {
+                const k = document.getElementById('key').value;
+                if(k.length < 8) return alert("Ключ должен быть > 8 символов для AES-256");
+                
+                const raw = this.entropy.join('') + k;
+                const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+                this.addr = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('').substring(0, 14);
+                
+                document.getElementById('gate').style.transform = 'translateY(-100%)';
+                document.getElementById('addr').innerText = `ADDR :: AX-${this.addr.toUpperCase()}`;
+                this.log(`Узел авторизован. Генезис-хеш: ${this.addr}...`);
+            },
+
+            async mine() {
+                const btn = document.getElementById('mine-btn');
+                btn.disabled = true;
+                this.log("Инициализация цикла сжигания (Proof of Burn)...", "sys");
+                
+                let p = 0;
+                const interval = setInterval(() => {
+                    p += 5;
+                    document.getElementById('p-bar').style.width = p + '%';
+                    if(p >= 100) {
+                        clearInterval(interval);
+                        this.finalizeBlock();
+                        btn.disabled = false;
+                        document.getElementById('p-bar').style.width = '0%';
+                    }
+                }, 100);
+            },
+
+            finalizeBlock() {
+                // Математика: награда уменьшается по мере роста баланса (имитация редкости)
+                const subsidy = 0.05 / (1 + (this.db.bal * 0.1));
+                this.db.bal += subsidy;
+                this.db.blocks += 1;
+                this.db.diff = 1.0 + (this.db.blocks * 0.001);
+
+                localStorage.setItem('ax_b', this.db.bal);
+                localStorage.setItem('ax_h', this.db.blocks);
+                
+                this.log(`Блок #${this.db.blocks} подтвержден. Награда: ${subsidy.toFixed(8)} AXN`);
+                if(this.db.blocks % 10 === 0) this.log("Сложность сети увеличена", "burn");
                 this.updateUI();
             },
 
-            collect(e) {
-                if(this.db.entropy.length >= 250) return;
-                const p = e.touches ? e.touches : e;
-                this.db.entropy.push(`${p.clientX}${p.clientY}${Date.now()}`);
-                document.getElementById('e-bar').style.strokeDashoffset = 628 - (this.db.entropy.length / 250 * 628);
-                if(this.db.entropy.length === 250) {
-                    document.getElementById('entropy-ui').style.display = 'none';
-                    document.getElementById('setup-form').style.display = 'flex';
-                    document.getElementById('step-desc').innerText = "[ PHASE 2: ШИФРОВАНИЕ ]";
-                }
-                if(window.navigator.vibrate) window.navigator.vibrate(2);
-            },
-
-            async setup() {
-                const pass = document.getElementById('p1').value;
-                if(pass.length < 8) return alert("Пароль слишком короткий!");
-                const raw = this.db.entropy.join(':') + pass;
-                const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-                this.db.secret = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-                localStorage.setItem('AXON_V9_VAULT', btoa(this.db.secret + ":" + btoa(pass)));
-                this.launch();
-            },
-
-            login() {
-                const pass = document.getElementById('p2').value;
-                const vault = atob(localStorage.getItem('AXON_V9_VAULT')).split(':');
-                if(btoa(pass) === vault[1]) {
-                    this.db.secret = vault[0];
-                    this.launch();
-                } else {
-                    alert("ОШИБКА: НЕВЕРНЫЙ ПАРОЛЬ");
-                }
-            },
-
-            launch() {
-                document.getElementById('gate').style.transform = 'translateY(-100%)';
-                document.getElementById('addr').innerText = "ADDR::AX-" + this.db.secret.substring(0, 12).toUpperCase();
-                document.getElementById('m-btn').style.display = 'block';
-                this.log("<b>NODE ONLINE.</b> Ядро 9.0 запущено.");
-                this.log("Смысл: <b>Proof-of-Bandwidth</b> (Ценность через трафик)");
-            },
-
-            log(m) {
+            log(m, type="") {
                 const t = document.getElementById('term');
-                t.innerHTML = `[${new Date().toLocaleTimeString()}] > ${m}<br>` + t.innerHTML;
+                const d = document.createElement('div');
+                if(type === "burn") d.className = "t-burn";
+                if(type === "sys") d.className = "t-sys";
+                d.innerText = `> ${m}`;
+                t.prepend(d);
             },
 
             updateUI() {
-                document.getElementById('bal').innerText = this.db.bal.toFixed(8);
-                document.getElementById('s-diff').innerText = this.db.diff.toFixed(4);
-                localStorage.setItem('AXON_V9_BAL', this.db.bal);
-                localStorage.setItem('AXON_V9_DIFF', this.db.diff);
-            },
-
-            toggle() {
-                this.db.active = !this.db.active;
-                const b = document.getElementById('m-btn');
-                b.innerText = this.db.active ? "ОСТАНОВИТЬ ТРАНЗИТ" : "ЗАПУСТИТЬ ТРАНЗИТ";
-                b.style.background = this.db.active ? "#ff3e3e" : "var(--accent)";
-                if(this.db.active) this.mesh();
-            },
-
-            mesh() {
-                if(!this.db.active) { document.getElementById('s-load').innerText = "0.0%"; return; }
-                
-                // Симуляция "Соседей", которым нужен твой интернет
-                const neighbors = ["Node_77", "Stealth_User", "Proxy_X", "Mesh_Peer"];
-                const n = neighbors[Math.floor(Math.random()*neighbors.length)];
-                const load = Math.random();
-                document.getElementById('s-load').innerText = (load * 100).toFixed(1) + "%";
-
-                this.log(`Запрос от <b>${n}</b>: Ретрансляция трафика...`);
-                
-                setTimeout(() => {
-                    const reward = (0.0001 * load) / this.db.diff;
-                    this.db.bal += reward;
-                    this.db.diff += 0.00005; // Дефляция: сложность растет
-                    this.log(`Пакет пропущен. Награда: <b style="color:var(--gold)">+${reward.toFixed(8)} AXN</b>`);
-                    this.updateUI();
-                    if(window.navigator.vibrate) window.navigator.vibrate(20);
-                    setTimeout(() => this.mesh(), 3000 + Math.random()*2000);
-                }, 1500);
+                document.getElementById('bal').innerText = this.db.bal.toFixed(6);
+                document.getElementById('block-height').innerText = `BLOCK :: ${String(this.db.blocks).padStart(6, '0')}`;
+                document.getElementById('diff').innerText = this.db.diff.toFixed(4);
+                document.getElementById('halving').innerText = `${((1 - (this.db.bal/this.totalMax))*100).toFixed(4)}% LEFT`;
             }
         };
-
-        const canvas = document.getElementById('e-canvas');
-        ['mousemove', 'touchmove'].forEach(e => {
-            canvas.addEventListener(e, (ev) => { ev.preventDefault(); Core.collect(ev); }, { passive: false });
-        });
 
         window.onload = () => Core.init();
     </script>
