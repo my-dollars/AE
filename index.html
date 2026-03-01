@@ -2,259 +2,176 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AXON // Autonomous Mesh</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AXON // Node v2.1</title>
     <style>
         :root {
-            --bg: #050505;
-            --panel: #111;
+            --bg: #000000;
+            --card: #121212;
             --accent: #00ff41;
-            --gold: #ffd700;
-            --text: #efefef;
-            --border: rgba(255,255,255,0.07);
+            --text: #ffffff;
+            --dim: #888888;
+            --border: #222222;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; justify-content: center; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: -apple-system, system-ui, sans-serif; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-        #app { width: 100%; max-width: 440px; height: 100%; display: flex; flex-direction: column; background: var(--bg); border-left: 1px solid var(--border); border-right: 1px solid var(--border); position: relative; }
+        /* Auth Overlay */
+        #auth {
+            position: fixed; inset: 0; background: var(--bg); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+        }
 
-        /* Auth */
-        #auth { position: absolute; inset: 0; background: var(--bg); z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-        .input { background: var(--panel); border: 1px solid var(--border); color: #fff; padding: 18px; border-radius: 16px; width: 100%; margin: 20px 0; outline: none; font-size: 16px; text-align: center; }
+        /* Header Area */
+        header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); }
+        .bal-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+        .bal-main { font-size: 38px; font-weight: 800; margin: 5px 0; display: flex; align-items: baseline; gap: 8px; }
+        .addr-tag { font-family: monospace; font-size: 11px; color: var(--dim); background: #111; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); }
 
-        /* Header */
-        header { padding: 30px 20px; border-bottom: 1px solid var(--border); }
-        .balance-main { font-size: 42px; font-weight: 800; letter-spacing: -1px; display: flex; align-items: baseline; gap: 8px; }
-        .addr-tag { font-family: monospace; font-size: 10px; color: #666; background: #1a1a1a; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 10px; }
-
-        /* Tabs */
-        .tabs { display: flex; gap: 10px; padding: 0 20px; margin-top: -20px; overflow-x: auto; scrollbar-width: none; }
-        .tab-btn { background: var(--panel); padding: 12px 20px; border-radius: 12px; border: 1px solid var(--border); color: #888; white-space: nowrap; font-size: 13px; font-weight: 600; cursor: pointer; }
+        /* Navigation Scrollable */
+        .tabs { 
+            display: flex; gap: 10px; padding: 15px 20px; 
+            overflow-x: auto; scrollbar-width: none; 
+            -ms-overflow-style: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { 
+            background: var(--card); border: 1px solid var(--border); color: var(--dim);
+            padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+            white-space: nowrap; transition: 0.2s;
+        }
         .tab-btn.active { background: var(--text); color: #000; border-color: var(--text); }
 
-        /* Content Areas */
-        .page { flex: 1; overflow-y: auto; padding: 25px 20px 100px; display: none; }
-        .page.active { display: block; animation: fadeIn 0.3s ease; }
+        /* Content Scroll Area */
+        .content { flex: 1; overflow-y: auto; padding: 10px 20px 100px; }
+        .page { display: none; animation: fadeIn 0.2s ease-out; }
+        .page.active { display: block; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Cards & UI */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .card { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 18px; }
+        .card-label { font-size: 10px; color: var(--dim); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+        .card-val { font-size: 20px; font-weight: 700; color: var(--text); }
 
-        /* Components */
-        .card { background: var(--panel); border-radius: 20px; padding: 20px; border: 1px solid var(--border); margin-bottom: 15px; }
-        .label { font-size: 11px; color: #666; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; display: block; }
-        .val { font-size: 18px; font-weight: 700; }
-        
-        .btn { background: var(--accent); color: #000; padding: 18px; border-radius: 16px; border: none; font-weight: 700; width: 100%; cursor: pointer; transition: 0.2s; font-size: 15px; }
-        .btn:active { transform: scale(0.97); opacity: 0.9; }
-        .btn-sec { background: transparent; border: 1px solid var(--border); color: #fff; }
+        .log-box { 
+            background: #080808; border: 1px solid var(--border); border-radius: 18px; 
+            padding: 15px; font-family: 'Courier New', monospace; font-size: 11px; 
+            color: var(--accent); min-height: 120px; line-height: 1.6;
+        }
 
-        /* Mining Log */
-        .log-stream { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); line-height: 1.6; height: 120px; overflow-y: hidden; mask-image: linear-gradient(to bottom, transparent, black 20%); }
+        .input { 
+            width: 100%; background: var(--card); border: 1px solid var(--border); 
+            color: #fff; padding: 16px; border-radius: 14px; margin-bottom: 15px; outline: none;
+        }
 
-        /* DAO Progress */
-        .dao-progress { height: 8px; background: #222; border-radius: 4px; margin: 15px 0; position: relative; overflow: hidden; }
-        .dao-fill { height: 100%; background: var(--gold); width: 0%; transition: 1s cubic-bezier(0.2, 0, 0, 1); }
+        .btn { 
+            width: 100%; background: var(--accent); color: #000; padding: 16px; 
+            border-radius: 14px; border: none; font-weight: 700; font-size: 15px;
+        }
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
 
-        /* Bottom Nav */
-        nav { position: absolute; bottom: 0; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); background: rgba(10,10,10,0.8); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 15px 10px; }
-        .nav-link { text-align: center; font-size: 10px; color: #555; cursor: pointer; text-decoration: none; font-weight: 700; }
-        .nav-link.active { color: var(--accent); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div id="app">
     <div id="auth">
-        <h1 style="font-size: 32px; font-weight: 900;">AXON</h1>
-        <p style="font-size: 12px; color: #555; margin-top: 8px;">DECENTRALIZED NODE ENGINE</p>
-        <input type="password" id="seed" class="input" placeholder="PRIVATE KEY (SEED)">
-        <button class="btn" onclick="Core.auth()">INITIALIZE</button>
+        <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 10px;">AXON</h1>
+        <input type="password" id="seed" class="input" placeholder="Введите ваш ключ" style="text-align:center">
+        <button class="btn" onclick="Core.auth()">Инициализировать</button>
     </div>
 
     <header>
-        <span class="label">Total Balance</span>
-        <div class="balance-main"><span id="total-bal">0.00</span><span style="color: #444; font-size: 20px;">AXN</span></div>
-        <div class="addr-tag" id="my-addr">AX-0000000000</div>
+        <div class="bal-label">Общий баланс</div>
+        <div class="bal-main"><span id="total-bal">150.00</span><span style="color:#444; font-size:18px">AXN</span></div>
+        <div class="addr-tag" id="my-addr">AX-MTU1MG==</div>
     </header>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="UI.tab(this, 'main')">Обзор</button>
-        <button class="tab-btn" onclick="UI.tab(this, 'tx')">Перевод</button>
-        <button class="tab-btn" onclick="UI.tab(this, 'mining')">Майнинг</button>
-        <button class="tab-btn" onclick="UI.tab(this, 'dao')">Управление</button>
+        <button class="tab-btn active" onclick="UI.tab(this, 'p-main')">Обзор</button>
+        <button class="tab-btn" onclick="UI.tab(this, 'p-tx')">Перевод</button>
+        <button class="tab-btn" onclick="UI.tab(this, 'p-mine')">Майнинг</button>
+        <button class="tab-btn" onclick="UI.tab(this, 'p-dao')">Управление</button>
     </div>
 
-    <!-- Page: Overview -->
-    <div id="main" class="page active">
-        <div class="grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="card"><span class="label">Staked</span><div class="val" id="staked-bal">0.00</div></div>
-            <div class="card"><span class="label">Nodes</span><div class="val" id="net-nodes">1</div></div>
+    <div class="content">
+        <!-- Page: Main -->
+        <div id="p-main" class="page active">
+            <div class="grid">
+                <div class="card"><div class="card-label">Staked</div><div class="card-val">0.00</div></div>
+                <div class="card"><div class="card-label">Nodes</div><div class="card-val">12</div></div>
+            </div>
+            <div class="card-label" style="margin-left:5px">Live Protocol Stream</div>
+            <div id="log" class="log-box">
+                <span style="opacity:0.5">> AXON PROTOCOL INITIALIZED. P2P MESH READY.</span><br>
+                Ожидание запуска ноды...
+            </div>
         </div>
-        <div class="card">
-            <span class="label">Live Protocol Stream</span>
-            <div id="log" class="log-stream">Ожидание запуска ноды...</div>
+
+        <!-- Page: Transfer -->
+        <div id="p-tx" class="page">
+            <div class="card-label">Получатель</div>
+            <input type="text" class="input" placeholder="AX-XXXX-XXXX">
+            <div class="card-label">Сумма</div>
+            <input type="number" class="input" placeholder="0.00">
+            <button class="btn">Отправить AXN</button>
+        </div>
+
+        <!-- Page: Mining (Placeholder) -->
+        <div id="p-mine" class="page">
+            <div class="card" style="text-align:center; padding: 40px 20px;">
+                <div class="card-label">Текущая доходность</div>
+                <div class="card-val" style="font-size:32px; color:var(--accent); margin: 10px 0;">+0.0042 AXN</div>
+                <button class="btn" onclick="Core.log('Майнинг запущен...')">Старт Ноды</button>
+            </div>
+        </div>
+
+        <!-- Page: DAO (Placeholder) -->
+        <div id="p-dao" class="page">
+            <div class="card-label">Активное предложение</div>
+            <div class="card">
+                <div style="font-weight:700; margin-bottom:10px">BIP-44: Снижение эмиссии</div>
+                <div style="height:6px; background:#222; border-radius:3px; margin: 15px 0;">
+                    <div style="width:35%; height:100%; background:var(--accent); border-radius:3px"></div>
+                </div>
+                <button class="btn" style="background:#fff; color:#000">Голосовать</button>
+            </div>
         </div>
     </div>
 
-    <!-- Page: Transfer -->
-    <div id="tx" class="page">
-        <span class="label">Destination</span>
-        <input type="text" id="target-addr" class="input" style="margin-top: 0;" placeholder="AX-XXXX-XXXX">
-        <span class="label">Amount</span>
-        <input type="number" id="target-amount" class="input" style="margin-top: 0;" placeholder="0.00">
-        <button class="btn" onclick="Core.transfer()">Send Transaction</button>
-    </div>
-
-    <!-- Page: Mining -->
-    <div id="mining" class="page">
-        <div class="card" style="text-align: center;">
-            <span class="label">Current Difficulty</span>
-            <div class="val" id="diff-val" style="font-size: 28px; margin: 10px 0;">1.00x</div>
-            <button class="btn" id="mine-trigger" onclick="Core.toggleMining()">START ENGINE</button>
-        </div>
-        <div class="card">
-            <span class="label">Governance Bonus</span>
-            <div class="val" id="gov-bonus">0.00%</div>
-            <p style="font-size: 11px; color: #555; margin-top: 10px;">Заморозьте 50 AXN, чтобы увеличить вес вашего узла в сети.</p>
-            <button class="btn btn-sec" style="margin-top: 15px;" onclick="Core.stake()">STAKE 50 AXN</button>
-        </div>
-    </div>
-
-    <!-- Page: DAO -->
-    <div id="dao" class="page">
-        <span class="label">Active Proposal</span>
-        <h2 style="margin: 10px 0;">AXP-01: Deflationary Halving</h2>
-        <p style="font-size: 13px; color: #888;">Снижение базовой эмиссии на 25% для защиты стоимости AXN.</p>
-        <div class="dao-progress"><div id="dao-bar" class="dao-fill"></div></div>
-        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
-            <span id="dao-status">VOTES: 0</span>
-            <span style="color: var(--gold);">THRESHOLD: 51%</span>
-        </div>
-        <button class="btn" style="margin-top: 30px; background: var(--gold);" onclick="Core.vote()">CAST VOTE (10 AXN)</button>
-    </div>
-
-    <nav>
-        <div class="nav-link active" onclick="UI.tab(null, 'main')">NODE</div>
-        <div class="nav-link" onclick="UI.tab(null, 'tx')">SEND</div>
-        <div class="nav-link" onclick="UI.tab(null, 'mining')">EARN</div>
-        <div class="nav-link" onclick="UI.tab(null, 'dao')">DAO</div>
-    </nav>
-</div>
-
-<script>
-    const Core = {
-        db: {
-            bal: 150.00,
-            stake: 0,
-            active: false,
-            addr: '',
-            nodes: 12,
-            diff: 1.0,
-            votes: 0,
-            minedTotal: 0
-        },
-
-        auth() {
-            const s = document.getElementById('seed').value;
-            if(s.length < 4) return;
-            this.db.addr = 'AX-' + btoa(s).substring(0, 8).toUpperCase();
-            document.getElementById('my-addr').innerText = this.db.addr;
-            document.getElementById('auth').style.display = 'none';
-            this.log("AXON PROTOCOL INITIALIZED. P2P MESH READY.");
-            this.sync();
-        },
-
-        log(m) {
-            const l = document.getElementById('log');
-            const d = document.createElement('div');
-            d.innerText = `> ${m}`;
-            l.prepend(d);
-            if(l.children.length > 8) l.lastChild.remove();
-        },
-
-        sync() {
-            document.getElementById('total-bal').innerText = this.db.bal.toFixed(2);
-            document.getElementById('staked-bal').innerText = this.db.stake.toFixed(2);
-            document.getElementById('net-nodes').innerText = this.db.nodes;
-            document.getElementById('diff-val').innerText = this.db.diff.toFixed(2) + 'x';
-            
-            const vPercent = Math.min(this.db.votes, 51);
-            document.getElementById('dao-bar').style.width = (vPercent / 0.51) + '%';
-            document.getElementById('dao-status').innerText = `VOTES: ${vPercent.toFixed(1)}%`;
-            
-            if(vPercent >= 51) this.log("CONSENSUS REACHED: EMISSION REDUCED.");
-        },
-
-        toggleMining() {
-            this.db.active = !this.db.active;
-            const b = document.getElementById('mine-trigger');
-            b.innerText = this.db.active ? "STOP ENGINE" : "START ENGINE";
-            b.style.background = this.db.active ? "#ff4141" : "var(--accent)";
-            if(this.db.active) this.mine();
-        },
-
-        mine() {
-            if(!this.db.active) return;
-            
-            // Математика сложности: чем больше узлов и намайнено, тем ниже профит
-            const base = 0.05;
-            const diffAdj = base / (this.db.nodes / 5);
-            const stakeMult = 1 + (this.db.stake / 100);
-            const reward = diffAdj * stakeMult;
-
-            this.db.bal += reward;
-            this.db.minedTotal += reward;
-            
-            // Динамический рост сложности
-            if(Math.random() > 0.7) {
-                this.db.nodes += 1;
-                this.db.diff = this.db.nodes / 10;
+    <script>
+        const Core = {
+            auth() {
+                const s = document.getElementById('seed').value;
+                if(s.length < 3) return;
+                document.getElementById('auth').style.display = 'none';
+                this.log("Node status: <span style='color:#fff'>Active</span>");
+            },
+            log(msg) {
+                const l = document.getElementById('log');
+                l.innerHTML = `> ${msg}<br>` + l.innerHTML;
             }
+        };
 
-            this.log(`BLOCK SOLVED. REWARD: +${reward.toFixed(5)} AXN`);
-            this.sync();
-            UI.haptic(40);
-            
-            setTimeout(() => this.mine(), 3000);
-        },
-
-        transfer() {
-            const a = document.getElementById('target-amount').value;
-            if(this.db.bal < a) return alert("Insufficient AXN");
-            this.db.bal -= a;
-            this.log(`TX BROADCASTED: -${a} AXN to ${document.getElementById('target-addr').value}`);
-            this.sync();
-        },
-
-        stake() {
-            if(this.db.bal < 50) return;
-            this.db.bal -= 50;
-            this.db.stake += 50;
-            this.log("STAKING DEPOSIT LOCKED. NODE PRIORITY UPGRADED.");
-            this.sync();
-        },
-
-        vote() {
-            if(this.db.bal < 10) return;
-            this.db.bal -= 10;
-            this.db.votes += 4.2; // Сила голоса
-            this.log("VOTE REGISTERED. BIP-01 PROGRESS UPDATED.");
-            this.sync();
-        }
-    };
-
-    const UI = {
-        tab(btn, id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            if(btn) {
+        const UI = {
+            tab(btn, id) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                if(window.navigator.vibrate) window.navigator.vibrate(5);
             }
-            this.haptic(10);
-        },
-        haptic(ms) { if(window.navigator.vibrate) window.navigator.vibrate(ms); }
-    };
-</script>
+        };
+    </script>
 </body>
 </html>
