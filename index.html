@@ -3,184 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AXON // GENESIS NODE</title>
+    <title>AXON // BITCOIN STANDARD</title>
     <style>
-        :root { --bg: #050505; --accent: #00ff41; --dim: #151515; --text: #d0d0d0; --burn: #ff3e3e; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', 'Courier New', monospace; }
-        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        :root { --bg: #000; --green: #00ff41; --dim: #1a1a1a; --warn: #ffcc00; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
+        body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
         /* AUTH LAYER */
-        #gate { position: fixed; inset: 0; background: var(--bg); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 25px; transition: 1.2s cubic-bezier(0.8, 0, 0.2, 1); }
-        .e-ring { position: relative; width: 280px; height: 280px; border-radius: 50%; border: 1px double var(--dim); display: flex; align-items: center; justify-content: center; }
-        #e-canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
-        .gate-ui { position: relative; z-index: 10; text-align: center; pointer-events: none; }
-        
-        .form { display: none; flex-direction: column; gap: 15px; width: 100%; max-width: 320px; margin-top: 20px; }
-        .input { background: #000; border: 1px solid var(--dim); color: var(--accent); padding: 18px; border-radius: 2px; outline: none; text-align: center; font-size: 14px; }
-        .btn { background: var(--accent); color: #000; padding: 18px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; transition: 0.2s; }
-        .btn:disabled { background: var(--dim); color: #444; }
+        #gate { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; padding: 30px; align-items: center; justify-content: center; text-align: center; }
+        .seed-box { background: var(--dim); padding: 20px; border-radius: 8px; margin: 20px 0; font-size: 14px; color: var(--warn); border: 1px dashed var(--warn); }
+        input, textarea { width: 100%; max-width: 350px; background: #080808; border: 1px solid #333; color: var(--green); padding: 15px; margin: 10px 0; outline: none; }
+        .btn { width: 100%; max-width: 350px; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
 
-        /* MAIN INTERFACE */
-        header { padding: 40px 30px; border-bottom: 1px solid var(--dim); background: linear-gradient(to bottom, #080808, #050505); }
-        .bal-val { font-size: 48px; font-weight: 800; letter-spacing: -2px; display: flex; align-items: baseline; gap: 8px; }
-        .bal-val span:last-child { color: var(--accent); font-size: 16px; letter-spacing: 2px; }
-        .node-info { font-size: 10px; color: #666; margin-top: 10px; display: flex; justify-content: space-between; }
-
-        .viewport { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        /* MAIN UI */
+        header { padding: 30px; border-bottom: 1px solid var(--dim); }
+        .bal { font-size: 42px; font-weight: 800; color: var(--green); letter-spacing: -2px; }
         .stats { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--dim); }
-        .s-item { padding: 15px 30px; border-right: 1px solid var(--dim); }
-        .s-label { font-size: 9px; color: #444; text-transform: uppercase; margin-bottom: 5px; }
-        .s-data { font-size: 12px; font-weight: bold; }
+        .s-box { padding: 15px 30px; border-right: 1px solid var(--dim); }
+        .label { font-size: 9px; color: #555; text-transform: uppercase; }
 
-        .terminal { flex: 1; background: #000; padding: 20px; font-size: 11px; color: #008f11; overflow-y: auto; line-height: 1.6; }
-        .t-burn { color: var(--burn); }
-        .t-sys { color: #555; }
-
-        footer { padding: 25px; background: #080808; border-top: 1px solid var(--dim); display: flex; gap: 15px; }
-        .progress-container { height: 2px; width: 100%; background: var(--dim); position: absolute; top: 0; left: 0; }
-        #p-bar { height: 100%; width: 0%; background: var(--accent); transition: 0.1s; }
+        .terminal { flex: 1; background: #000; padding: 20px; font-size: 11px; color: #008f11; overflow-y: auto; line-height: 1.5; }
+        footer { padding: 20px; background: #050505; border-top: 1px solid var(--dim); }
     </style>
 </head>
 <body>
 
-    <div id="gate">
-        <div class="e-ring">
-            <canvas id="e-canvas"></canvas>
-            <div class="gate-ui">
-                <div id="gate-status" style="font-size: 10px; letter-spacing: 3px;">ЗАГРУЗКА ЭНТРОПИИ</div>
-                <div id="perc" style="font-size: 24px; font-weight: 800; margin-top: 10px;">0%</div>
-            </div>
-        </div>
-        <div class="form" id="gate-form">
-            <input type="password" id="key" class="input" placeholder="PRIVATE_PASSPHRASE">
-            <button class="btn" onclick="Core.activate()">ИНИЦИИРОВАТЬ УЗЕЛ</button>
-        </div>
+<div id="gate">
+    <h2 style="color: var(--green); letter-spacing: 5px;">AXON MESH</h2>
+    
+    <div id="setup-view">
+        <p style="font-size: 12px; margin-top: 20px;">НОВЫЙ УЗЕЛ? СОХРАНИТЕ ЭТИ 12 СЛОВ:</p>
+        <div class="seed-box" id="new-seed">...генерируем хаос...</div>
+        <p style="font-size: 9px; color: #666;">ПОТЕРЯЕТЕ СЛОВА — ПОТЕРЯЕТЕ ВСЁ.</p>
+        <button class="btn" onclick="Core.launch(true)">Я ЗАПИСАЛ, ВОЙТИ</button>
+        <button class="btn" style="background:none; color:var(--green); border:1px solid var(--green)" onclick="Core.showImport()">У МЕНЯ ЕСТЬ СИД-ФРАЗА</button>
     </div>
 
-    <header>
-        <div class="bal-val"><div id="bal">0.000000</div><span>AXN</span></div>
-        <div class="node-info">
-            <span id="addr">NODE :: STANDBY</span>
-            <span id="block-height">BLOCK :: 000000</span>
-        </div>
-    </header>
-
-    <div class="viewport">
-        <div class="stats">
-            <div class="s-item"><div class="s-label">Сложность (Difficulty)</div><div class="s-data" id="diff">1.0000</div></div>
-            <div class="s-item"><div class="s-label">Цикл эмиссии</div><div class="s-data" id="halving">99.9% LEFT</div></div>
-        </div>
-        <div class="terminal" id="term"></div>
+    <div id="import-view" style="display:none">
+        <p style="font-size: 12px;">ВВЕДИТЕ ВАШИ 12 СЛОВ:</p>
+        <textarea id="input-seed" rows="3" placeholder="word1 word2 ..."></textarea>
+        <button class="btn" onclick="Core.launch(false)">ВОССТАНОВИТЬ ДОСТУП</button>
+        <button class="btn" style="background:none; color:#555; border:1px solid #333" onclick="location.reload()">НАЗАД</button>
     </div>
+</div>
 
-    <footer style="position: relative;">
-        <div class="progress-container"><div id="p-bar"></div></div>
-        <button id="mine-btn" class="btn" style="flex:1" onclick="Core.mine()">СЖЕЧЬ ЭНТРОПИЮ (POB)</button>
-    </footer>
+<header>
+    <div class="label">Balance Asset</div>
+    <div class="bal"><span id="ui-bal">0.0000</span> <span style="font-size: 16px; color:#333">AXN</span></div>
+    <div id="ui-addr" style="font-size: 9px; color: #444; margin-top: 10px;">ADDR :: STANDBY</div>
+</header>
 
-    <script>
-        const Core = {
-            entropy: [],
-            totalMax: 21000000,
-            db: { bal: 0, blocks: 0, diff: 1.0 },
+<div class="stats">
+    <div class="s-box"><div class="label">Сложность</div><div id="ui-diff">1.00</div></div>
+    <div class="s-box"><div class="label">Сеть</div><div style="color:var(--green)">P2P_SIMULATOR</div></div>
+</div>
 
-            init() {
-                this.db.bal = parseFloat(localStorage.getItem('ax_b') || 0);
-                this.db.blocks = parseInt(localStorage.getItem('ax_h') || 0);
-                this.updateUI();
+<div class="terminal" id="term">> ИНИЦИАЛИЗАЦИЯ ЯДРА...</div>
 
-                const cvs = document.getElementById('e-canvas');
-                const ctx = cvs.getContext('2d');
-                cvs.width = 280; cvs.height = 280;
+<footer>
+    <button class="btn" onclick="Core.mine()">ПОДТВЕРДИТЬ ТРАНЗАКЦИИ (MINE)</button>
+</footer>
 
-                const gather = (e) => {
-                    if(this.entropy.length >= 400) return;
-                    const x = e.touches ? e.touches[0].clientX : e.clientX;
-                    const y = e.touches ? e.touches[0].clientY : e.clientY;
-                    this.entropy.push(x % 16);
-                    
-                    ctx.strokeStyle = '#00ff41';
-                    ctx.beginPath();
-                    ctx.arc(Math.random()*280, Math.random()*280, 1, 0, Math.PI*2);
-                    ctx.stroke();
+<script>
+const Core = {
+    wordList: ["alpha", "beta", "gamma", "delta", "echo", "fox", "golf", "hotel", "india", "july", "kilo", "lima", "maze", "node", "ocean", "pixel", "quant", "river", "solar", "terra", "unit", "vocal", "wave", "zone"],
+    currentSeed: '',
+    
+    init() {
+        // Создаем новую фразу при загрузке
+        let words = [];
+        for(let i=0; i<12; i++) words.push(this.wordList[Math.floor(Math.random()*this.wordList.length)]);
+        this.currentSeed = words.join(' ');
+        document.getElementById('new-seed').innerText = this.currentSeed;
+    },
 
-                    let p = Math.floor((this.entropy.length / 400) * 100);
-                    document.getElementById('perc').innerText = p + '%';
-                    if(p >= 100) {
-                        document.getElementById('gate-form').style.display = 'flex';
-                        document.getElementById('gate-status').innerText = "ЭНТРОПИЯ СТАБИЛЬНА";
-                    }
-                };
+    showImport() {
+        document.getElementById('setup-view').style.display = 'none';
+        document.getElementById('import-view').style.display = 'flex';
+    },
 
-                cvs.addEventListener('mousemove', gather);
-                cvs.addEventListener('touchmove', gather);
-                this.log("AXON CORE v9.0: Ожидание протокола...");
-            },
+    async launch(isNew) {
+        const seed = isNew ? this.currentSeed : document.getElementById('input-seed').value.trim().toLowerCase();
+        if(seed.split(' ').length < 12) return alert("Нужно ровно 12 слов");
 
-            async activate() {
-                const k = document.getElementById('key').value;
-                if(k.length < 8) return alert("Ключ должен быть > 8 символов для AES-256");
-                
-                const raw = this.entropy.join('') + k;
-                const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-                this.addr = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('').substring(0, 14);
-                
-                document.getElementById('gate').style.transform = 'translateY(-100%)';
-                document.getElementById('addr').innerText = `ADDR :: AX-${this.addr.toUpperCase()}`;
-                this.log(`Узел авторизован. Генезис-хеш: ${this.addr}...`);
-            },
+        // Генерируем адрес из сид-фразы
+        const hash = await this.sha256(seed);
+        this.address = hash.substring(0, 16).toUpperCase();
+        this.seed = seed;
+        
+        // Загружаем баланс именно для этого адреса
+        this.balance = parseFloat(localStorage.getItem(`ax_v12_${this.address}`) || 0);
+        
+        document.getElementById('gate').style.transform = 'translateY(-100%)';
+        document.getElementById('ui-addr').innerText = `ADDR :: AX-${this.address}`;
+        this.updateUI();
+        this.log(`Узел запущен. Адрес детерминирован из Seed-фразы.`);
+    },
 
-            async mine() {
-                const btn = document.getElementById('mine-btn');
-                btn.disabled = true;
-                this.log("Инициализация цикла сжигания (Proof of Burn)...", "sys");
-                
-                let p = 0;
-                const interval = setInterval(() => {
-                    p += 5;
-                    document.getElementById('p-bar').style.width = p + '%';
-                    if(p >= 100) {
-                        clearInterval(interval);
-                        this.finalizeBlock();
-                        btn.disabled = false;
-                        document.getElementById('p-bar').style.width = '0%';
-                    }
-                }, 100);
-            },
+    async sha256(m) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(m));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    },
 
-            finalizeBlock() {
-                // Математика: награда уменьшается по мере роста баланса (имитация редкости)
-                const subsidy = 0.05 / (1 + (this.db.bal * 0.1));
-                this.db.bal += subsidy;
-                this.db.blocks += 1;
-                this.db.diff = 1.0 + (this.db.blocks * 0.001);
+    mine() {
+        this.log("Поиск хеша блока...");
+        setTimeout(() => {
+            const reward = 0.05;
+            this.balance += reward;
+            localStorage.setItem(`ax_v12_${this.address}`, this.balance);
+            this.log(`Блок найден! Награда: ${reward} AXN`);
+            this.updateUI();
+        }, 1500);
+    },
 
-                localStorage.setItem('ax_b', this.db.bal);
-                localStorage.setItem('ax_h', this.db.blocks);
-                
-                this.log(`Блок #${this.db.blocks} подтвержден. Награда: ${subsidy.toFixed(8)} AXN`);
-                if(this.db.blocks % 10 === 0) this.log("Сложность сети увеличена", "burn");
-                this.updateUI();
-            },
+    log(m) {
+        const t = document.getElementById('term');
+        t.innerHTML = `> ${m}<br>` + t.innerHTML;
+    },
 
-            log(m, type="") {
-                const t = document.getElementById('term');
-                const d = document.createElement('div');
-                if(type === "burn") d.className = "t-burn";
-                if(type === "sys") d.className = "t-sys";
-                d.innerText = `> ${m}`;
-                t.prepend(d);
-            },
+    updateUI() {
+        document.getElementById('ui-bal').innerText = this.balance.toFixed(4);
+    }
+};
 
-            updateUI() {
-                document.getElementById('bal').innerText = this.db.bal.toFixed(6);
-                document.getElementById('block-height').innerText = `BLOCK :: ${String(this.db.blocks).padStart(6, '0')}`;
-                document.getElementById('diff').innerText = this.db.diff.toFixed(4);
-                document.getElementById('halving').innerText = `${((1 - (this.db.bal/this.totalMax))*100).toFixed(4)}% LEFT`;
-            }
-        };
-
-        window.onload = () => Core.init();
-    </script>
+window.onload = () => Core.init();
+</script>
 </body>
 </html>
