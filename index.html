@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // MESH CORE 9.2</title>
-    <!-- ПРЯМОЕ ПОДКЛЮЧЕНИЕ СТАБИЛЬНОЙ ВЕРСИИ -->
-    <script src="https://unpkg.com"></script>
+    <title>AXON // MESH CORE 9.4</title>
+    <!-- Использование проверенной версии библиотеки через надежный CDN -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <style>
         :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
@@ -56,7 +56,7 @@
 </header>
 
 <div class="net-bar">
-    <div id="ui-net">PEER ID DISCONNECTED</div>
+    <div id="ui-net">CONNECTING TO MESH...</div>
     <div id="ui-peer" style="color: var(--green); font-weight: bold;">ID: ...</div>
 </div>
 
@@ -64,7 +64,7 @@
 
 <div class="controls">
     <div style="display:flex; gap:5px;">
-        <input type="text" id="remote-id" class="input" style="margin-bottom:0" placeholder="ВСТАВЬТЕ ID УЗЛА (axon-...)">
+        <input type="text" id="remote-id" class="input" style="margin-bottom:0" placeholder="ID УЗЛА (axon-...)">
         <button class="btn" style="padding:10px; width:auto; font-size:9px" onclick="Core.connect()">СВЯЗАТЬ</button>
     </div>
     <input type="text" id="tx-msg" class="input" style="margin-top:8px" placeholder="СООБЩЕНИЕ В СЕТЬ...">
@@ -86,8 +86,7 @@ const Core = {
     },
 
     toggleUI() {
-        const s = document.getElementById('setup-ui');
-        const i = document.getElementById('import-ui');
+        const s = document.getElementById('setup-ui'), i = document.getElementById('import-ui');
         s.style.display = (s.style.display === 'none') ? 'block' : 'none';
         i.style.display = (i.style.display === 'none') ? 'block' : 'none';
     },
@@ -99,7 +98,7 @@ const Core = {
 
     async launch(isNew) {
         const seed = isNew ? this.genSeed : document.getElementById('input-seed').value.trim();
-        if(!seed || seed.split(' ').length < 2) return alert("Некорректная фраза");
+        if(!seed) return alert("Введите фразу");
 
         const hash = await this.sha256(seed);
         this.address = "AX-" + hash.substring(0, 16).toUpperCase();
@@ -116,14 +115,26 @@ const Core = {
     },
 
     initP2P() {
-        // Уникальный сетевой ID
+        // Генерация сетевого ID
         const shortId = this.address.substring(3, 11).toLowerCase();
         const networkId = 'axon-' + shortId + '-' + Math.floor(Math.random()*999);
         
-        // Настройка Google STUN для прохода через блокировки
-        this.peer = new Peer(networkId, {
-            config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
-        });
+        // Настройка серверов для обхода NAT и блокировок
+        const config = {
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true,
+            debug: 3,
+            config: {
+                'iceServers': [
+                    { 'urls': 'stun:stun.l.google.com:19302' },
+                    { 'urls': 'stun:stun1.l.google.com:19302' },
+                    { 'urls': 'stun:stun.services.mozilla.com' }
+                ]
+            }
+        };
+
+        this.peer = new Peer(networkId, config);
         
         this.peer.on('open', (id) => {
             document.getElementById('ui-peer').innerText = "ID: " + id;
@@ -137,49 +148,46 @@ const Core = {
         });
 
         this.peer.on('error', (err) => {
-            document.getElementById('ui-net').innerText = "PEER ERROR: " + err.type;
+            console.error("P2P ERROR:", err.type);
+            document.getElementById('ui-net').innerText = "ERROR: " + err.type;
             document.getElementById('ui-net').style.color = "#ff4444";
         });
     },
 
     connect() {
         const rid = document.getElementById('remote-id').value.trim();
-        if(!rid) return alert("Введите сетевой ID (axon-...)");
-        this.conn = this.peer.connect(rid);
+        if(!rid) return alert("Введите ID узла (axon-...)");
+        this.conn = this.peer.connect(rid, { reliable: true });
         this.setupConnHandlers();
     },
 
     setupConnHandlers() {
         this.conn.on('open', () => {
-            document.getElementById('ui-net').innerText = "CONNECTED TO PEER";
+            document.getElementById('ui-net').innerText = "CONNECTED";
             document.getElementById('ui-net').style.color = "#00ff41";
             this.conn.send({ type: 'SYNC', chain: this.chain });
         });
 
         this.conn.on('data', (data) => {
-            if(data.type === 'BLOCK') this.receiveBlock(data.block);
-            if(data.type === 'SYNC') this.syncChain(data.chain);
+            if(data.type === 'BLOCK') this.addBlock(data.block, false);
+            if(data.type === 'SYNC') data.chain.forEach(b => this.addBlock(b, false));
         });
     },
 
     async mine() {
         const btn = document.getElementById('mine-btn');
         const msg = document.getElementById('tx-msg').value || "EMPTY_BLOCK";
-        btn.disabled = true; btn.innerText = "ВЫЧИСЛЕНИЕ (PoW)...";
+        btn.disabled = true; btn.innerText = "MINING PoW...";
 
         let nonce = 0, hash = "", prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
         let diff = "00"; 
 
-        const solve = async () => {
-            for(let i=0; i<3000; i++){
-                nonce++;
-                hash = await this.sha256(prev + msg + nonce + this.address);
-                if(hash.startsWith(diff)) return true;
-            }
-            return false;
-        };
-
-        while(!(await solve())) { await new Promise(r => setTimeout(r, 0)); }
+        while(true) {
+            nonce++;
+            hash = await this.sha256(prev + msg + nonce + this.address);
+            if(hash.startsWith(diff)) break;
+            if(nonce % 500 === 0) await new Promise(r => setTimeout(r, 0));
+        }
 
         const newBlock = { ts: Date.now(), msg: msg, author: this.address, nonce: nonce, hash: hash, prev: prev };
         this.addBlock(newBlock, true);
@@ -196,9 +204,6 @@ const Core = {
         localStorage.setItem(`ch_${this.address}`, JSON.stringify(this.chain));
         if (broadcast && this.conn) this.conn.send({ type: 'BLOCK', block: block });
     },
-
-    receiveBlock(block) { this.addBlock(block, false); },
-    syncChain(remoteChain) { remoteChain.forEach(b => this.addBlock(b, false)); },
 
     render() {
         const view = document.getElementById('chain-view');
