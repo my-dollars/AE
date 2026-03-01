@@ -1,63 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Crypto Node v2.0</title>
+    <title>BLOCKCHAIN NODE v3.0</title>
     <script src="https://telegram.org"></script>
     <style>
-        body { background: #0a0b10; color: #00f2ff; font-family: monospace; margin: 0; padding: 20px; text-align: center; }
-        .card { background: #161b22; border: 1px solid #30363d; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
-        input { background: #000; border: 1px solid #00f2ff; color: #00f2ff; padding: 10px; width: 80%; margin: 10px 0; border-radius: 5px; }
-        button { background: #00f2ff; color: #000; border: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
-        button:active { opacity: 0.7; }
-        #console { background: #000; height: 100px; overflow-y: auto; font-size: 10px; text-align: left; padding: 10px; border: 1px solid #333; color: #3fb950; }
+        :root { --neon: #00f2ff; --bg: #0a0b10; --panel: #161b22; }
+        body { background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; margin: 0; padding: 20px; }
+        .card { background: var(--panel); border: 1px solid #30363d; padding: 20px; border-radius: 15px; margin-bottom: 15px; }
+        input { background: #000; border: 1px solid var(--neon); color: var(--neon); padding: 12px; width: 100%; box-sizing: border-box; margin-bottom: 10px; border-radius: 8px; }
+        button { background: var(--neon); color: #000; border: none; padding: 15px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.8; }
+        .mining-on { background: #ff3e3e !important; color: white; animation: pulse 1.5s infinite; }
+        #console { background: #000; height: 120px; overflow-y: auto; font-size: 11px; padding: 10px; border: 1px solid #333; color: #3fb950; margin-top: 10px; border-radius: 8px; }
         .hidden { display: none; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <!-- ЭКРАН ВХОДА -->
     <div id="auth-screen" class="card">
-        <h2>NODE LOGIN</h2>
+        <h2 id="auth-title">CREATE ACCOUNT</h2>
+        <input type="text" id="node-login" placeholder="Придумайте логин">
         <input type="password" id="node-pass" placeholder="Придумайте пароль">
-        <button onclick="login()">ENTER SYSTEM</button>
+        <button onclick="handleAuth()">ACCESS NODE</button>
     </div>
 
-    <!-- ЭКРАН МАЙНИНГА -->
+    <!-- ЭКРАН МАЙНЕРА -->
     <div id="main-screen" class="hidden">
         <div class="card">
-            <div style="font-size: 10px; color: #8b949e;">BALANCE</div>
-            <div id="bal" style="font-size: 32px; font-weight: bold;">0.00</div>
-            <div id="status" style="font-size: 10px; margin-top: 10px;">IDLE</div>
+            <div style="font-size: 10px; color: #8b949e;">NODE OPERATOR: <span id="user-display" style="color:var(--neon)"></span></div>
+            <div style="font-size: 38px; font-weight: bold; margin: 10px 0;" id="bal">0.0000</div>
+            <div style="font-size: 12px;">Difficulty: <span id="diff">3</span> | Blocks: <span id="blocks">0</span></div>
         </div>
         
-        <button id="mineBtn" onclick="toggleMining()">START MINER</button>
-        <br><br>
-        <div id="console"></div>
+        <button id="mineBtn" onclick="toggleMining()">START MINING ENGINE</button>
+        
+        <div id="console">System Ready...</div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let minerWorker;
+        let minerWorker = null;
         let isMining = false;
+        
+        // Данные блокчейна
         let state = {
+            login: localStorage.getItem('bc_login') || "",
+            pass: localStorage.getItem('bc_pass') || "",
             bal: parseFloat(localStorage.getItem('bc_bal')) || 0,
-            height: 0,
-            diff: 3,
-            lastHash: "genesis_hash"
+            height: parseInt(localStorage.getItem('bc_height')) || 0,
+            diff: 3
         };
 
-        function login() {
-            const pass = document.getElementById('node-pass').value;
-            if (pass.length < 4) return alert("Пароль слишком короткий");
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('main-screen').classList.remove('hidden');
-            log("System authorized.");
-            updateUI();
-        }
+        // Инициализация при загрузке
+        window.onload = () => {
+            if (state.login) {
+                document.getElementById('auth-title').innerText = "RESTORE SESSION";
+                document.getElementById('node-login').value = state.login;
+                document.getElementById('node-login').readOnly = true;
+            }
+        };
 
         function log(m) {
             const c = document.getElementById('console');
@@ -65,42 +72,92 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        function updateUI() {
-            document.getElementById('bal').innerText = state.bal.toFixed(4);
+        function handleAuth() {
+            const l = document.getElementById('node-login').value;
+            const p = document.getElementById('node-pass').value;
+
+            if (l.length < 3 || p.length < 4) return alert("Логин > 3, Пароль > 4 символов!");
+
+            if (!state.login) { // Регистрация
+                localStorage.setItem('bc_login', l);
+                localStorage.setItem('bc_pass', p);
+                state.login = l; state.pass = p;
+                log("New identity encrypted.");
+            } else { // Вход
+                if (l !== state.login || p !== state.pass) {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    return alert("Ошибка доступа: Неверные данные!");
+                }
+            }
+            
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-screen').classList.remove('hidden');
+            document.getElementById('user-display').innerText = state.login.toUpperCase();
+            updateUI();
         }
 
+        function updateUI() {
+            document.getElementById('bal').innerText = state.bal.toFixed(4);
+            document.getElementById('blocks').innerText = state.height;
+            document.getElementById('diff').innerText = state.diff;
+        }
+
+        // КОД ВОРКЕРА (Создается на лету)
+        const workerCode = `
+            importScripts('https://cdnjs.cloudflare.com');
+            onmessage = function(e) {
+                let { height, diff } = e.data;
+                let nonce = 0;
+                let target = "0".repeat(diff);
+                while(true) {
+                    nonce++;
+                    let hash = CryptoJS.SHA256(height + "" + nonce).toString();
+                    if(hash.startsWith(target)) {
+                        postMessage({type: 'found', hash: hash});
+                        break;
+                    }
+                    if(nonce % 5000 === 0) postMessage({type: 'log', n: nonce});
+                }
+            }
+        `;
+
         function toggleMining() {
+            const btn = document.getElementById('mineBtn');
             if (!isMining) {
                 isMining = true;
-                document.getElementById('mineBtn').innerText = "STOP MINER";
-                document.getElementById('status').innerText = "MINING...";
+                btn.innerText = "STOP ENGINE";
+                btn.classList.add('mining-on');
+                log("Powering up hash-cores...");
+
+                const blob = new Blob([workerCode], {type: 'application/javascript'});
+                minerWorker = new Worker(URL.createObjectURL(blob));
                 
-                // Запуск воркера
-                minerWorker = new Worker('worker.js');
-                minerWorker.postMessage({ height: state.height, lastHash: state.lastHash, difficulty: state.diff });
-                
-                minerWorker.onmessage = function(e) {
-                    if (e.data.status === 'found') {
-                        state.bal += 50;
+                minerWorker.postMessage({height: state.height, diff: state.diff});
+
+                minerWorker.onmessage = (e) => {
+                    if(e.data.type === 'found') {
+                        state.bal += 12.5; // Награда за блок
                         state.height++;
-                        state.lastHash = e.data.hash;
-                        log(`Found! Hash: ${e.data.hash.substr(0,10)}`);
                         localStorage.setItem('bc_bal', state.bal);
+                        localStorage.setItem('bc_height', state.height);
+                        log(`<span style="color:#4ade80">BLOCK MINED! +12.5 COIN</span>`);
                         updateUI();
                         tg.HapticFeedback.notificationOccurred('success');
-                        // Перезапуск для следующего блока
-                        minerWorker.postMessage({ height: state.height, lastHash: state.lastHash, difficulty: state.diff });
+                        // Продолжаем автоматически
+                        minerWorker.postMessage({height: state.height, diff: state.diff});
                     } else {
-                        document.getElementById('status').innerText = `NONCE: ${e.data.nonce}`;
+                        // Обновление логов без зависания кнопок
+                        if(e.data.n % 10000 === 0) log(`Scanning nonce: ${e.data.n}`);
                     }
                 };
             } else {
                 isMining = false;
+                btn.innerText = "START MINING ENGINE";
+                btn.classList.remove('mining-on');
                 minerWorker.terminate();
-                document.getElementById('mineBtn').innerText = "START MINER";
-                document.getElementById('status').innerText = "STOPPED";
-                log("Miner terminated.");
+                log("Engine cooling down.");
             }
+            tg.HapticFeedback.impactOccurred('medium');
         }
     </script>
 </body>
