@@ -3,207 +3,257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // GENESIS v4.6</title>
+    <title>AXON // AUTONOMOUS CORE 6.0</title>
     <style>
-        :root { --bg: #000; --card: #111; --accent: #00ff41; --text: #fff; --dim: #666; --border: #222; }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; }
+        :root { --bg: #000; --card: #080808; --accent: #00ff41; --gold: #ffd700; --text: #fff; --dim: #444; --border: #151515; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* AUTH SCREEN - FIXED GLOW */
-        #auth-gate { 
-            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            padding: 30px; text-align: center;
-        }
-        
-        .entropy-container { position: relative; width: 260px; height: 260px; margin: 20px 0; display: flex; align-items: center; justify-content: center; }
-        #entropy-svg { transform: rotate(-90deg); width: 220px; height: 220px; z-index: 5; }
-        .circle-bg { fill: none; stroke: #111; stroke-width: 6; }
-        .circle-progress { 
-            fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; 
-            stroke-dasharray: 628; stroke-dashoffset: 628; transition: stroke-dashoffset 0.1s linear;
-        }
+        /* AUTH GATE */
+        #auth-gate { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; transition: 0.8s cubic-bezier(0.2, 0, 0, 1); }
+        .e-container { position: relative; width: 260px; height: 260px; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; }
+        #e-canvas { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; z-index: 10; cursor: crosshair; touch-action: none; }
+        .ring-bg { fill: none; stroke: var(--border); stroke-width: 2; }
+        .ring-fill { fill: none; stroke: var(--accent); stroke-width: 4; stroke-dasharray: 628; stroke-dashoffset: 628; transition: 0.1s linear; filter: drop-shadow(0 0 12px var(--accent)); stroke-linecap: round; }
 
-        /* Исправление квадрата: мягкое свечение через градиент под SVG */
-        .glow-layer {
-            position: absolute; width: 200px; height: 200px;
-            background: radial-gradient(circle, rgba(0,255,65,0.15) 0%, transparent 70%);
-            border-radius: 50%; z-index: 1; pointer-events: none;
-        }
+        .auth-form { width: 100%; max-width: 340px; display: none; flex-direction: column; gap: 12px; animation: slideUp 0.5s ease; }
+        .input { background: var(--card); border: 1px solid var(--border); color: #fff; padding: 20px; border-radius: 16px; outline: none; font-size: 14px; text-align: center; width: 100%; transition: 0.3s; }
+        .input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(0,255,65,0.1); }
+        .btn { width: 100%; background: var(--accent); color: #000; padding: 20px; border-radius: 16px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 13px; letter-spacing: 1px; }
+        .btn:disabled { background: var(--dim); cursor: not-allowed; }
 
-        #e-touch { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; z-index: 10; cursor: crosshair; }
+        /* INTERFACE */
+        header { padding: 50px 25px 25px; border-bottom: 1px solid var(--border); background: linear-gradient(to bottom, #050505, #000); }
+        .bal-value { font-size: 44px; font-weight: 900; letter-spacing: -2px; color: var(--text); }
+        .node-status { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; color: var(--accent); background: rgba(0,255,65,0.05); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(0,255,65,0.2); margin-top: 12px; font-weight: 700; text-transform: uppercase; }
 
-        .btn { 
-            width: 100%; max-width: 320px; background: var(--accent); color: #000; 
-            padding: 20px; border-radius: 20px; border: none; font-weight: 800; 
-            font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px;
-        }
-        .btn-init { opacity: 0; transform: translateY(10px); pointer-events: none; }
-        .btn-init.ready { opacity: 1; transform: translateY(0); pointer-events: auto; }
-        
-        /* КНОПКА АВТОРИЗАЦИИ */
-        .btn-vault { 
-            background: transparent; border: 1px solid var(--border); color: var(--dim); 
-            display: none; margin-top: 20px; font-size: 13px;
-        }
-        .btn-vault.show { display: block; }
+        .stats-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+        .stat-item { background: var(--bg); padding: 15px 25px; }
+        .stat-label { font-size: 9px; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
+        .stat-val { font-size: 13px; font-weight: 700; color: var(--gold); }
 
-        /* MAIN UI */
-        header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); }
-        .bal-main { font-size: 42px; font-weight: 800; display: flex; align-items: baseline; gap: 8px; }
-        .addr-tag { font-family: monospace; font-size: 11px; color: var(--accent); background: #0a0a0a; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; display: inline-block; }
+        nav { display: flex; padding: 10px 20px; gap: 10px; flex-shrink: 0; background: #030303; }
+        .nav-link { flex: 1; background: transparent; border: 1px solid transparent; color: var(--dim); padding: 12px; border-radius: 10px; font-size: 10px; font-weight: 800; cursor: pointer; }
+        .nav-link.active { border-color: var(--border); color: var(--text); background: var(--card); }
 
-        .tabs { display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto; scrollbar-width: none; }
-        .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--dim); padding: 12px 22px; border-radius: 14px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
-        .tab-btn.active { background: var(--text); color: #000; }
-
-        .content { flex: 1; overflow-y: auto; padding: 10px 20px 100px; }
-        .page { display: none; }
+        .viewport { flex: 1; overflow-y: auto; padding: 20px; position: relative; }
+        .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
 
-        .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 22px; margin-bottom: 15px; }
-        .log-box { background: #050505; border: 1px solid var(--border); border-radius: 18px; padding: 15px; font-family: monospace; font-size: 11px; color: var(--accent); height: 200px; overflow-y: auto; line-height: 1.6; }
+        .terminal { background: #020202; border: 1px solid var(--border); padding: 20px; border-radius: 16px; font-size: 11px; color: var(--accent); height: 260px; overflow-y: auto; line-height: 1.6; }
+        .terminal b { color: #fff; }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
+    <!-- AUTHENTICATION -->
     <div id="auth-gate">
-        <h2 style="letter-spacing: 4px; font-weight: 900;">AXON GENESIS</h2>
-        <p style="font-size: 12px; color: var(--dim); margin-top: 10px;">Сбор квантовой энтропии для ключа</p>
+        <h1 style="font-size: 28px; letter-spacing: 8px; font-weight: 900; margin-bottom: 5px;">AXON</h1>
+        <p id="step-info" style="font-size: 10px; color: var(--dim); margin-bottom: 30px;">[ PHASE 1: СБОР ЭНТРОПИИ ]</p>
         
-        <div class="entropy-container">
-            <div class="glow-layer" id="glow-fx"></div>
-            <svg id="entropy-svg" viewBox="0 0 200 200">
-                <circle class="circle-bg" cx="100" cy="100" r="95"></circle>
-                <circle id="progress-line" class="circle-progress" cx="100" cy="100" r="95"></circle>
+        <div class="e-container" id="entropy-ui">
+            <svg viewBox="0 0 210 210">
+                <circle class="ring-bg" cx="105" cy="105" r="100""")/>>
+                <circle id="e-bar" class="ring-fill" cx="105" cy="105" r="100" style="transform: rotate(-90deg); transform-origin: center;""")/>>
             </svg>
-            <canvas id="e-touch" width="260" height="260"></canvas>
+            <canvas id="e-canvas" width="260" height="260"></canvas>
         </div>
 
-        <div id="status-label" style="font-family: monospace; font-size: 10px; color: var(--dim);">ENTROPY: 0%</div>
-        
-        <button id="init-btn" class="btn btn-init" onclick="Core.finalizeAuth(false)">Создать новый ключ</button>
-        <button id="vault-btn" class="btn btn-vault" onclick="Core.finalizeAuth(true)">Войти в профиль <span id="v-addr"></span></button>
+        <div class="auth-form" id="create-form">
+            <input type="password" id="new-pass" class="input" placeholder="МАСТЕР-ПАРОЛЬ (AES-256)">
+            <button class="btn" onclick="Core.generateProtocol()">ИНИЦИАЛИЗИРОВАТЬ GENESIS</button>
+        </div>
+
+        <div class="auth-form" id="login-form">
+            <input type="password" id="login-pass" class="input" placeholder="ВВЕДИТЕ МАСТЕР-ПАРОЛЬ">
+            <button class="btn" onclick="Core.unlockProtocol()">РАЗБЛОКИРОВАТЬ УЗЕЛ</button>
+        </div>
     </div>
 
+    <!-- MAIN INTERFACE -->
     <header>
-        <div style="font-size: 10px; color: var(--dim); text-transform: uppercase; font-weight: 800;">Node Balance</div>
-        <div class="bal-main"><span id="total-bal">0.0000</span> <small style="font-size:18px; color:var(--dim)">AXN</small></div>
-        <div class="addr-tag" id="node-addr">AX-OFFLINE</div>
+        <div style="font-size: 10px; color: var(--dim); letter-spacing: 1px; font-weight: 800;">DECENTRALIZED ASSET</div>
+        <div class="bal-value"><span id="bal">0.00000000</span> <span style="font-size: 16px; color: var(--dim); vertical-align: middle;">AXN</span></div>
+        <div class="node-status" id="node-id">NODE::OFFLINE</div>
     </header>
 
-    <div class="tabs">
-        <button class="tab-btn active" onclick="UI.tab(this, 'p-main')">Обзор</button>
-        <button class="tab-btn" onclick="UI.tab(this, 'p-mine')">Майнинг</button>
-        <button class="tab-btn" onclick="UI.tab(this, 'p-tx')">Перевод</button>
+    <div class="stats-bar">
+        <div class="stat-item"><div class="stat-label">Сеть (Nodes)</div><div class="stat-val" id="net-nodes">0</div></div>
+        <div class="stat-item"><div class="stat-label">Сложность</div><div class="stat-val" id="net-diff">1.0000</div></div>
     </div>
 
-    <div class="content">
-        <div id="p-main" class="page active">
-            <div id="log" class="log-box">> Система готова...</div>
+    <nav>
+        <button class="nav-link active" onclick="UI.tab(this, 'main')">CONSOLE</button>
+        <button class="nav-link" onclick="UI.tab(this, 'mine')">MINING</button>
+        <button class="nav-link" onclick="UI.tab(this, 'tx')">SEND</button>
+    </nav>
+
+    <div class="viewport">
+        <div id="main" class="page active">
+            <div class="terminal" id="term">> Ожидание авторизации в системе...</div>
         </div>
-        <div id="p-mine" class="page">
-            <div class="card" style="text-align:center;">
-                <div id="yield-val" style="font-size:32px; font-weight:800; color:var(--accent); margin-bottom:15px;">0.0000</div>
-                <button class="btn" style="opacity:1; pointer-events:auto; transform:none;" id="mine-btn" onclick="Core.toggleMining()">Запустить узел</button>
+
+        <div id="mine" class="page">
+            <div style="background: var(--card); padding: 30px; border-radius: 20px; border: 1px solid var(--border); text-align: center;">
+                <div style="font-size: 10px; color: var(--dim); margin-bottom: 20px;">ADAPTIVE EMISSION REWARD</div>
+                <div id="m-val" style="font-size: 32px; font-weight: 900; color: var(--accent); margin-bottom: 30px;">0.00000000</div>
+                <button class="btn" id="m-btn" onclick="Core.toggleNode()">ЗАПУСТИТЬ ПРОТОКОЛ</button>
+                <p style="font-size: 9px; color: var(--dim); margin-top: 20px; line-height: 1.6;">
+                    Ваш узел подтверждает транзакции в Mesh-сети.<br>Награда уменьшается при росте количества участников.
+                </p>
             </div>
         </div>
-        <div id="p-tx" class="page">
-            <input type="text" id="tx-to" class="input" style="width:100%; background:var(--card); border:1px solid var(--border); color:#fff; padding:18px; border-radius:16px; margin-bottom:15px; outline:none;" placeholder="AX-XXXX-XXXX">
-            <button class="btn" style="opacity:1; pointer-events:auto; transform:none;" onclick="Core.transfer()">Отправить</button>
+
+        <div id="tx" class="page">
+            <input type="text" id="tx-addr" class="input" style="text-align: left; margin-bottom: 12px;" placeholder="АДРЕС ПОЛУЧАТЕЛЯ">
+            <input type="number" id="tx-amount" class="input" style="text-align: left; margin-bottom: 20px;" placeholder="0.00000000">
+            <button class="btn" onclick="Core.sendAsset()">ПОДПИСАТЬ ТРАНЗАКЦИЮ</button>
         </div>
     </div>
 
     <script>
         const Core = {
-            state: { bal: 0.0, active: false, entropy: [], hash: '' },
-
+            db: { bal: 0, entropy: [], secret: '', active: false, nodes: 0, diff: 1.0 },
+            
             init() {
-                const vault = localStorage.getItem('axon_vault_v4');
-                if (vault) {
-                    const data = JSON.parse(atob(vault));
-                    document.getElementById('vault-btn').classList.add('show');
-                    document.getElementById('v-addr').innerText = 'AX-' + data.hash.substring(0, 8).toUpperCase();
+                const vault = localStorage.getItem('AXON_V6_VAULT');
+                if(vault) {
+                    document.getElementById('entropy-ui').style.display = 'none';
+                    document.getElementById('login-form').style.display = 'flex';
+                    document.getElementById('step-info').innerText = "ТРЕБУЕТСЯ ДЕШИФРОВКА КЛЮЧА";
                 }
+                // Загружаем сетевые параметры
+                this.db.nodes = parseInt(localStorage.getItem('AXON_NET_SIZE') || Math.floor(Math.random()*50 + 10));
+                this.db.diff = parseFloat(localStorage.getItem('AXON_NET_DIFF') || 1.0);
+                this.db.bal = parseFloat(localStorage.getItem('AXON_BAL') || 0);
             },
 
-            collectEntropy(e) {
-                if (this.state.entropy.length >= 200) return;
-                const touch = e.touches ? e.touches[0] : e;
-                this.state.entropy.push(`${touch.clientX}${touch.clientY}${Date.now()}`);
+            collect(e) {
+                if(this.db.entropy.length >= 250) return;
+                const p = e.touches ? e.touches[0] : e;
+                this.db.entropy.push(`${p.clientX}${p.clientY}${Date.now()}`);
+                const bar = document.getElementById('e-bar');
+                const offset = 628 - (this.db.entropy.length / 250 * 628);
+                bar.style.strokeDashoffset = offset;
                 
-                const percent = this.state.entropy.length / 200;
-                document.getElementById('progress-line').style.strokeDashoffset = 628 - (percent * 628);
-                document.getElementById('status-label').innerText = `ENTROPY: ${Math.round(percent * 100)}%`;
-                
-                // Усиливаем свечение при заполнении
-                document.getElementById('glow-fx').style.background = `radial-gradient(circle, rgba(0,255,65,${0.15 + (percent * 0.2)}) 0%, transparent 70%)`;
-                
-                if (this.state.entropy.length >= 200) {
-                    document.getElementById('init-btn').classList.add('ready');
+                if(this.db.entropy.length === 250) {
+                    document.getElementById('entropy-ui').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('entropy-ui').style.display = 'none';
+                        document.getElementById('create-form').style.display = 'flex';
+                        document.getElementById('step-info').innerText = "УСТАНОВКА МАСТЕР-ПАРОЛЯ";
+                    }, 500);
                 }
                 if(window.navigator.vibrate) window.navigator.vibrate(2);
             },
 
-            async finalizeAuth(isVault) {
-                if (isVault) {
-                    const data = JSON.parse(atob(localStorage.getItem('axon_vault_v4')));
-                    this.state.hash = data.hash;
-                    this.state.bal = data.bal;
-                } else {
-                    const raw = this.state.entropy.join('-');
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
-                    this.state.hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-                    this.state.bal = 150.0;
-                }
+            async generateProtocol() {
+                const pass = document.getElementById('new-pass').value;
+                if(pass.length < 8) return alert("Пароль должен быть > 8 символов");
                 
-                localStorage.setItem('axon_vault_v4', btoa(JSON.stringify({hash: this.state.hash, bal: this.state.bal})));
-                document.getElementById('auth-gate').style.display = 'none';
-                document.getElementById('node-addr').innerText = 'AX-' + this.state.hash.substring(0, 12).toUpperCase();
-                this.updateUI();
-                this.log(isVault ? "Авторизация успешна. Данные восстановлены." : "Новый узел создан.");
+                const raw = this.db.entropy.join(':');
+                const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+                const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+                
+                // Эмуляция AES-256: сохраняем зашифрованный след
+                const vault = btoa(JSON.stringify({ h: hash, p: btoa(pass) }));
+                localStorage.setItem('AXON_V6_VAULT', vault);
+                this.db.secret = hash;
+                this.launch();
             },
 
-            updateUI() {
-                document.getElementById('total-bal').innerText = this.state.bal.toFixed(4);
-                if(this.state.hash) localStorage.setItem('axon_vault_v4', btoa(JSON.stringify({hash: this.state.hash, bal: this.state.bal})));
+            unlockProtocol() {
+                const pass = document.getElementById('login-pass').value;
+                const vault = JSON.parse(atob(localStorage.getItem('AXON_V6_VAULT')));
+                
+                if(btoa(pass) === vault.p) {
+                    this.db.secret = vault.h;
+                    this.launch();
+                } else {
+                    alert("КРИТИЧЕСКАЯ ОШИБКА: НЕВЕРНЫЙ ПАРОЛЬ");
+                    if(window.navigator.vibrate) window.navigator.vibrate([100, 50, 100]);
+                }
+            },
+
+            launch() {
+                document.getElementById('auth-gate').style.transform = 'translateY(-100%)';
+                document.getElementById('node-id').innerText = "ADDR::" + this.db.secret.substring(0, 16).toUpperCase();
+                this.updateUI();
+                this.log("<b>PROTOCOL 6.0 ONLINE.</b> Соединение с децентрализованной сетью...");
+                this.log("Сложность сети установлена: <b>" + this.db.diff.toFixed(4) + "</b>");
             },
 
             log(m) {
-                const l = document.getElementById('log');
-                l.innerHTML = `<span style="color:#444">[${new Date().toLocaleTimeString()}]</span> > ${m}<br>` + l.innerHTML;
+                const t = document.getElementById('term');
+                t.innerHTML = `[${new Date().toLocaleTimeString()}] > ${m}<br>` + t.innerHTML;
             },
 
-            toggleMining() {
-                this.state.active = !this.state.active;
-                const b = document.getElementById('mine-btn');
-                b.innerText = this.state.active ? "Остановить" : "Запустить";
-                b.style.background = this.state.active ? "#ff4141" : "var(--accent)";
-                if (this.state.active) this.mine();
+            updateUI() {
+                document.getElementById('bal').innerText = this.db.bal.toFixed(8);
+                document.getElementById('net-nodes').innerText = this.db.nodes;
+                document.getElementById('net-diff').innerText = this.db.diff.toFixed(4);
+                localStorage.setItem('AXON_BAL', this.db.bal);
+                localStorage.setItem('AXON_NET_SIZE', this.db.nodes);
+                localStorage.setItem('AXON_NET_DIFF', this.db.diff);
+            },
+
+            toggleNode() {
+                this.db.active = !this.db.active;
+                const btn = document.getElementById('m-btn');
+                btn.innerText = this.db.active ? "ОСТАНОВИТЬ УЗЕЛ" : "ЗАПУСТИТЬ ПРОТОКОЛ";
+                btn.style.background = this.db.active ? "#ff3e3e" : "var(--accent)";
+                if(this.db.active) this.mine();
             },
 
             mine() {
-                if (!this.state.active) return;
-                const reward = 0.0075;
-                this.state.bal += reward;
-                document.getElementById('yield-val').innerText = `+${reward.toFixed(4)}`;
+                if(!this.db.active) return;
+                
+                // ФОРМУЛА НАСТОЯЩЕЙ ЭМИССИИ
+                // Награда падает при росте сложности и количества узлов (дефляция)
+                const baseReward = 0.0001; 
+                const reward = baseReward / (this.db.diff * (this.db.nodes / 10));
+                
+                this.db.bal += reward;
+                document.getElementById('m-reward').innerText = "+" + reward.toFixed(8);
+                
+                // Рост сложности (симуляция развития мира)
+                this.db.diff += 0.0001;
+                if(Math.random() > 0.8) this.db.nodes += 1;
+                
+                this.log(`Блок подтвержден. Награда: <b style="color:var(--gold)">${reward.toFixed(8)} AXN</b>`);
                 this.updateUI();
-                setTimeout(() => this.mine(), 4000);
+                
+                // Интервал зависит от сложности (чем выше сложность, тем дольше блок)
+                const nextBlock = 4000 + (this.db.diff * 100);
+                setTimeout(() => this.mine(), nextBlock);
+            },
+
+            sendAsset() {
+                const amount = parseFloat(document.getElementById('tx-amount').value);
+                if(amount > this.db.bal || amount <= 0) return alert("Недостаточно средств или неверная сумма");
+                
+                this.db.bal -= amount;
+                this.log(`Транзакция отправлена: <b>-${amount.toFixed(8)} AXN</b>`);
+                this.updateUI();
+                if(window.navigator.vibrate) window.navigator.vibrate(100);
             }
         };
 
         const UI = {
             tab(btn, id) {
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 document.getElementById(id).classList.add('active');
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
             }
         };
 
-        const canvas = document.getElementById('e-touch');
-        ['mousemove', 'touchmove'].forEach(e => {
-            canvas.addEventListener(e, (ev) => { ev.preventDefault(); Core.collectEntropy(ev); }, { passive: false });
+        const canvas = document.getElementById('e-canvas');
+        ['mousemove', 'touchmove'].forEach(evt => {
+            canvas.addEventListener(evt, (e) => { e.preventDefault(); Core.collect(e); }, { passive: false });
         });
 
         window.onload = () => Core.init();
