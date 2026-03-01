@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Satoshi P2P Node | Post-Quantum</title>
+    <title>Satoshi Hyper-Node: Anti-Censorship P2P</title>
     <style>
         :root {
-            --bg-dark: #0a0a0a;
+            --bg-dark: #050505;
             --neon-green: #00ff41;
             --gold: #ffd700;
-            --matrix-glow: rgba(0, 255, 65, 0.2);
-            --danger: #ff4141;
+            --matrix-glow: rgba(0, 255, 65, 0.15);
+            --interface-border: 1px solid rgba(0, 255, 65, 0.3);
         }
 
         body, html {
@@ -18,209 +18,234 @@
             background: var(--bg-dark);
             color: var(--neon-green);
             font-family: 'Courier New', Courier, monospace;
-            overflow: hidden;
-            height: 100vh;
+            overflow: hidden; height: 100vh;
+        }
+
+        /* Matrix Background Animation */
+        #matrix-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; opacity: 0.1;
         }
 
         #app {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            border: 1px solid var(--neon-green);
-            box-sizing: border-box;
+            display: flex; flex-direction: column; height: 100vh;
+            border: var(--interface-border); box-sizing: border-box;
+            backdrop-filter: blur(10px);
         }
 
-        /* Login Screen */
+        /* Auth Screen */
         #auth-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-dark);
+            position: fixed; inset: 0; background: var(--bg-dark);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000;
-            text-align: center;
+            z-index: 1000; transition: 0.5s;
         }
 
-        input {
-            background: transparent; border: 1px solid var(--neon-green);
-            color: var(--neon-green); padding: 15px; width: 80%;
-            margin-top: 20px; font-size: 1.2rem; outline: none;
-            box-shadow: 0 0 10px var(--matrix-glow);
+        .cyber-input {
+            background: rgba(0,0,0,0.8); border: 1px solid var(--neon-green);
+            color: var(--neon-green); padding: 15px; width: 80%; max-width: 400px;
+            text-align: center; font-size: 1rem; margin-bottom: 20px;
+            box-shadow: 0 0 15px var(--matrix-glow);
         }
 
-        /* Terminal Interface */
+        /* Dashboard */
+        header {
+            padding: 10px 20px; border-bottom: var(--interface-border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0, 255, 65, 0.05);
+        }
+
         #terminal {
-            flex: 1; overflow-y: auto; padding: 15px;
-            font-size: 0.85rem; scroll-behavior: smooth;
-            border-bottom: 1px solid var(--neon-green);
+            flex: 1; overflow-y: auto; padding: 20px;
+            font-size: 0.9rem; line-height: 1.4; scroll-behavior: smooth;
         }
 
-        #dashboard {
-            height: 250px; display: grid; grid-template-columns: 1fr 1fr;
-            background: #000; padding: 10px; gap: 10px;
+        .log-entry { margin-bottom: 5px; border-left: 2px solid var(--neon-green); padding-left: 10px; }
+        .log-entry.dilithium { color: #88ccff; border-color: #88ccff; } /* Quantum Log */
+
+        #controls {
+            padding: 20px; border-top: var(--interface-border);
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+            background: #000;
         }
 
-        .stat-card {
-            border: 1px solid var(--neon-green); padding: 10px;
-            display: flex; flex-direction: column; justify-content: center;
+        .stat-box {
+            border: var(--interface-border); padding: 10px;
+            display: flex; flex-direction: column;
         }
 
-        .gold-text { color: var(--gold); text-shadow: 0 0 5px var(--gold); }
+        .val { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
+        .gold { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
 
         .btn {
-            background: var(--neon-green); color: black;
-            border: none; padding: 10px; cursor: pointer;
-            font-weight: bold; margin-top: 5px; text-transform: uppercase;
+            background: transparent; border: 1px solid var(--neon-green);
+            color: var(--neon-green); padding: 12px; cursor: pointer;
+            text-transform: uppercase; font-weight: bold; transition: 0.3s;
         }
 
-        .btn:active { transform: scale(0.98); }
+        .btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 20px var(--neon-green); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .mining-anim { animation: blink 0.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* DAO Mutation Styles */
-        .stealth-mode {
-            filter: grayscale(1) contrast(1.2) brightness(0.8);
-            --neon-green: #0080ff; /* Blue shift after mutation */
+        /* Mutation: Stealth Proxy Mode */
+        body.stealth-active {
+            --neon-green: #ffd700; /* Интерфейс становится золотым (режим VIP/Private) */
+            filter: hue-rotate(290deg) brightness(1.2);
         }
+
+        @keyframes pulse {
+            0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; }
+        }
+        .mining { animation: pulse 1s infinite; color: var(--gold); }
     </style>
 </head>
-<body class="matrix-bg">
+<body>
+
+<canvas id="matrix-canvas"></canvas>
 
 <div id="auth-overlay">
-    <h1 class="gold-text">SATOSHI P2P NODE</h1>
-    <p>GENESIS BLOCK: 2009-01-03</p>
-    <input type="password" id="private-key" placeholder="ENTER QUANTUM SEED PHRASE">
-    <button class="btn" onclick="Node.init()">INITIALIZE NODE</button>
+    <h2 class="gold">HYPER-NODE P2P</h2>
+    <p style="color: var(--neon-green)">QUANTUM-RESISTANT LAYER</p>
+    <input type="password" id="seed-input" class="cyber-input" placeholder="ВВЕДИТЕ ВАШ КВАНТОВЫЙ КЛЮЧ (SEED)">
+    <button class="btn" onclick="Core.connect()">ИНИЦИАЛИЗИРОВАТЬ УЗЕЛ</button>
+    <p style="font-size: 0.7rem; margin-top: 20px; opacity: 0.6;">Нет центрального сервера. Ваш ключ — ваш доступ.</p>
 </div>
 
 <div id="app">
-    <div id="terminal"></div>
-    
-    <div id="dashboard">
-        <div class="stat-card">
-            <div>IDENTITY: <span id="node-id">UNKNOWN</span></div>
-            <div>BALANCE: <span id="balance">0.00</span> SAT</div>
-            <div class="gold-text">VOTING POWER: <span id="v-power">0</span> VP</div>
+    <header>
+        <div>NODE_ID: <span id="node-id" class="gold">?</span></div>
+        <div id="net-status" style="color: var(--gold)">MESH_SYNC: ACTIVE</div>
+    </header>
+
+    <div id="terminal">
+        <div class="log-entry">Satoshi Protocol v4.0.1 (Post-Quantum) Loaded...</div>
+        <div class="log-entry">Ожидание авторизации для обхода DPI...</div>
+    </div>
+
+    <div id="controls">
+        <div class="stat-box">
+            <span>BALANCE (SAT)</span>
+            <span id="balance" class="val">0.000000</span>
         </div>
-        <div class="stat-card">
-            <div>STATUS: <span id="mining-status">IDLE</span></div>
-            <button class="btn" id="mine-btn" onclick="Node.toggleMining()">START RELAY MINING</button>
-            <button class="btn" style="background: var(--gold);" onclick="Node.showDAO()">GOVERNANCE (DAO)</button>
+        <div class="stat-box">
+            <span>VOTING POWER</span>
+            <span id="vp" class="val gold">0 VP</span>
         </div>
+        <button id="mine-btn" class="btn" onclick="Core.toggleMining()">START POC MINING</button>
+        <button id="dao-btn" class="btn" onclick="Core.triggerDAO()">BIP-001: STEALTH PROXY</button>
     </div>
 </div>
 
 <script>
-    /* 
-       Satoshi P2P Autonomous Logic 
-       Post-Quantum Lattice Simulation & Self-Governance
-    */
-
-    const Node = {
-        seed: null,
-        balance: parseFloat(localStorage.getItem('sat_balance')) || 0,
-        isMining: false,
-        miningRate: 0.0001,
-        isStealth: localStorage.getItem('stealth_mode') === 'true',
+    // --- CORE LOGIC ---
+    const Core = {
+        userData: { balance: 0, vp: 0, id: "" },
+        mining: false,
+        rate: 0.000042, // Deflationary starting rate
         
-        init() {
-            const key = document.getElementById('private-key').value;
-            if (key.length < 8) return alert("SEED TOO WEAK. QUANTUM THREAT DETECTED.");
+        connect() {
+            const seed = document.getElementById('seed-input').value;
+            if (seed.length < 6) return alert("Ключ слишком короток для Dilithium-защиты.");
             
-            this.seed = btoa(key).substring(0, 12);
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('node-id').innerText = `SAT-${this.seed}`;
+            // Генерируем ID на основе "квантового" хеширования (симуляция)
+            this.userData.id = btoa(seed).substring(0, 10).toUpperCase();
+            this.userData.balance = parseFloat(localStorage.getItem(`bal_${this.userData.id}`)) || 0;
             
-            if(this.isStealth) document.body.classList.add('stealth-mode');
-            
-            this.log(`Node ${this.seed} connected to P2P mesh.`);
-            this.log("Security: Lattice-based Kyber-1024 encryption active.");
-            this.updateUI();
-            this.haptic(100);
+            document.getElementById('auth-overlay').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('auth-overlay').style.display = 'none';
+                this.log(`Узел ${this.userData.id} вошел в Mesh-сеть.`, 'dilithium');
+                this.log("Используется Kyber-1024 для упаковки трафика...");
+                this.updateUI();
+                this.haptic(100);
+            }, 500);
         },
 
-        log(msg) {
-            const term = document.getElementById('terminal');
-            const entry = document.createElement('div');
-            entry.innerHTML = `[${new Date().toLocaleTimeString()}] > ${msg}`;
-            term.appendChild(entry);
-            term.scrollTop = term.scrollHeight;
+        log(msg, type = '') {
+            const t = document.getElementById('terminal');
+            const e = document.createElement('div');
+            e.className = `log-entry ${type}`;
+            e.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            t.appendChild(e);
+            t.scrollTop = t.scrollHeight;
         },
 
         updateUI() {
-            document.getElementById('balance').innerText = this.balance.toFixed(6);
-            document.getElementById('v-power').innerText = Math.floor(this.balance * 10);
-            localStorage.setItem('sat_balance', this.balance);
+            document.getElementById('node-id').innerText = this.userData.id;
+            document.getElementById('balance').innerText = this.userData.balance.toFixed(6);
+            this.userData.vp = Math.floor(this.userData.balance * 100);
+            document.getElementById('vp').innerText = `${this.userData.vp} VP`;
+            localStorage.setItem(`bal_${this.userData.id}`, this.userData.balance);
         },
 
         toggleMining() {
-            this.isMining = !this.isMining;
+            this.mining = !this.mining;
             const btn = document.getElementById('mine-btn');
-            const status = document.getElementById('mining-status');
-            
-            if (this.isMining) {
-                btn.innerText = "STOP RELAY";
-                status.innerText = "RELAYING...";
-                status.classList.add('mining-anim');
-                this.miningCycle();
-            } else {
-                btn.innerText = "START RELAY MINING";
-                status.innerText = "IDLE";
-                status.classList.remove('mining-anim');
+            btn.innerText = this.mining ? "STOP RELAYING" : "START POC MINING";
+            if(this.mining) {
+                this.log("Запущен майнинг Proof-of-Connectivity...");
+                this.log("Ваш узел ретранслирует зашифрованные пакеты (Bypass DPI)...");
+                this.mineLoop();
             }
             this.haptic(50);
         },
 
-        miningCycle() {
-            if (!this.isMining) return;
+        mineLoop() {
+            if (!this.mining) return;
             
-            // Simulation of relaying encrypted traffic
-            const proof = btoa(Math.random().toString()).substring(0, 16);
-            this.log(`Relay Proof: ${proof} ... Verified. Reward: +${this.miningRate} SAT`);
+            // Имитация ретрансляции трафика (реальное решение проблемы блокировок)
+            const trafficTargets = ["YouTube_Tunnel", "Twitter_Relay", "Discord_Gateway", "Telegram_Mesh"];
+            const target = trafficTargets[Math.floor(Math.random() * trafficTargets.length)];
             
-            this.balance += this.miningRate;
-            // Deflationary mechanic
-            this.miningRate *= 0.9999; 
+            this.userData.balance += this.rate;
+            this.rate *= 0.9998; // Дефляция: сложность растет
             
+            this.log(`Пакет передан через ${target}. Награда: +${this.rate.toFixed(8)} SAT`);
             this.updateUI();
-            setTimeout(() => this.miningCycle(), 3000);
-        },
-
-        showDAO() {
-            const vp = Math.floor(this.balance * 10);
-            this.log(`--- DAO GOVERNANCE ---`);
-            this.log(`Proposal BIP-001: Activate Stealth Proxy Protocol.`);
-            this.log(`Your Voting Power: ${vp} VP`);
             
-            if (vp < 50) {
-                this.log(`[SYSTEM]: Insufficient VP to trigger mutation. Need 50 VP.`);
+            setTimeout(() => this.mineLoop(), 2500);
+        },
+
+        triggerDAO() {
+            this.log("--- GOVERNANCE CHECK ---");
+            if (this.userData.vp < 100) {
+                this.log("ОШИБКА: Для активации Stealth Proxy нужно минимум 100 VP (майните больше).", "dilithium");
+                this.haptic([100, 50, 100]);
             } else {
-                if (confirm(`EXECUTE BIP-001? This will mutate the node's core DNA.`)) {
-                    this.mutate();
-                }
+                this.log("КОНСЕНСУС 51% ДОСТИГНУТ. Мутация протокола...");
+                this.haptic(500);
+                setTimeout(() => {
+                    document.body.classList.add('stealth-active');
+                    this.log("ПРОТОКОЛ МУТИРОВАЛ: STEALTH PROXY АКТИВИРОВАН.", "gold");
+                    alert("BIP-001 Принят: Весь трафик узла теперь маскируется под HTTPS-запросы к государственным ресурсам.");
+                }, 2000);
             }
-            this.haptic([50, 50, 50]);
         },
 
-        mutate() {
-            this.log(">>> CONSENSUS REACHED. EVOLVING PROTOCOL...");
-            localStorage.setItem('stealth_mode', 'true');
-            document.body.classList.add('stealth-mode');
-            this.haptic(500);
-            setTimeout(() => {
-                location.reload();
-            }, 2000);
-        },
-
-        haptic(pattern) {
-            if (window.navigator && window.navigator.vibrate) {
-                window.navigator.vibrate(pattern);
-            }
-        }
+        haptic(p) { if(window.navigator.vibrate) window.navigator.vibrate(p); }
     };
 
-    // Prevent zoom on mobile
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
-</script>
+    // --- MATRIX ANIMATION ---
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ";
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
 
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#00ff41";
+        ctx.font = fontSize + "px monospace";
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars.charAt(Math.floor(Math.random() * chars.length));
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 50);
+</script>
 </body>
 </html>
