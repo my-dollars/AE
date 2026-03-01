@@ -3,107 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // SHADOW NETWORK</title>
+    <title>AXON // P2P MESH LIVE</title>
+    <script src="https://unpkg.com"></script>
     <style>
         :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
         body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: env(safe-area-inset-bottom); }
 
-        /* AUTH SEED */
-        #gate { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; padding: 30px; align-items: center; justify-content: center; text-align: center; }
-        .seed-display { background: #050505; border: 1px dashed var(--green); padding: 15px; color: #ffaa00; font-size: 12px; margin: 15px 0; border-radius: 4px; }
-        
         header { padding: 40px 25px 20px; border-bottom: 1px solid var(--border); background: #050505; }
-        .bal-val { font-size: 36px; font-weight: 900; color: var(--green); display: flex; align-items: baseline; gap: 5px; }
-        .addr-display { font-size: 8px; color: #444; margin-top: 5px; word-break: break-all; }
+        .bal-val { font-size: 36px; font-weight: 900; color: var(--green); }
+        .peer-info { font-size: 8px; color: #444; margin-top: 5px; word-break: break-all; cursor: pointer; }
 
-        .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; padding-bottom: 180px; }
-        .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--green); position: relative; }
-        .msg-tag { font-size: 9px; color: #ffaa00; margin-top: 8px; padding-top: 8px; border-top: 1px solid #111; font-style: italic; }
+        .net-status { background: var(--dim); padding: 8px 25px; border-bottom: 1px solid var(--border); font-size: 9px; display: flex; justify-content: space-between; color: #555; }
+        
+        .viewport { flex: 1; overflow-y: auto; padding: 15px; background: #020202; padding-bottom: 220px; }
+        .block { background: #080808; border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--green); }
+        .msg-text { color: #ffaa00; font-size: 10px; margin-top: 8px; font-style: italic; }
 
-        .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border); padding: 15px 20px calc(15px + env(safe-area-inset-bottom)); }
-        .input-row { display: flex; gap: 5px; margin-bottom: 10px; }
-        .input { flex: 1; background: #000; border: 1px solid var(--border); color: var(--green); padding: 12px; font-size: 11px; outline: none; border-radius: 2px; }
-        .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: rgba(5,5,5,0.98); backdrop-filter: blur(15px); border-top: 1px solid var(--border); padding: 15px 20px calc(15px + env(safe-area-inset-bottom)); z-index: 100; }
+        .input { background: #000; border: 1px solid var(--border); color: var(--green); padding: 10px; font-size: 10px; outline: none; margin-bottom: 8px; width: 100%; }
+        .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 16px; font-weight: 900; text-transform: uppercase; cursor: pointer; }
         .btn:disabled { background: #111; color: #333; }
     </style>
 </head>
 <body>
 
-<div id="gate">
-    <h2 style="color: var(--green); letter-spacing: 4px;">AXON GENESIS</h2>
-    <div id="seed-ui">
-        <p style="font-size: 10px; margin-top: 20px;">ВАША SEED-ФРАЗА ДЛЯ ДОСТУПА С ЛЮБОГО УСТРОЙСТВА:</p>
-        <div class="seed-display" id="my-seed">...генерируем ключ...</div>
-        <button class="btn" onclick="Protocol.launch(true)">Я СОХРАНИЛ СЛОВА</button>
-        <p style="margin-top: 15px; font-size: 10px; color: #333" onclick="Protocol.showImport()">У МЕНЯ УЖЕ ЕСТЬ ФРАЗА</p>
-    </div>
-    <div id="import-ui" style="display:none; width: 100%;">
-        <input type="text" id="seed-input" class="input" style="width:100%" placeholder="Вставьте 12 слов через пробел">
-        <button class="btn" style="margin-top:10px" onclick="Protocol.launch(false)">ВОССТАНОВИТЬ ДОСТУП</button>
-    </div>
-</div>
-
 <header>
     <div class="bal-val"><span id="ui-bal">0.0000</span> <span style="font-size: 12px; color: #444;">AXN</span></div>
-    <div class="addr-display" id="ui-addr">ADDR :: STANDBY</div>
+    <div class="peer-info" id="ui-my-id" onclick="navigator.clipboard.writeText(this.innerText)">PEER ID: ИНИЦИАЛИЗАЦИЯ...</div>
 </header>
+
+<div class="net-status">
+    <div id="ui-conn">КЛИЕНТ: OFFLINE</div>
+    <div id="ui-blocks">БЛОКИ: 0</div>
+</div>
 
 <div class="viewport" id="chain-view"></div>
 
 <div class="controls">
-    <div class="input-row">
-        <input type="text" id="tx-addr" class="input" placeholder="АДРЕС ПОЛУЧАТЕЛЯ">
-        <input type="number" id="tx-amt" class="input" style="max-width: 60px;" placeholder="0.0">
+    <div style="display: flex; gap: 5px;">
+        <input type="text" id="remote-id" class="input" placeholder="CONNECT TO PEER ID...">
+        <button class="btn" style="padding: 10px; width: auto; font-size: 8px;" onclick="P2P.connect()">СВЯЗАТЬ</button>
     </div>
-    <input type="text" id="tx-msg" class="input" style="width:100%; margin-bottom:10px;" placeholder="ЗАШИФРОВАННОЕ СООБЩЕНИЕ...">
-    <button id="mine-btn" class="btn" onclick="Protocol.mine()">ПОДТВЕРДИТЬ И ОТПРАВИТЬ (PoW)</button>
+    <input type="text" id="tx-msg" class="input" placeholder="СООБЩЕНИЕ В СЕТЬ...">
+    <button id="mine-btn" class="btn" onclick="P2P.mine()">ПОДТВЕРДИТЬ БЛОК (PoW)</button>
 </div>
 
 <script>
-const Protocol = {
-    words: ["alpha", "beta", "node", "crypt", "mesh", "zero", "one", "fox", "dark", "core", "axon", "link", "void", "web", "peer", "safe", "key", "bolt", "data", "flow"],
-    chain: [],
-    mempool: [],
-
+const P2P = {
+    peer: null,
+    conn: null,
+    chain: JSON.parse(localStorage.getItem('axon_p2p_chain') || '[]'),
+    
     init() {
-        let s = []; for(let i=0; i<12; i++) s.push(this.words[Math.floor(Math.random()*this.words.length)]);
-        this.generatedSeed = s.join(' ');
-        document.getElementById('my-seed').innerText = this.generatedSeed;
-    },
+        this.peer = new Peer('ax-' + Math.random().toString(36).substr(2, 9));
+        this.peer.on('open', (id) => {
+            document.getElementById('ui-my-id').innerText = `MY ID: ${id} (TAP TO COPY)`;
+        });
 
-    showImport() {
-        document.getElementById('seed-ui').style.display = 'none';
-        document.getElementById('import-ui').style.display = 'block';
-    },
+        // Слушаем входящие соединения
+        this.peer.on('connection', (c) => {
+            this.conn = c;
+            this.setupConn();
+            alert("Узел подключился к вам!");
+        });
 
-    async launch(isNew) {
-        this.seed = isNew ? this.generatedSeed : document.getElementById('seed-input').value.trim();
-        if(this.seed.split(' ').length < 4) return alert("Неверная фраза");
-        
-        const hash = await this.sha256(this.seed);
-        this.address = "AX-" + hash.substring(0, 16).toUpperCase();
-        this.chain = JSON.parse(localStorage.getItem(`chain_${this.address}`) || '[]');
-        
-        document.getElementById('gate').style.display = 'none';
-        document.getElementById('ui-addr').innerText = `MY ADDR: ${this.address}`;
         this.render();
         this.updateUI();
     },
 
-    async sha256(s) {
-        const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-        return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
+    connect() {
+        const remoteId = document.getElementById('remote-id').value;
+        if(!remoteId) return;
+        this.conn = this.peer.connect(remoteId);
+        this.setupConn();
+        alert("Попытка соединения...");
+    },
+
+    setupConn() {
+        this.conn.on('open', () => {
+            document.getElementById('ui-conn').innerText = "КЛИЕНТ: CONNECTED";
+            document.getElementById('ui-conn').style.color = "#00ff41";
+            // Отправляем свою цепочку при подключении
+            this.conn.send({ type: 'CHAIN', data: this.chain });
+        });
+
+        this.conn.on('data', (data) => {
+            if(data.type === 'BLOCK') {
+                this.addBlock(data.data, false);
+            }
+            if(data.type === 'CHAIN') {
+                this.syncChain(data.data);
+            }
+        });
     },
 
     async mine() {
         const btn = document.getElementById('mine-btn');
         const msg = document.getElementById('tx-msg').value;
-        const to = document.getElementById('tx-addr').value;
-        const amt = document.getElementById('tx-amt').value;
-
-        btn.disabled = true;
-        btn.innerText = "ХЕШИРОВАНИЕ...";
+        btn.disabled = true; btn.innerText = "POW: ВЫЧИСЛЕНИЕ...";
 
         let nonce = 0;
         let prev = this.chain.length > 0 ? this.chain[0].hash : "0".repeat(64);
@@ -111,41 +109,53 @@ const Protocol = {
 
         while (true) {
             nonce++;
-            hash = await this.sha256(prev + nonce + msg);
+            const raw = prev + nonce + msg;
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+            hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
             if (nonce % 1000 === 0) await new Promise(r => setTimeout(r, 0));
             if (hash.startsWith("000")) break;
         }
 
-        const block = {
-            h: this.chain.length + 1,
-            hash: hash,
-            msg: msg,
-            to: to || "NETWORK",
-            amt: amt || 0,
-            r: 50,
-            ts: new Date().toLocaleTimeString()
-        };
-
-        this.chain.unshift(block);
-        localStorage.setItem(`chain_${this.address}`, JSON.stringify(this.chain));
+        const block = { h: this.chain.length + 1, hash: hash, msg: msg, r: 50, ts: new Date().toLocaleTimeString() };
+        this.addBlock(block, true);
         
         document.getElementById('tx-msg').value = '';
+        btn.disabled = false; btn.innerText = "ПОДТВЕРДИТЬ БЛОК (PoW)";
+    },
+
+    addBlock(block, broadcast) {
+        // Простая проверка валидности
+        if(this.chain.find(b => b.hash === block.hash)) return;
+        
+        this.chain.unshift(block);
+        localStorage.setItem('axon_p2p_chain', JSON.stringify(this.chain.slice(0, 50)));
+        
+        if(broadcast && this.conn && this.conn.open) {
+            this.conn.send({ type: 'BLOCK', data: block });
+        }
+        
         this.render();
         this.updateUI();
-        btn.disabled = false;
-        btn.innerText = "ПОДТВЕРДИТЬ И ОТПРАВИТЬ (PoW)";
+    },
+
+    syncChain(remoteChain) {
+        remoteChain.forEach(b => {
+            if(!this.chain.find(x => x.hash === b.hash)) this.chain.push(b);
+        });
+        this.chain.sort((a,b) => b.h - a.h);
+        this.render();
+        this.updateUI();
     },
 
     render() {
         const view = document.getElementById('chain-view');
         view.innerHTML = this.chain.map(b => `
             <div class="block">
-                <div style="display:flex; justify-content:space-between; font-size:10px;">
+                <div style="display:flex; justify-content:space-between; font-size:9px;">
                     <b>BLOCK #${b.h}</b> <span>${b.ts}</span>
                 </div>
-                <div style="font-size:7px; color:#333; margin-top:4px;">HASH: ${b.hash}</div>
-                ${b.msg ? `<div class="msg-tag">ENCRYPTED MSG: ${b.msg}</div>` : ''}
-                ${b.amt > 0 ? `<div style="font-size:9px; color:var(--green); margin-top:5px;">➤ SENT ${b.amt} AXN TO ${b.to.substring(0,8)}...</div>` : ''}
+                ${b.msg ? `<div class="msg-text">MESSAGE: ${b.msg}</div>` : ''}
+                <div style="font-size:7px; color:#333; margin-top:5px; word-break:break-all;">HASH: ${b.hash}</div>
             </div>
         `).join('');
     },
@@ -153,9 +163,10 @@ const Protocol = {
     updateUI() {
         const bal = this.chain.reduce((s, b) => s + b.r, 0);
         document.getElementById('ui-bal').innerText = bal.toFixed(4);
+        document.getElementById('ui-blocks').innerText = `БЛОКИ: ${this.chain.length}`;
     }
 };
-window.onload = () => Protocol.init();
+window.onload = () => P2P.init();
 </script>
 </body>
 </html>
