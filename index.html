@@ -3,76 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Future Node MVP</title>
-    <!-- Подключаем актуальный SDK -->
+    <title>Future Node: Network Mining</title>
     <script src="https://telegram.org"></script>
     <style>
-        :root { --blue: #007aff; --bg: #000000; --card: #1c1c1e; --red: #ff3b30; }
-        body { background: var(--bg); color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --blue: #007aff; --bg: #0b0b0c; --card: #1c1c1e; --green: #34c759; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; box-sizing: border-box; }
+        /* Экран входа */
+        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 30px; text-align: center; }
         #main-app { display: none; flex-direction: column; height: 100%; }
         
-        .card { background: var(--card); padding: 25px; border-radius: 24px; margin: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        input { background: #2c2c2e; border: 1px solid #3a3a3c; color: white; padding: 15px; width: 100%; box-sizing: border-box; border-radius: 12px; margin-bottom: 12px; font-size: 16px; outline: none; }
-        
-        .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 16px; font-weight: 600; width: 100%; cursor: pointer; font-size: 16px; transition: all 0.2s; }
-        .btn:active { transform: scale(0.96); opacity: 0.8; }
-        .btn-secondary { background: #2c2c2e; margin-top: 10px; }
-        .btn-stop { background: var(--red) !important; }
+        .card { background: var(--card); padding: 20px; border-radius: 24px; margin: 15px; border: 1px solid #2c2c2e; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-box { background: #2c2c2e; padding: 10px; border-radius: 12px; font-size: 12px; color: #8e8e93; }
+        .stat-value { color: white; font-weight: bold; font-size: 16px; display: block; }
 
-        .nav { position: fixed; bottom: 0; width: 100%; background: rgba(18, 18, 18, 0.95); display: flex; border-top: 0.5px solid #333; padding: 12px 0 25px 0; backdrop-filter: blur(10px); }
-        .nav-item { flex: 1; text-align: center; font-size: 11px; color: #888; cursor: pointer; border: none; background: none; transition: 0.2s; }
+        input { background: #2c2c2e; border: none; color: white; padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 12px; font-size: 16px; }
+        .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: bold; width: 100%; cursor: pointer; font-size: 16px; }
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
+        .btn-stop { background: #ff3b30 !important; }
+
+        /* Навигация */
+        .nav { position: fixed; bottom: 0; width: 100%; background: #121212; display: flex; padding: 15px 0 30px; border-top: 0.5px solid #333; }
+        .nav-item { flex: 1; text-align: center; color: #888; background: none; border: none; font-size: 11px; cursor: pointer; }
         .nav-item.active { color: var(--blue); }
-        .nav-icon { font-size: 20px; display: block; margin-bottom: 4px; }
-
+        
         .hidden { display: none !important; }
-        .page { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+        .halving-text { font-size: 10px; color: #ff9500; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ЛОГИНА -->
     <div id="auth-screen">
-        <div style="font-size: 60px; margin-bottom: 20px;">🌐</div>
-        <h2 style="margin-bottom: 30px;">Future Node <span style="color: var(--blue);">MVP</span></h2>
-        <input type="text" id="login" placeholder="Придумайте ID или имя">
-        <input type="password" id="pass" placeholder="Пароль">
-        <button class="btn" onclick="startApp()">Создать / Войти</button>
+        <div style="font-size: 64px; margin-bottom: 20px;">📡</div>
+        <h1>Future Node</h1>
+        <p style="color: #8e8e93; margin-bottom: 30px;">Майнинг через раздачу трафика (PoC)</p>
+        <input type="text" id="login" placeholder="Идентификатор узла">
+        <button class="btn" onclick="startApp()">Запустить узел</button>
     </div>
 
-    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="main-app">
+        <!-- КОШЕЛЕК -->
         <div id="tab-wallet" class="page">
-            <div class="card" style="background: linear-gradient(145deg, #007aff, #0051ff); margin-top: 50px;">
-                <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">Доступный баланс</div>
-                <div style="font-size: 48px; font-weight: 800; margin: 10px 0;" id="balance-val">0.00</div>
-                <div id="wallet-id" style="font-size: 11px; font-family: monospace; opacity: 0.7; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 5px;">ID: ...</div>
+            <div class="card" style="background: linear-gradient(135deg, #007aff, #054194); margin-top: 40px; text-align: center;">
+                <span style="opacity: 0.8; font-size: 14px;">Ваш баланс (FN)</span>
+                <h1 style="font-size: 48px; margin: 10px 0;" id="balance-val">0.00</h1>
+                <div id="wallet-id" style="font-size: 10px; font-family: monospace; opacity: 0.6;">ID: ...</div>
             </div>
-            
-            <div style="padding: 0 20px;">
-                <button class="btn btn-secondary" onclick="sendCoins()">📤 Отправить монеты</button>
-                <p style="text-align: center; color: #555; font-size: 12px; margin-top: 15px;">Сеть: Mainnet (Beta)</p>
+            <div style="padding: 0 15px;">
+                <button class="btn" style="background: #2c2c2e;" onclick="sendCoins()">📤 Перевести</button>
             </div>
         </div>
 
-        <div id="tab-mine" class="page hidden">
-            <div class="card" style="margin-top: 50px;">
-                <div id="status-dot" style="width: 12px; height: 12px; background: #555; border-radius: 50%; margin: 0 auto 10px auto;"></div>
-                <h3 id="mine-status">Узел простаивает</h3>
-                <h1 style="font-size: 56px; margin: 15px 0;" id="blocks-val">0</h1>
-                <p style="color: #888; font-size: 14px;">Добыто блоков в текущей сессии</p>
-                <button class="btn" id="mine-btn" onclick="toggleMining()">ЗАПУСТИТЬ УЗЕЛ</button>
+        <!-- МАЙНИНГ -->
+        <div id="tab-mine" class="page hidden" style="padding-top: 20px;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="status-label" style="color: #8e8e93;">Статус: Остановлен</span>
+                    <div id="status-led" style="width: 10px; height: 10px; border-radius: 50%; background: grey;"></div>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <span style="color: #8e8e93; font-size: 14px;">Добыто блоков</span>
+                    <h1 id="blocks-val" style="font-size: 56px; margin: 5px 0;">0</h1>
+                    <div id="halving-info" class="halving-text">Награда: 0.10 FN / блок</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">Трафик<span class="stat-value" id="speed-val">0.0 Mb/s</span></div>
+                    <div class="stat-box">Пинг<span class="stat-value" id="ping-val">0 ms</span></div>
+                </div>
+                
+                <br>
+                <button class="btn" id="mine-btn" onclick="toggleMining()">ВКЛЮЧИТЬ ПЕРЕДАЧУ</button>
             </div>
         </div>
 
         <nav class="nav">
-            <button class="nav-item active" id="btn-wallet" onclick="switchTab('wallet')">
-                <span class="nav-icon">💰</span> Кошелек
-            </button>
-            <button class="nav-item" id="btn-mine" onclick="switchTab('mine')">
-                <span class="nav-icon">⚡</span> Майнинг
-            </button>
+            <button class="nav-item active" id="btn-wallet" onclick="switchTab('wallet')">💰 Кошелек</button>
+            <button class="nav-item" id="btn-mine" onclick="switchTab('mine')">⚡ Узел</button>
         </nav>
     </div>
 
@@ -81,97 +90,108 @@
         tg.ready();
         tg.expand();
 
-        let miningInterval = null;
-        let userData = {
-            bal: parseFloat(localStorage.getItem('fn_balance')) || 0.00,
-            blocks: parseInt(localStorage.getItem('fn_blocks')) || 0
+        let timer = null;
+        let data = {
+            bal: parseFloat(localStorage.getItem('fn_v2_bal')) || 0,
+            blocks: parseInt(localStorage.getItem('fn_v2_blocks')) || 0,
+            reward: 0.10
         };
 
         function startApp() {
-            const l = document.getElementById('login').value;
-            if(l.length < 3) {
-                tg.showAlert("ID должен быть длиннее 3 символов");
-                return;
-            }
-
+            const login = document.getElementById('login').value;
+            if(!login) return alert("Введите ID узла");
+            
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('main-app').style.display = 'flex';
+            document.getElementById('wallet-id').innerText = "ADDR: " + btoa(login).slice(0,12).toUpperCase();
             
-            // Генерация визуального адреса
-            const shortId = btoa(l).substring(0, 10).toUpperCase();
-            document.getElementById('wallet-id').innerText = "NODE_ADDR: " + shortId;
-            
+            calculateReward();
             updateUI();
-            tg.HapticFeedback.impactOccurred('medium');
         }
 
-        function switchTab(name) {
-            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-            document.getElementById('tab-' + name).classList.remove('hidden');
-            document.getElementById('btn-' + name).classList.add('active');
-            tg.HapticFeedback.selectionChanged();
+        function calculateReward() {
+            // ДЕФЛЯЦИЯ: Каждые 100 блоков награда падает в 2 раза (Халвинг)
+            let halvings = Math.floor(data.blocks / 100);
+            data.reward = 0.10 / Math.pow(2, halvings);
+            document.getElementById('halving-info').innerText = `Награда: ${data.reward.toFixed(4)} FN / блок (Халвинг ${halvings})`;
         }
 
         function toggleMining() {
             const btn = document.getElementById('mine-btn');
-            const status = document.getElementById('mine-status');
-            const dot = document.getElementById('status-dot');
+            const led = document.getElementById('status-led');
+            const statusLabel = document.getElementById('status-label');
 
-            if (miningInterval) {
-                // Остановка
-                clearInterval(miningInterval);
-                miningInterval = null;
-                btn.innerText = "ЗАПУСТИТЬ УЗЕЛ";
+            if(timer) {
+                // СТОП
+                clearInterval(timer);
+                timer = null;
+                btn.innerText = "ВКЛЮЧИТЬ ПЕРЕДАЧУ";
                 btn.classList.remove('btn-stop');
-                status.innerText = "Узел остановлен";
-                dot.style.background = "#555";
+                led.style.background = 'grey';
+                statusLabel.innerText = "Статус: Остановлен";
+                document.getElementById('speed-val').innerText = "0.0 Mb/s";
+                document.getElementById('ping-val').innerText = "0 ms";
             } else {
-                // Запуск
+                // ПУСК
                 btn.innerText = "ОСТАНОВИТЬ";
                 btn.classList.add('btn-stop');
-                status.innerText = "Синхронизация с блоками...";
-                dot.style.background = "#4cd964";
+                led.style.background = '#34c759';
+                statusLabel.innerText = "Статус: Передача данных...";
                 
-                miningInterval = setInterval(() => {
-                    userData.bal += 0.05;
-                    userData.blocks += 1;
+                timer = setInterval(() => {
+                    // Эмуляция дефляционной добычи
+                    data.blocks += 1;
+                    data.bal += data.reward;
+                    
+                    // Эмуляция параметров сети
+                    const speed = (Math.random() * 5 + 1).toFixed(1);
+                    const ping = Math.floor(Math.random() * 40 + 20);
+                    
+                    document.getElementById('speed-val').innerText = speed + " Mb/s";
+                    document.getElementById('ping-val').innerText = ping + " ms";
+                    
+                    if(data.blocks % 100 === 0) calculateReward();
+                    
                     saveData();
                     updateUI();
-                    tg.HapticFeedback.impactOccurred('light');
-                }, 4000);
+                    if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                }, 3000);
             }
         }
 
         function sendCoins() {
-            // Реальная логика MVP через prompt (в Telegram работает стабильно)
-            const address = prompt("Введите адрес получателя:");
-            if (!address) return;
-
-            const amount = prompt("Сколько отправить?");
-            const val = parseFloat(amount);
-
-            if (isNaN(val) || val <= 0) {
-                tg.showAlert("Ошибка: Неверная сумма");
-            } else if (val > userData.bal) {
-                tg.showAlert("Ошибка: Недостаточно средств на балансе");
-            } else {
-                userData.bal -= val;
+            const to = prompt("Введите ID получателя:");
+            if(!to) return;
+            const amount = parseFloat(prompt("Сумма перевода:"));
+            
+            if(amount > 0 && amount <= data.bal) {
+                data.bal -= amount;
                 saveData();
                 updateUI();
-                tg.showConfirm(`Транзакция отправлена!\nСумма: ${val} FN\nПолучатель: ${address.substring(0,10)}...`);
+                tg.showAlert(`Успешно отправлено ${amount} FN на узел ${to}`);
+            } else {
+                tg.showAlert("Ошибка: Недостаточно средств");
             }
         }
 
+        function switchTab(t) {
+            document.getElementById('tab-wallet').classList.add('hidden');
+            document.getElementById('tab-mine').classList.add('hidden');
+            document.getElementById('btn-wallet').classList.remove('active');
+            document.getElementById('btn-mine').classList.remove('active');
+            
+            document.getElementById('tab-' + t).classList.remove('hidden');
+            document.getElementById('btn-' + t).classList.add('active');
+        }
+
         function saveData() {
-            localStorage.setItem('fn_balance', userData.bal.toFixed(4));
-            localStorage.setItem('fn_blocks', userData.blocks);
+            localStorage.setItem('fn_v2_bal', data.bal);
+            localStorage.setItem('fn_v2_blocks', data.blocks);
         }
 
         function updateUI() {
-            document.getElementById('balance-val').innerText = userData.bal.toFixed(2);
-            document.getElementById('blocks-val').innerText = userData.blocks;
+            document.getElementById('balance-val').innerText = data.bal.toFixed(2);
+            document.getElementById('blocks-val').innerText = data.blocks;
         }
     </script>
 </body>
