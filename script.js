@@ -9,79 +9,76 @@ let state = {
     pass: localStorage.getItem('bc_pass') || "",
     bal: parseFloat(localStorage.getItem('bc_bal')) || 0,
     height: parseInt(localStorage.getItem('bc_height')) || 0,
-    diff: 3
+    addr: "",
+    diff: 4
 };
 
-window.onload = () => {
-    if (state.login) {
-        document.getElementById('auth-title').innerText = "RESTORE SESSION";
-        document.getElementById('node-login').value = state.login;
-        document.getElementById('node-login').readOnly = true;
-    }
-};
-
-function log(m) {
-    const c = document.getElementById('console');
-    c.innerHTML += `> ${m}<br>`;
-    c.scrollTop = c.scrollHeight;
+// Генерация адреса кошелька из логина
+function genAddr(login) {
+    return "TGA" + btoa(login).substring(0, 12).toUpperCase();
 }
 
 function handleAuth() {
     const l = document.getElementById('node-login').value;
     const p = document.getElementById('node-pass').value;
 
-    if (l.length < 3 || p.length < 4) return alert("Логин > 3, Пароль > 4!");
-
     if (!state.login) {
         localStorage.setItem('bc_login', l);
         localStorage.setItem('bc_pass', p);
         state.login = l; state.pass = p;
     } else if (l !== state.login || p !== state.pass) {
-        return alert("Ошибка: Неверный пароль!");
+        return tg.showAlert("Неверные данные!");
     }
     
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('main-screen').classList.remove('hidden');
-    document.getElementById('user-display').innerText = state.login.toUpperCase();
+    state.addr = genAddr(state.login);
+    document.getElementById('auth-screen').classList.remove('active');
+    document.getElementById('page-wallet').classList.add('active');
+    document.getElementById('main-nav').style.display = 'flex';
+    document.getElementById('addr-display').innerText = state.addr;
     updateUI();
 }
 
+function showTab(tab, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + tab).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active-nav'));
+    el.classList.add('active-nav');
+}
+
 function updateUI() {
-    document.getElementById('bal').innerText = state.bal.toFixed(4);
-    document.getElementById('blocks').innerText = state.height;
+    document.getElementById('bal').innerText = state.bal.toFixed(2) + " NODE";
+    document.getElementById('mine-blocks').innerText = "Блоки: " + state.height;
 }
 
 function toggleMining() {
     const btn = document.getElementById('mineBtn');
     if (!isMining) {
         isMining = true;
-        btn.innerText = "STOP ENGINE";
-        btn.classList.add('mining-on');
-        
-        // ЗАПУСК ВОРКЕРА ИЗ ФАЙЛА
+        btn.innerText = "ОСТАНОВИТЬ";
+        btn.style.background = "#ff3b30";
         minerWorker = new Worker('worker.js');
         minerWorker.postMessage({height: state.height, diff: state.diff});
 
         minerWorker.onmessage = (e) => {
             if(e.data.type === 'found') {
-                state.bal += 10;
+                state.bal += 50.0;
                 state.height++;
                 localStorage.setItem('bc_bal', state.bal);
                 localStorage.setItem('bc_height', state.height);
-                log(`<span style="color:#4ade80">FOUND! +10 COIN</span>`);
                 updateUI();
                 tg.HapticFeedback.notificationOccurred('success');
                 minerWorker.postMessage({height: state.height, diff: state.diff});
-            } else {
-                if(e.data.n % 20000 === 0) log(`Nonce: ${e.data.n}...`);
             }
         };
     } else {
         isMining = false;
-        btn.innerText = "START MINING";
-        btn.classList.remove('mining-on');
+        btn.innerText = "ЗАПУСТИТЬ";
+        btn.style.background = "#007aff";
         minerWorker.terminate();
-        log("Stopped.");
     }
 }
 
+function copyAddr() {
+    navigator.clipboard.writeText(state.addr);
+    tg.showAlert("Адрес скопирован!");
+}
