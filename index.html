@@ -2,131 +2,218 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AXON // BITCOIN STANDARD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AXON // TRUE CHAIN v2.0</title>
     <style>
-        :root { --bg: #000; --green: #00ff41; --dim: #1a1a1a; --warn: #ffcc00; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
-        body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        :root { --bg: #000; --green: #00ff41; --dim: #0a0a0a; --border: #1a1a1a; --text: #888; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: var(--bg); 
+            color: #fff; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden;
+            padding-bottom: env(safe-area-inset-bottom); /* Защита от полоски iPhone */
+        }
 
-        /* AUTH LAYER */
-        #gate { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; padding: 30px; align-items: center; justify-content: center; text-align: center; }
-        .seed-box { background: var(--dim); padding: 20px; border-radius: 8px; margin: 20px 0; font-size: 14px; color: var(--warn); border: 1px dashed var(--warn); }
-        input, textarea { width: 100%; max-width: 350px; background: #080808; border: 1px solid #333; color: var(--green); padding: 15px; margin: 10px 0; outline: none; }
-        .btn { width: 100%; max-width: 350px; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
+        /* HEADER */
+        header { 
+            padding: 40px 25px 20px; 
+            border-bottom: 1px solid var(--border); 
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 10;
+        }
+        .bal-val { font-size: 44px; font-weight: 900; letter-spacing: -2px; color: var(--green); line-height: 1; }
+        .bal-ticker { font-size: 14px; color: var(--text); vertical-align: middle; margin-left: 5px; }
+        
+        .stats-row { 
+            display: flex; 
+            border-bottom: 1px solid var(--border); 
+            background: var(--dim);
+        }
+        .s-item { 
+            flex: 1; 
+            padding: 12px 25px; 
+            border-right: 1px solid var(--border);
+            font-size: 10px;
+            color: var(--text);
+        }
+        .s-item b { color: #fff; margin-left: 5px; }
 
-        /* MAIN UI */
-        header { padding: 30px; border-bottom: 1px solid var(--dim); }
-        .bal { font-size: 42px; font-weight: 800; color: var(--green); letter-spacing: -2px; }
-        .stats { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--dim); }
-        .s-box { padding: 15px 30px; border-right: 1px solid var(--dim); }
-        .label { font-size: 9px; color: #555; text-transform: uppercase; }
+        /* BLOCKCHAIN VIEWPORT */
+        .viewport { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column;
+            gap: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
 
-        .terminal { flex: 1; background: #000; padding: 20px; font-size: 11px; color: #008f11; overflow-y: auto; line-height: 1.5; }
-        footer { padding: 20px; background: #050505; border-top: 1px solid var(--dim); }
+        .block { 
+            background: #050505; 
+            border: 1px solid var(--border);
+            padding: 15px;
+            position: relative;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .block::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 2px; background: var(--green);
+        }
+        .block-header { font-size: 11px; font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .hash-data { font-size: 8px; color: #444; word-break: break-all; font-family: monospace; line-height: 1.4; }
+        .hash-data b { color: #666; }
+
+        /* CONTROLS */
+        footer { 
+            padding: 20px 25px 30px; /* Увеличил отступ снизу */
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            z-index: 10;
+        }
+        
+        .btn { 
+            width: 100%; 
+            background: var(--green); 
+            color: #000; 
+            border: none; 
+            padding: 20px; 
+            font-weight: 900; 
+            font-size: 14px;
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 0 20px rgba(0,255,65,0.1);
+        }
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
+        .btn:disabled { background: #111; color: #333; cursor: not-allowed; box-shadow: none; }
+
+        #mining-status { font-size: 9px; text-align: center; margin-bottom: 10px; color: var(--green); height: 12px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-<div id="gate">
-    <h2 style="color: var(--green); letter-spacing: 5px;">AXON MESH</h2>
-    
-    <div id="setup-view">
-        <p style="font-size: 12px; margin-top: 20px;">НОВЫЙ УЗЕЛ? СОХРАНИТЕ ЭТИ 12 СЛОВ:</p>
-        <div class="seed-box" id="new-seed">...генерируем хаос...</div>
-        <p style="font-size: 9px; color: #666;">ПОТЕРЯЕТЕ СЛОВА — ПОТЕРЯЕТЕ ВСЁ.</p>
-        <button class="btn" onclick="Core.launch(true)">Я ЗАПИСАЛ, ВОЙТИ</button>
-        <button class="btn" style="background:none; color:var(--green); border:1px solid var(--green)" onclick="Core.showImport()">У МЕНЯ ЕСТЬ СИД-ФРАЗА</button>
+    <header>
+        <div style="font-size: 9px; color: var(--text); margin-bottom: 8px; letter-spacing: 2px;">NETWORK ASSET VALUE</div>
+        <div class="bal-val"><span id="ui-bal">0.0000</span><span class="bal-ticker">AXN</span></div>
+    </header>
+
+    <div class="stats-row">
+        <div class="s-item">БЛОКИ: <b id="ui-height">0</b></div>
+        <div class="s-item">DIFF: <b>000 (SHA-256)</b></div>
     </div>
 
-    <div id="import-view" style="display:none">
-        <p style="font-size: 12px;">ВВЕДИТЕ ВАШИ 12 СЛОВ:</p>
-        <textarea id="input-seed" rows="3" placeholder="word1 word2 ..."></textarea>
-        <button class="btn" onclick="Core.launch(false)">ВОССТАНОВИТЬ ДОСТУП</button>
-        <button class="btn" style="background:none; color:#555; border:1px solid #333" onclick="location.reload()">НАЗАД</button>
+    <div class="viewport" id="chain">
+        <!-- Блоки рендерятся тут -->
     </div>
-</div>
 
-<header>
-    <div class="label">Balance Asset</div>
-    <div class="bal"><span id="ui-bal">0.0000</span> <span style="font-size: 16px; color:#333">AXN</span></div>
-    <div id="ui-addr" style="font-size: 9px; color: #444; margin-top: 10px;">ADDR :: STANDBY</div>
-</header>
-
-<div class="stats">
-    <div class="s-box"><div class="label">Сложность</div><div id="ui-diff">1.00</div></div>
-    <div class="s-box"><div class="label">Сеть</div><div style="color:var(--green)">P2P_SIMULATOR</div></div>
-</div>
-
-<div class="terminal" id="term">> ИНИЦИАЛИЗАЦИЯ ЯДРА...</div>
-
-<footer>
-    <button class="btn" onclick="Core.mine()">ПОДТВЕРДИТЬ ТРАНЗАКЦИИ (MINE)</button>
-</footer>
+    <footer>
+        <div id="mining-status"></div>
+        <button id="mine-btn" class="btn" onclick="Protocol.mine()">Подтвердить блок (PoW)</button>
+    </footer>
 
 <script>
-const Core = {
-    wordList: ["alpha", "beta", "gamma", "delta", "echo", "fox", "golf", "hotel", "india", "july", "kilo", "lima", "maze", "node", "ocean", "pixel", "quant", "river", "solar", "terra", "unit", "vocal", "wave", "zone"],
-    currentSeed: '',
-    
+const Protocol = {
+    history: JSON.parse(localStorage.getItem('axon_chain_v2') || '[]'),
+    difficulty: 3,
+
     init() {
-        // Создаем новую фразу при загрузке
-        let words = [];
-        for(let i=0; i<12; i++) words.push(this.wordList[Math.floor(Math.random()*this.wordList.length)]);
-        this.currentSeed = words.join(' ');
-        document.getElementById('new-seed').innerText = this.currentSeed;
+        this.render();
+        this.updateStats();
+        if(this.history.length === 0) {
+            this.logEmpty();
+        }
     },
 
-    showImport() {
-        document.getElementById('setup-view').style.display = 'none';
-        document.getElementById('import-view').style.display = 'flex';
+    async sha256(str) {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     },
 
-    async launch(isNew) {
-        const seed = isNew ? this.currentSeed : document.getElementById('input-seed').value.trim().toLowerCase();
-        if(seed.split(' ').length < 12) return alert("Нужно ровно 12 слов");
-
-        // Генерируем адрес из сид-фразы
-        const hash = await this.sha256(seed);
-        this.address = hash.substring(0, 16).toUpperCase();
-        this.seed = seed;
+    async mine() {
+        const btn = document.getElementById('mine-btn');
+        const status = document.getElementById('mining-status');
+        btn.disabled = true;
         
-        // Загружаем баланс именно для этого адреса
-        this.balance = parseFloat(localStorage.getItem(`ax_v12_${this.address}`) || 0);
+        let nonce = 0;
+        let prevHash = this.history.length > 0 ? this.history[0].hash : "0".repeat(64);
+        let hash = "";
+        const target = "0".repeat(this.difficulty);
+
+        // Реальный цикл Proof of Work
+        const start = Date.now();
+        while (true) {
+            nonce++;
+            hash = await this.sha256(prevHash + nonce);
+            
+            if (nonce % 200 === 0) {
+                status.innerText = `HASHING: ${hash.substring(0, 24)}...`;
+                await new Promise(r => setTimeout(r, 0)); 
+            }
+
+            if (hash.startsWith(target)) break;
+        }
+
+        const block = {
+            h: this.history.length + 1,
+            ts: new Date().toLocaleTimeString(),
+            n: nonce,
+            p: prevHash,
+            hash: hash,
+            r: 0.05
+        };
+
+        this.history.unshift(block);
+        localStorage.setItem('axon_chain_v2', JSON.stringify(this.history.slice(0, 30)));
         
-        document.getElementById('gate').style.transform = 'translateY(-100%)';
-        document.getElementById('ui-addr').innerText = `ADDR :: AX-${this.address}`;
-        this.updateUI();
-        this.log(`Узел запущен. Адрес детерминирован из Seed-фразы.`);
+        status.innerText = "БЛОК НАЙДЕН!";
+        setTimeout(() => status.innerText = "", 2000);
+        
+        this.render();
+        this.updateStats();
+        btn.disabled = false;
     },
 
-    async sha256(m) {
-        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(m));
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    render() {
+        const container = document.getElementById('chain');
+        container.innerHTML = this.history.map(b => `
+            <div class="block">
+                <div class="block-header">
+                    <span>BLOCK #${b.h}</span>
+                    <span style="color:var(--text)">${b.ts}</span>
+                </div>
+                <div class="hash-data"><b>NONCE:</b> ${b.n}</div>
+                <div class="hash-data"><b>HASH:</b> ${b.hash}</div>
+                <div class="hash-data"><b>PREV:</b> ${b.p.substring(0, 32)}...</div>
+            </div>
+        `).join('');
     },
 
-    mine() {
-        this.log("Поиск хеша блока...");
-        setTimeout(() => {
-            const reward = 0.05;
-            this.balance += reward;
-            localStorage.setItem(`ax_v12_${this.address}`, this.balance);
-            this.log(`Блок найден! Награда: ${reward} AXN`);
-            this.updateUI();
-        }, 1500);
+    logEmpty() {
+        document.getElementById('chain').innerHTML = `
+            <div style="text-align:center; color:#333; margin-top:50px; font-size:10px;">
+                ЦЕПОЧКА ПУСТА. НАЖМИТЕ КНОПКУ ДЛЯ ГЕНЕРАЦИИ ПЕРВОГО БЛОКА.
+            </div>`;
     },
 
-    log(m) {
-        const t = document.getElementById('term');
-        t.innerHTML = `> ${m}<br>` + t.innerHTML;
-    },
-
-    updateUI() {
-        document.getElementById('ui-bal').innerText = this.balance.toFixed(4);
+    updateStats() {
+        const total = this.history.reduce((s, b) => s + b.r, 0);
+        document.getElementById('ui-bal').innerText = total.toFixed(4);
+        document.getElementById('ui-height').innerText = this.history.length;
     }
 };
 
-window.onload = () => Core.init();
+window.onload = () => Protocol.init();
 </script>
 </body>
 </html>
