@@ -3,217 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Future Node: Decentralized Network</title>
-    <script src="https://telegram.org"></script>
+    <title>Future Node: DeACN</title>
+    <!-- SDK загружается в фоне, не мешая открытию сайта -->
+    <script async src="https://telegram.org"></script>
     <style>
         :root { --blue: #007aff; --bg: #000; --card: #0d0d0d; --neon: #00ff41; --gold: #ffd700; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; height: 100vh; overflow: hidden; -webkit-user-select: none; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; margin: 0; height: 100vh; overflow: hidden; }
         
-        /* Навигация */
-        .nav { position: fixed; bottom: 0; width: 100%; background: rgba(10,10,10,0.95); display: flex; padding-bottom: 25px; border-top: 1px solid #222; z-index: 1000; backdrop-filter: blur(10px); }
-        .nav-item { flex: 1; text-align: center; color: #555; background: none; border: none; padding: 15px; font-size: 10px; font-weight: bold; cursor: pointer; }
-        .nav-item.active { color: var(--blue); border-top: 2px solid var(--blue); }
-
-        .page { display: none; height: calc(100vh - 85px); overflow-y: auto; padding: 20px; box-sizing: border-box; }
-        .page.active { display: block; }
-
-        /* Дизайн карточек */
-        .card { background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid #1a1a1a; margin-bottom: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 16px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; transition: 0.3s; }
+        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 30px; text-align: center; background: #000; position: fixed; width: 100%; z-index: 2000; }
+        #main-app { display: none; flex-direction: column; height: 100%; position: relative; }
+        
+        .card { background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid #1a1a1a; margin: 15px; text-align: center; }
+        .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 16px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; }
         .btn:active { transform: scale(0.98); opacity: 0.8; }
         .btn-stop { background: #ff3b30 !important; }
 
-        /* Терминал и логи */
-        .terminal { background: #050505; border-radius: 14px; padding: 12px; font-family: 'Courier New', monospace; font-size: 10px; height: 110px; overflow: hidden; color: var(--neon); text-align: left; margin: 15px 0; border: 1px solid #111; line-height: 1.4; }
+        input { background: #111; border: 1px solid #333; color: var(--neon); padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; }
+        .terminal { background: #050505; border-radius: 14px; padding: 12px; font-family: monospace; font-size: 10px; height: 110px; overflow: hidden; color: var(--neon); text-align: left; margin: 15px 0; border: 1px solid #111; line-height: 1.4; }
         
-        /* Вход */
-        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 30px; text-align: center; background: #000; position: absolute; width: 100%; z-index: 2000; }
-        input { background: #111; border: 1px solid #333; color: var(--neon); padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; font-size: 16px; outline: none; text-align: center; }
-
-        .tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; background: #222; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #333; margin-right: 5px; }
-        .active-dot { background: var(--neon); box-shadow: 0 0 10px var(--neon); }
+        .nav { position: fixed; bottom: 0; width: 100%; background: #080808; display: flex; padding-bottom: 25px; border-top: 1px solid #222; }
+        .nav-item { flex: 1; text-align: center; color: #555; background: none; border: none; padding: 15px; font-size: 10px; font-weight: bold; cursor: pointer; }
+        .nav-item.active { color: var(--blue); border-top: 2px solid var(--blue); }
+        
+        .page { display: none; padding-top: 20px; }
+        .page.active { display: block; }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ВХОДА -->
+    <!-- Экран входа -->
     <div id="auth-screen">
-        <div style="font-size: 70px; margin-bottom: 20px;">🛡️</div>
-        <h2 style="letter-spacing: 3px;">FUTURE NODE</h2>
-        <p style="color: #666; font-size: 12px; margin-bottom: 30px;">ДЕЦЕНТРАЛИЗОВАННЫЙ ИНТЕРНЕТ (DePIN & DAO)</p>
-        <input type="text" id="node-input" placeholder="Введите имя вашего узла">
-        <button class="btn" id="login-btn">Инициализировать сеть</button>
+        <div style="font-size: 60px; margin-bottom: 20px;">🛡️</div>
+        <h2 style="letter-spacing: 2px;">FUTURE NODE</h2>
+        <p style="color: #444; font-size: 12px; margin-bottom: 30px;">DECENTRALIZED NETWORK (DAO)</p>
+        <input type="text" id="login" placeholder="Идентификатор узла">
+        <button class="btn" onclick="start()">ВОЙТИ В СЕТЬ</button>
     </div>
 
-    <!-- ТАБ: КОШЕЛЕК И DAO -->
-    <div id="page-wallet" class="page">
-        <div class="card" style="margin-top: 30px; border-color: var(--gold);">
-            <span class="tag" style="color: var(--gold);">Voting Power (DAO)</span>
-            <div style="font-size: 48px; font-weight: 800; color: #fff; margin: 10px 0;" id="bal">0.0000</div>
-            <div style="font-size: 12px; color: var(--gold);">ВАША СИЛА ГОЛОСА: <span id="v-power">0.0000%</span></div>
-            <p style="font-size: 9px; color: #444; margin-top: 15px;">ADDR: <span id="node-addr">...</span></p>
-        </div>
-        
-        <div class="card" style="text-align: left; border-style: dashed;">
-            <span class="tag">Network Proposal #1</span>
-            <p style="font-size: 12px; margin: 10px 0;">Внедрить протокол маскировки под Zoom для обхода DPI?</p>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn" style="padding: 10px; font-size: 10px; background: #1a1a1a;" onclick="alert('Ваш голос принят!')">ГОЛОСОВАТЬ ЗА</button>
+    <!-- Основной интерфейс -->
+    <div id="main-app">
+        <div id="p-wallet" class="page active">
+            <div class="card" style="border-color: var(--gold); margin-top: 30px;">
+                <div style="font-size: 10px; color: var(--gold); letter-spacing: 1px;">VOTING POWER</div>
+                <div style="font-size: 48px; font-weight: 800; margin: 10px 0;" id="b">0.0000</div>
+                <div style="font-size: 12px; color: var(--gold);" id="vp">0.0000%</div>
+            </div>
+            <div class="card" style="border-style: dashed; text-align: left;">
+                <div style="font-size: 10px; color: #555;">PROPOSAL #1: ACTIVATE STEALTH PROXY</div>
+                <button class="btn" style="margin-top: 10px; padding: 10px; font-size: 10px; background: #1a1a1a;" onclick="alert('Голос принят!')">ГОЛОСОВАТЬ ЗА</button>
             </div>
         </div>
-    </div>
 
-    <!-- ТАБ: УЗЕЛ (МАЙНИНГ) -->
-    <div id="page-node" class="page">
-        <div class="card">
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <span class="tag">Decentralized Relay</span>
-                <div style="display: flex; align-items: center;">
-                    <div id="led" class="status-dot"></div>
-                    <span id="status-label" style="font-size: 10px; color: #444;">OFFLINE</span>
+        <div id="p-node" class="page">
+            <div class="card">
+                <div style="display:flex; justify-content: space-between; font-size: 10px; color: #444;">
+                    <span>RELAY NODE</span>
+                    <span id="st">OFFLINE</span>
                 </div>
+                <h1 id="bl" style="font-size: 64px; margin: 10px 0;">0</h1>
+                <div class="terminal" id="log">> Консенсус: Ожидание...</div>
+                <button class="btn" id="m-btn" onclick="toggle()">ЗАПУСТИТЬ УЗЕЛ</button>
             </div>
-            
-            <div style="text-align: center;">
-                <div style="font-size: 11px; color: #666;">ОБРАБОТАНО ТРАФИКА (BLOCKS)</div>
-                <h1 id="blocks" style="font-size: 64px; margin: 5px 0;">0</h1>
-                <div id="diff-label" style="font-size: 10px; color: var(--blue);">СЛОЖНОСТЬ СЕТИ: 1.00x</div>
-            </div>
-
-            <div class="terminal" id="term-log">
-                > Узел в режиме ожидания...<br>
-                > Сеть защищена алгоритмом Proof-of-Connectivity...<br>
-            </div>
-
-            <button class="btn" id="node-trigger">Запустить узел</button>
         </div>
+
+        <nav class="nav">
+            <button class="nav-item active" onclick="tab('wallet', this)">💰 DAO</button>
+            <button class="nav-item" onclick="tab('node', this)">⚡ NODE</button>
+        </nav>
     </div>
-
-    <!-- ТАБ: WEB (ШЛЮЗ) -->
-    <div id="page-web" class="page">
-        <div class="card">
-            <span class="tag">Stealth Gateway</span>
-            <h3 style="margin: 15px 0 5px;">Свободный доступ</h3>
-            <p style="font-size: 11px; color: #666; margin-bottom: 20px;">Подключение через узлы сообщества</p>
-            
-            <input type="text" id="url-input" placeholder="example.com" style="background: #000; border: 1px solid #222;">
-            <button class="btn" onclick="alert('Доступ через шлюз активирован. Подключение к узлу в DE...')">ОТКРЫТЬ ЧЕРЕЗ ПРОКСИ</button>
-        </div>
-        
-        <div style="text-align: center; color: #333; font-size: 10px; margin-top: 50px;">
-            <p>Сеть полностью децентрализована.<br>Управление узлами принадлежит держателям 51% FN.</p>
-        </div>
-    </div>
-
-    <nav class="nav">
-        <button class="nav-item active" id="nav-wallet">💰 DAO</button>
-        <button class="nav-item" id="nav-node">⚡ NODE</button>
-        <button class="nav-item" id="nav-web">🌐 WEB</button>
-    </nav>
 
     <script>
-        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-        if (tg) { tg.ready(); tg.expand(); }
+        let run = false, timer = null;
+        let s = { b: parseFloat(localStorage.getItem('f_b')) || 0, bl: parseInt(localStorage.getItem('f_bl')) || 0 };
 
-        let isRunning = false;
-        let timer = null;
-        let state = {
-            bal: parseFloat(localStorage.getItem('fn_v4_bal')) || 0,
-            blocks: parseInt(localStorage.getItem('fn_v4_blocks')) || 0,
-            total_emission: 1000000 // Для расчета 51%
-        };
-
-        const logs = [
-            "Маскировка трафика под HTTPS...",
-            "Консенсус достигнут (Block Verified)...",
-            "Шифрование пакета (AES-GCM)...",
-            "Обход DPI фильтрации...",
-            "Синхронизация с узлами (P2P)...",
-            "Трафик переслан через узел JP..."
-        ];
-
-        // ВХОД
-        document.getElementById('login-btn').addEventListener('click', function() {
-            const val = document.getElementById('node-input').value;
-            if (val.length < 2) return alert("Введите имя узла");
+        function start() {
+            if(document.getElementById('login').value.length < 2) return;
             document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('node-addr').innerText = btoa(val).slice(0, 24).toUpperCase();
-            updateUI();
-        });
+            document.getElementById('main-app').style.display = 'flex';
+            upd();
+        }
 
-        // МАЙНИНГ
-        document.getElementById('node-trigger').addEventListener('click', function() {
-            const btn = this;
-            const led = document.getElementById('led');
-            const status = document.getElementById('status-label');
-            const log = document.getElementById('term-log');
-
-            if (isRunning) {
-                isRunning = false;
-                clearInterval(timer);
-                btn.innerText = "Запустить узел";
-                btn.classList.remove('btn-stop');
-                led.classList.remove('active-dot');
-                status.innerText = "OFFLINE";
+        function toggle() {
+            const btn = document.getElementById('m-btn'), st = document.getElementById('st'), log = document.getElementById('log');
+            if(run) {
+                run = false; clearInterval(timer);
+                btn.innerText = "ЗАПУСТИТЬ УЗЕЛ"; btn.classList.remove('btn-stop');
+                st.innerText = "OFFLINE"; st.style.color = "#444";
             } else {
-                isRunning = true;
-                btn.innerText = "Остановить";
-                btn.classList.add('btn-stop');
-                led.classList.add('active-dot');
-                status.innerText = "ACTIVE RELAY";
-                status.style.color = "var(--neon)";
-                
+                run = true;
+                btn.innerText = "ОСТАНОВИТЬ"; btn.classList.add('btn-stop');
+                st.innerText = "ACTIVE"; st.style.color = "var(--neon)";
                 timer = setInterval(() => {
-                    let diff = 1 + (state.blocks / 500);
-                    let reward = 0.045 / diff;
-                    
-                    state.blocks += 1;
-                    state.bal += reward;
-                    
-                    // Логи
-                    let m = logs[Math.floor(Math.random() * logs.length)];
-                    log.innerHTML = `> [${new Date().toLocaleTimeString()}] ${m}<br>` + log.innerHTML;
-                    if (log.innerHTML.length > 800) log.innerHTML = log.innerHTML.slice(0, 800);
-
-                    document.getElementById('diff-label').innerText = `СЛОЖНОСТЬ СЕТИ: ${diff.toFixed(2)}x`;
-                    
-                    save();
-                    updateUI();
-                    if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    s.bl++; s.b += (0.005 / (1 + s.bl/1000)); // Дефляционная награда
+                    log.innerHTML = `> [${new Date().toLocaleTimeString()}] Block Verified by Network<br>` + log.innerHTML.slice(0, 500);
+                    upd();
+                    localStorage.setItem('f_b', s.b); localStorage.setItem('f_bl', s.bl);
                 }, 3000);
             }
-        });
+        }
 
-        // НАВИГАЦИЯ
-        document.getElementById('nav-wallet').onclick = (e) => switchTab('wallet', e.target);
-        document.getElementById('nav-node').onclick = (e) => switchTab('node', e.target);
-        document.getElementById('nav-web').onclick = (e) => switchTab('web', e.target);
-
-        function switchTab(id, btn) {
+        function tab(id, btn) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('page-' + id).classList.add('active');
+            document.getElementById('p-' + id).classList.add('active');
             btn.classList.add('active');
         }
 
-        function save() {
-            localStorage.setItem('fn_v4_bal', state.bal);
-            localStorage.setItem('fn_v4_blocks', state.blocks);
-        }
-
-        function updateUI() {
-            document.getElementById('bal').innerText = state.bal.toFixed(4);
-            document.getElementById('blocks').innerText = state.blocks;
-            
-            // Расчет силы голоса
-            let power = (state.bal / state.total_emission) * 100;
-            document.getElementById('v-power').innerText = power.toFixed(5) + "%";
-            
-            if (power >= 51) {
-                document.getElementById('v-power').style.color = "var(--neon)";
-                document.getElementById('v-power').innerText += " [GUARDIAN]";
-            }
+        function upd() {
+            document.getElementById('b').innerText = s.b.toFixed(4);
+            document.getElementById('bl').innerText = s.bl;
+            document.getElementById('vp').innerText = (s.b / 1000000 * 100).toFixed(6) + "%";
         }
     </script>
 </body>
