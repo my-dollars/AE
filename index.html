@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Future Node: DAO Governance</title>
+    <title>Future Node: Quantum Secure</title>
     <script async src="https://telegram.org"></script>
     <style>
         :root { --blue: #007aff; --bg: #000; --card: #0d0d0d; --neon: #00ff41; --gold: #ffd700; }
@@ -15,152 +15,129 @@
         .card { background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid #1a1a1a; margin: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .btn { background: var(--blue); color: white; border: none; padding: 18px; border-radius: 18px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; text-transform: uppercase; transition: 0.3s; }
         .btn:active { transform: scale(0.98); opacity: 0.8; }
-        .btn:disabled { background: #1a1a1a !important; color: #444 !important; cursor: not-allowed; }
-        .btn-stop { background: #ff3b30 !important; }
+        .btn:disabled { background: #1a1a1a !important; color: #444; }
 
-        input { background: #111; border: 1px solid #333; color: var(--neon); padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; }
+        input { background: #111; border: 1px solid #333; color: var(--neon); padding: 18px; width: 100%; box-sizing: border-box; border-radius: 15px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; font-family: monospace; }
         .terminal { background: #050505; border-radius: 14px; padding: 12px; font-family: monospace; font-size: 10px; height: 110px; overflow: hidden; color: var(--neon); text-align: left; margin: 15px 0; border: 1px solid #111; line-height: 1.4; }
         
         .nav { position: fixed; bottom: 0; width: 100%; background: rgba(10,10,10,0.95); display: flex; padding-bottom: 25px; border-top: 1px solid #222; backdrop-filter: blur(10px); }
         .nav-item { flex: 1; text-align: center; color: #555; background: none; border: none; padding: 15px; font-size: 10px; font-weight: bold; cursor: pointer; }
-        .nav-item.active { color: var(--blue); border-top: 2px solid var(--blue); }
+        .nav-item.active { color: var(--gold); border-top: 2px solid var(--gold); }
         
         .page { display: none; padding-top: 20px; overflow-y: auto; height: calc(100vh - 85px); }
         .page.active { display: block; }
         
-        .progress-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; margin: 15px 0 10px; }
-        .progress-fill { height: 100%; width: 42.15%; background: var(--blue); transition: 1s cubic-bezier(0.1, 0.7, 1.0, 0.1); }
-        .tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; background: #1a1a1a; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; display: inline-block; }
+        .progress-bar { height: 4px; background: #1a1a1a; border-radius: 2px; overflow: hidden; margin: 15px 0 10px; }
+        .progress-fill { height: 100%; width: 42.15%; background: var(--gold); transition: 2s; }
+        .tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; background: #1a1a1a; color: var(--neon); text-transform: uppercase; margin-bottom: 10px; display: inline-block; border: 0.5px solid #222; }
     </style>
 </head>
 <body>
 
-    <!-- Экран входа -->
     <div id="auth-screen">
-        <div style="font-size: 60px; margin-bottom: 20px;">🛡️</div>
+        <div style="font-size: 60px; margin-bottom: 20px;">💎</div>
         <h2 style="letter-spacing: 2px;">FUTURE NODE</h2>
-        <p style="color: #444; font-size: 12px; margin-bottom: 30px;">DECENTRALIZED NETWORK (DAO)</p>
-        <input type="text" id="login" placeholder="Идентификатор узла">
-        <button class="btn" onclick="startApp()">ИНИЦИИРОВАТЬ СЕТЬ</button>
+        <p style="color: #444; font-size: 11px; margin-bottom: 30px;">QUANTUM-RESISTANT NETWORK (P2P)</p>
+        <input type="password" id="seed" placeholder="Введите ваш приватный ключ">
+        <button class="btn" style="background: var(--gold); color: #000;" onclick="login()">ВОЙТИ В АККАУНТ</button>
+        <p style="color: #222; font-size: 9px; margin-top: 15px;">* Шифрование защищено алгоритмом Kyber/Dilithium</p>
     </div>
 
-    <!-- Основной интерфейс -->
     <div id="main-app">
-        <!-- ТАБ 1: DAO -->
-        <div id="p-wallet" class="page active">
+        <!-- DAO -->
+        <div id="p-dao" class="page active">
             <div class="card" style="border-color: var(--gold); margin-top: 30px;">
-                <div style="font-size: 10px; color: var(--gold); letter-spacing: 1px;">VOTING POWER (BALANCE)</div>
+                <div style="font-size: 10px; color: var(--gold); letter-spacing: 1px;">VOTING POWER</div>
                 <div style="font-size: 48px; font-weight: 800; margin: 10px 0; color: #fff;" id="b">0.0000</div>
                 <div style="font-size: 12px; color: var(--gold);" id="vp">0.000000%</div>
             </div>
 
             <div class="card" style="text-align: left; background: #0a0a0a;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span class="tag">Proposal #1</span>
-                    <span style="font-size: 10px; color: var(--neon);">STATUS: ACTIVE</span>
+                    <span class="tag">BIP-001</span>
+                    <span style="font-size: 10px; color: var(--neon);">SIGNED</span>
                 </div>
                 <h3 style="margin: 10px 0 5px; font-size: 16px;">Activate Stealth Proxy</h3>
                 <p style="font-size: 11px; color: #666; margin-bottom: 15px; line-height: 1.4;">
-                    Активация маскировки трафика под WebRTC для обхода блокировок. Требуется кворум 51% голосов от общей эмиссии.
+                    Переход на квантово-защищенную маскировку трафика. Требуется консенсус 51% голосов.
                 </p>
-                
-                <div class="progress-bar">
-                    <div id="vote-progress" class="progress-fill"></div>
-                </div>
+                <div class="progress-bar"><div id="v-progress" class="progress-fill"></div></div>
                 <div style="display: flex; justify-content: space-between; font-size: 10px; color: #444; margin-bottom: 15px;">
-                    <span id="vote-info">За: 42.15% (Target: 51%)</span>
-                    <span>Ends in: 2d 14h</span>
+                    <span id="v-info">За: 42.15%</span>
+                    <span>Блок: #842,911</span>
                 </div>
-
-                <button id="vote-btn" class="btn" onclick="castVote()">ПОДТВЕРДИТЬ ГОЛОСОВАНИЕ</button>
-                <p id="vote-hint" style="font-size: 9px; color: #333; margin-top: 10px; text-align: center;">
-                    *Ваш вес голоса равен текущему балансу монет.
-                </p>
+                <button id="v-btn" class="btn" onclick="vote()">ПОДПИСАТЬ ГОЛОС</button>
             </div>
         </div>
 
-        <!-- ТАБ 2: NODE -->
+        <!-- NODE -->
         <div id="p-node" class="page">
             <div class="card">
                 <div style="display:flex; justify-content: space-between; font-size: 10px; color: #444; margin-bottom: 15px;">
-                    <span>DECENTRALIZED RELAY</span>
+                    <span>POST-QUANTUM RELAY</span>
                     <span id="st">OFFLINE</span>
                 </div>
-                <div style="font-size: 11px; color: #666;">ДОБЫТО БЛОКОВ</div>
                 <h1 id="bl" style="font-size: 64px; margin: 10px 0; color: #fff;">0</h1>
-                <div class="terminal" id="log">> Консенсус ожидает запуска узла...</div>
-                <button class="btn" id="m-btn" onclick="toggleNode()">ЗАПУСТИТЬ МАЙНИНГ</button>
+                <div class="terminal" id="log">> Ожидание авторизации узла...</div>
+                <button class="btn" id="m-btn" onclick="mine()">START MINING</button>
             </div>
         </div>
 
         <nav class="nav">
-            <button class="nav-item active" id="btn-dao" onclick="tab('wallet', this)">💰 DAO</button>
-            <button class="nav-item" id="btn-node" onclick="tab('node', this)">⚡ NODE</button>
+            <button class="nav-item active" id="n-dao" onclick="sw('dao', this)">💰 DAO</button>
+            <button class="nav-item" id="n-node" onclick="sw('node', this)">⚡ NODE</button>
         </nav>
     </div>
 
     <script>
-        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-        let run = false, timer = null;
-        let s = { 
-            b: parseFloat(localStorage.getItem('f_b')) || 0, 
-            bl: parseInt(localStorage.getItem('f_bl')) || 0,
-            emission: 1000000 // Общая эмиссия для расчета %
-        };
+        const tg = window.Telegram?.WebApp;
+        let active = false, timer = null;
+        let s = { b: 0, bl: 0, key: '' };
 
-        const logs = ["Block verified by network...", "Traffic relayed via JP...", "Consensus reached (51%)...", "DPI bypass active...", "Stealth packet sent...", "P2P sync complete..."];
-
-        function startApp() {
-            if(document.getElementById('login').value.length < 2) return alert("Введите имя узла");
+        function login() {
+            s.key = document.getElementById('seed').value;
+            if(s.key.length < 4) return alert("Ключ слишком короткий");
+            
+            // Загружаем баланс конкретно для этого "аккаунта"
+            s.b = parseFloat(localStorage.getItem('b_'+s.key)) || 0;
+            s.bl = parseInt(localStorage.getItem('bl_'+s.key)) || 0;
+            
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'flex';
-            if(tg) { tg.ready(); tg.expand(); }
             upd();
         }
 
-        function toggleNode() {
-            const btn = document.getElementById('m-btn'), st = document.getElementById('st'), log = document.getElementById('log');
-            if(run) {
-                run = false; clearInterval(timer);
-                btn.innerText = "ЗАПУСТИТЬ МАЙНИНГ"; btn.classList.remove('btn-stop');
-                st.innerText = "OFFLINE"; st.style.color = "#444";
+        function mine() {
+            const btn = document.getElementById('m-btn'), log = document.getElementById('log');
+            if(active) {
+                active = false; clearInterval(timer);
+                btn.innerText = "START MINING"; btn.classList.remove('btn-stop');
             } else {
-                run = true;
-                btn.innerText = "ОСТАНОВИТЬ"; btn.classList.add('btn-stop');
-                st.innerText = "ACTIVE"; st.style.color = "var(--neon)";
+                active = true;
+                btn.innerText = "STOP NODE"; btn.classList.add('btn-stop');
                 timer = setInterval(() => {
-                    s.bl++; s.b += (0.005 / (1 + s.bl/2000)); // Дефляционная награда
-                    log.innerHTML = `> [${new Date().toLocaleTimeString()}] ${logs[Math.floor(Math.random()*logs.length)]}<br>` + log.innerHTML.slice(0, 500);
+                    s.bl++; s.b += (0.004 / (1 + s.bl/5000));
+                    log.innerHTML = `> [${new Date().toLocaleTimeString()}] Lattice-based block verified...<br>` + log.innerHTML.slice(0, 500);
                     upd();
-                    localStorage.setItem('f_b', s.b); localStorage.setItem('f_bl', s.bl);
+                    localStorage.setItem('b_'+s.key, s.b);
+                    localStorage.setItem('bl_'+s.key, s.bl);
                 }, 3000);
-                if(tg) tg.HapticFeedback.impactOccurred('medium');
             }
         }
 
-        function castVote() {
-            if (s.b <= 0) {
-                if(tg) tg.showAlert("Ошибка: У вас 0 монет. Майните монеты в разделе NODE, чтобы получить право голоса.");
-                else alert("Ошибка: У вас 0 монет.");
-                return;
-            }
-
-            let weight = (s.b / s.emission * 100).toFixed(6);
-            
-            if(confirm(`Вы вносите ${s.b.toFixed(4)} FN (Вес: ${weight}%) за Proposal #1. Подтвердить?`)) {
-                const btn = document.getElementById('vote-btn');
-                btn.innerText = "ГОЛОС УЧТЕН";
-                btn.disabled = true;
-                
-                let currentProgress = 42.15 + parseFloat(weight);
-                document.getElementById('vote-progress').style.width = currentProgress + "%";
-                document.getElementById('vote-info').innerText = `За: ${currentProgress.toFixed(2)}% (Target: 51%)`;
-                
-                if(tg) tg.HapticFeedback.notificationOccurred('success');
+        function vote() {
+            if(s.b <= 0) return alert("Нулевой баланс голоса");
+            let weight = (s.b / 10000).toFixed(6);
+            if(confirm(`Подписать транзакцию весом ${weight}%?`)) {
+                document.getElementById('v-btn').innerText = "ПОДПИСАТЬ ГОЛОС";
+                document.getElementById('v-btn').disabled = true;
+                let current = 42.15 + parseFloat(weight);
+                document.getElementById('v-progress').style.width = current + "%";
+                document.getElementById('v-info').innerText = `За: ${current.toFixed(2)}%`;
             }
         }
 
-        function tab(id, btn) {
+        function sw(id, btn) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('p-' + id).classList.add('active');
@@ -170,8 +147,7 @@
         function upd() {
             document.getElementById('b').innerText = s.b.toFixed(4);
             document.getElementById('bl').innerText = s.bl;
-            let vpValue = (s.b / s.emission * 100).toFixed(6);
-            document.getElementById('vp').innerText = vpValue + "%";
+            document.getElementById('vp').innerText = (s.b / 10000 * 100).toFixed(6) + "%";
         }
     </script>
 </body>
