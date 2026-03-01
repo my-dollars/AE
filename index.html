@@ -3,62 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Будущий кошелек</title>
+    <title>Future Wallet</title>
+    <!-- Подключаем Telegram SDK -->
     <script src="https://telegram.org"></script>
     <style>
-        :root { --accent: #007aff; --bg: #000000; --card: #1c1c1e; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        :root { --accent: #007aff; --bg: #000000; --card: #1c1c1e; --text: #ffffff; }
         
-        .page { display: none; padding: 20px; flex: 1; overflow-y: auto; text-align: center; }
-        .active { display: flex; flex-direction: column; justify-content: center; }
-        
-        .card { background: var(--card); padding: 25px; border-radius: 20px; margin-bottom: 20px; }
-        input { background: #2c2c2e; border: none; color: white; padding: 15px; width: 100%; box-sizing: border-box; border-radius: 12px; margin-bottom: 10px; font-size: 16px; }
-        
-        .btn-main { background: var(--accent); color: white; border: none; padding: 18px; border-radius: 15px; font-weight: bold; width: 100%; cursor: pointer; font-size: 16px; }
-        
-        /* Нижнее меню */
-        .nav-bar { display: none; background: #121212; border-top: 0.5px solid #333; padding: 10px 0; position: fixed; bottom: 0; width: 100%; justify-content: space-around; }
-        .nav-item { color: #888; text-decoration: none; font-size: 12px; cursor: pointer; border: none; background: none; }
-        .nav-item.active-nav { color: var(--accent); }
+        body { 
+            background: var(--bg); color: var(--text); 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; padding: 0; height: 100vh; overflow: hidden; 
+        }
+
+        /* Страницы */
+        .page { display: none; padding: 20px; height: calc(100vh - 70px); overflow-y: auto; box-sizing: border-box; }
+        .active-page { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* Элементы интерфейса */
+        .card { background: var(--card); padding: 25px; border-radius: 20px; width: 100%; box-sizing: border-box; margin-bottom: 20px; text-align: center; }
+        input { 
+            background: #2c2c2e; border: 1px solid #444; color: white; 
+            padding: 15px; width: 100%; box-sizing: border-box; 
+            border-radius: 12px; margin-bottom: 12px; font-size: 16px; outline: none;
+        }
+        input:focus { border-color: var(--accent); }
+
+        .btn-blue { 
+            background: var(--accent); color: white; border: none; 
+            padding: 18px; border-radius: 15px; font-weight: bold; 
+            width: 100%; cursor: pointer; font-size: 16px; transition: 0.2s;
+        }
+        .btn-blue:active { opacity: 0.8; transform: scale(0.98); }
+
+        /* Навигация снизу */
+        .nav-bar { 
+            display: none; position: fixed; bottom: 0; width: 100%; 
+            background: #121212; border-top: 0.5px solid #333; 
+            padding: 12px 0; justify-content: space-around; z-index: 100;
+        }
+        .nav-item { 
+            background: none; border: none; color: #888; 
+            font-size: 12px; cursor: pointer; display: flex; 
+            flex-direction: column; align-items: center; gap: 4px;
+        }
+        .nav-item.active-tab { color: var(--accent); font-weight: bold; }
+
+        /* Анимация пульсации при майнинге */
+        .mining-anim { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ВХОДА -->
-    <div id="auth-screen" class="page active">
+    <!-- ЭКРАН ВХОДА (ID: page-auth) -->
+    <div id="page-auth" class="page active-page">
         <h1 style="font-size: 60px; margin: 0;">🏦</h1>
         <h2 style="margin-bottom: 30px;">Будущий кошелек</h2>
-        <input type="text" id="node-login" placeholder="Логин">
-        <input type="password" id="node-pass" placeholder="Пароль">
-        <button class="btn-main" onclick="handleAuth()">Войти в Кошелек</button>
+        <input type="text" id="login-input" placeholder="Логин">
+        <input type="password" id="pass-input" placeholder="Пароль">
+        <button class="btn-blue" onclick="handleAuth()">Войти в Кошелек</button>
     </div>
 
-    <!-- ЭКРАН КОШЕЛЬКА -->
+    <!-- ЭКРАН КОШЕЛЬКА (ID: page-wallet) -->
     <div id="page-wallet" class="page">
-        <div class="card" style="background: linear-gradient(135deg, #007aff, #00c6ff);">
-            <div style="font-size: 14px; opacity: 0.8;">Баланс</div>
-            <div style="font-size: 42px; font-weight: bold;" id="bal">0.00</div>
-            <div id="addr-display" style="font-size: 10px; margin-top: 10px; opacity: 0.6;">...</div>
+        <div class="card" style="background: linear-gradient(135deg, #007aff, #00c6ff); color: white;">
+            <div style="font-size: 14px; opacity: 0.9;">Баланс</div>
+            <div style="font-size: 42px; font-weight: bold;" id="display-balance">0.00</div>
+            <div id="display-addr" style="font-size: 10px; margin-top: 10px; opacity: 0.7;">ID: ...</div>
         </div>
-        <button class="btn-main" style="background: #2c2c2e;">📤 Отправить</button>
+        <button class="btn-blue" style="background: #2c2c2e;" onclick="tg.showAlert('Переводы временно недоступны')">📤 Отправить</button>
     </div>
 
-    <!-- ЭКРАН МАЙНИНГА (МОЙ ВИД) -->
+    <!-- ЭКРАН МАЙНИНГА (ID: page-mine) -->
     <div id="page-mine" class="page">
         <h2>Мой вид (Майнинг)</h2>
         <div class="card">
-            <h3 id="mine-blocks">Блоки: 0</h3>
-            <button class="btn-main" id="mineBtn" onclick="toggleMining()">ЗАПУСТИТЬ</button>
+            <h3 id="display-blocks">Блоки: 0</h3>
+            <p id="mine-status" style="color: #888;">Статус: Остановлен</p>
+            <button class="btn-blue" id="mine-btn" onclick="toggleMining()">ЗАПУСТИТЬ МАЙНИНГ</button>
         </div>
     </div>
 
-    <!-- НИЖНЕЕ МЕНЮ -->
-    <nav class="nav-bar" id="main-nav">
-        <button class="nav-item active-nav" onclick="showTab('wallet', this)">💰 Кошелек</button>
-        <button class="nav-item" onclick="showTab('mine', this)">⛏️ Мой вид</button>
+    <!-- НИЖНЯЯ ПАНЕЛЬ -->
+    <nav class="nav-bar" id="bottom-nav">
+        <button class="nav-item active-tab" onclick="switchTab('wallet', this)">
+            <span style="font-size: 20px;">💰</span> Кошелек
+        </button>
+        <button class="nav-item" onclick="switchTab('mine', this)">
+            <span style="font-size: 20px;">⛏️</span> Мой вид
+        </button>
     </nav>
 
-    <script src="script.js"></script>
+    <script>
+        // Инициализация Telegram
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Состояние приложения
+        let state = {
+            login: localStorage.getItem('wallet_login') || "",
+            pass: localStorage.getItem('wallet_pass') || "",
+            balance: parseFloat(localStorage.getItem('wallet_bal')) || 0,
+            blocks: parseInt(localStorage.getItem('wallet_blocks')) || 0,
+            isMining: false
+        };
+
+        // 1. Функция Авторизации
+        function handleAuth() {
+            const l = document.getElementById('login-input').value;
+            const p = document.getElementById('pass-input').value;
+
+            if (l.length < 2 || p.length < 2) {
+                tg.showAlert("Введите корректный логин и пароль!");
+                return;
+            }
+
+            // Если заходим первый раз — сохраняем данные
+            if (!state.login) {
+                localStorage.setItem('wallet_login', l);
+                localStorage.setItem('wallet_pass', p);
+                state.login = l;
+                state.pass = p;
+            } else if (l !== state.login || p !== state.pass) {
+                tg.showAlert("Неверный логин или пароль!");
+                return;
+            }
+
+            // Переход на главную
+            document.getElementById('page-auth').classList.remove('active-page');
+            document.getElementById('page-wallet').classList.add('active-page');
+            document.getElementById('bottom-nav').style.display = 'flex';
+            
+            // Генерация визуального ID
+            document.getElementById('display-addr').innerText = "NODE-ID: " + btoa(state.login).substring(0, 12).toUpperCase();
+            
+            updateUI();
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        // 2. Переключение вкладок
+        function switchTab(tabId, btn) {
+            // Прячем все страницы
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            // Показываем нужную
+            document.getElementById('page-' + tabId).classList.add('active-page');
+            
+            // Снимаем активность с кнопок
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-tab'));
+            btn.classList.add('active-tab');
+            
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // 3. Обновление цифр на экране
+        function updateUI() {
+            document.getElementById('display-balance').innerText = state.balance.toFixed(2) + " NODE";
+            document.getElementById('display-blocks').innerText = "Блоки: " + state.blocks;
+        }
+
+        // 4. Логика Майнинга
+        function toggleMining() {
+            const btn = document.getElementById('mine-btn');
+            const statusText = document.getElementById('mine-status');
+            
+            state.isMining = !state.isMining;
+
+            if (state.isMining) {
+                btn.innerText = "ОСТАНОВИТЬ";
+                btn.style.background = "#ff3b30";
+                statusText.innerText = "Статус: В ПРОЦЕССЕ...";
+                statusText.classList.add('mining-anim');
+                
+                // Простая имитация блокчейн-цикла (каждые 3 сек +блок)
+                window.miningInterval = setInterval(() => {
+                    state.balance += 0.5;
+                    state.blocks += 1;
+                    localStorage.setItem('wallet_bal', state.balance);
+                    localStorage.setItem('wallet_blocks', state.blocks);
+                    updateUI();
+                    tg.HapticFeedback.impactOccurred('light');
+                }, 3000);
+                
+                tg.HapticFeedback.notificationOccurred('success');
+            } else {
+                btn.innerText = "ЗАПУСТИТЬ МАЙНИНГ";
+                btn.style.background = "#007aff";
+                statusText.innerText = "Статус: Остановлен";
+                statusText.classList.remove('mining-anim');
+                clearInterval(window.miningInterval);
+            }
+        }
+
+        // Первоначальное обновление при входе
+        if (state.login) {
+            document.getElementById('login-input').value = state.login;
+        }
+        updateUI();
+    </script>
 </body>
 </html>
