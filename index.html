@@ -3,163 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // Node v2.1</title>
+    <title>AXON // Quantum-Safe Node</title>
     <style>
-        :root {
-            --bg: #000000;
-            --card: #121212;
-            --accent: #00ff41;
-            --text: #ffffff;
-            --dim: #888888;
-            --border: #222222;
-        }
-
+        :root { --bg: #000; --card: #111; --accent: #00ff41; --text: #fff; --dim: #666; --border: #222; }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        body { 
-            background: var(--bg); 
-            color: var(--text); 
-            font-family: -apple-system, system-ui, sans-serif; 
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        /* New Entropy Auth Screen */
+        #auth-gate { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
+        #entropy-canvas { border: 1px solid var(--accent); border-radius: 50%; width: 150px; height: 150px; margin: 20px 0; cursor: crosshair; position: relative; overflow: hidden; }
+        #entropy-progress { position: absolute; bottom: 0; left: 0; width: 0%; height: 4px; background: var(--accent); transition: 0.1s; }
+        
+        .header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); }
+        .bal-val { font-size: 40px; font-weight: 800; margin: 5px 0; color: var(--text); }
+        .addr-box { font-family: monospace; font-size: 10px; color: var(--accent); background: #080808; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display: inline-block; }
 
-        /* Auth Overlay */
-        #auth {
-            position: fixed; inset: 0; background: var(--bg); z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
-        }
+        .tabs { display: flex; gap: 10px; padding: 15px 20px; overflow-x: auto; scrollbar-width: none; }
+        .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--dim); padding: 12px 22px; border-radius: 14px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+        .tab-btn.active { background: var(--text); color: #000; }
 
-        /* Header Area */
-        header { padding: 40px 20px 20px; border-bottom: 1px solid var(--border); }
-        .bal-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
-        .bal-main { font-size: 38px; font-weight: 800; margin: 5px 0; display: flex; align-items: baseline; gap: 8px; }
-        .addr-tag { font-family: monospace; font-size: 11px; color: var(--dim); background: #111; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); }
-
-        /* Navigation Scrollable */
-        .tabs { 
-            display: flex; gap: 10px; padding: 15px 20px; 
-            overflow-x: auto; scrollbar-width: none; 
-            -ms-overflow-style: none;
-        }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tab-btn { 
-            background: var(--card); border: 1px solid var(--border); color: var(--dim);
-            padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
-            white-space: nowrap; transition: 0.2s;
-        }
-        .tab-btn.active { background: var(--text); color: #000; border-color: var(--text); }
-
-        /* Content Scroll Area */
         .content { flex: 1; overflow-y: auto; padding: 10px 20px 100px; }
-        .page { display: none; animation: fadeIn 0.2s ease-out; }
+        .page { display: none; }
         .page.active { display: block; }
 
-        /* Cards & UI */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        .card { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 18px; }
-        .card-label { font-size: 10px; color: var(--dim); text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
-        .card-val { font-size: 20px; font-weight: 700; color: var(--text); }
-
-        .log-box { 
-            background: #080808; border: 1px solid var(--border); border-radius: 18px; 
-            padding: 15px; font-family: 'Courier New', monospace; font-size: 11px; 
-            color: var(--accent); min-height: 120px; line-height: 1.6;
-        }
-
-        .input { 
-            width: 100%; background: var(--card); border: 1px solid var(--border); 
-            color: #fff; padding: 16px; border-radius: 14px; margin-bottom: 15px; outline: none;
-        }
-
-        .btn { 
-            width: 100%; background: var(--accent); color: #000; padding: 16px; 
-            border-radius: 14px; border: none; font-weight: 700; font-size: 15px;
-        }
-        .btn:active { transform: scale(0.98); opacity: 0.8; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 20px; margin-bottom: 15px; }
+        .log { background: #050505; border: 1px solid var(--border); border-radius: 15px; padding: 15px; font-family: monospace; font-size: 10px; color: var(--accent); height: 180px; overflow-y: auto; line-height: 1.6; }
+        
+        .btn { width: 100%; background: var(--accent); color: #000; padding: 18px; border-radius: 16px; border: none; font-weight: 800; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        .btn:active { transform: scale(0.96); opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <div id="auth">
-        <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 10px;">AXON</h1>
-        <input type="password" id="seed" class="input" placeholder="Введите ваш ключ" style="text-align:center">
-        <button class="btn" onclick="Core.auth()">Инициализировать</button>
+    <div id="auth-gate">
+        <h2 style="letter-spacing: 2px;">AXON GENESIS</h2>
+        <p style="font-size: 12px; color: var(--dim); margin-top: 10px;">Двигайте пальцем по кругу для сбора энтропии</p>
+        
+        <div id="entropy-canvas">
+            <canvas id="e-draw" width="150" height="150"></canvas>
+            <div id="entropy-progress"></div>
+        </div>
+
+        <div id="key-preview" style="font-family: monospace; font-size: 10px; color: var(--dim); word-break: break-all; margin-top: 10px;">GENERATE_HASH_...</div>
+        <button id="init-btn" class="btn" style="margin-top: 30px; display: none;" onclick="Core.finalizeAuth()">Создать уникальный ключ</button>
     </div>
 
-    <header>
-        <div class="bal-label">Общий баланс</div>
-        <div class="bal-main"><span id="total-bal">150.00</span><span style="color:#444; font-size:18px">AXN</span></div>
-        <div class="addr-tag" id="my-addr">AX-MTU1MG==</div>
+    <header class="header">
+        <div style="font-size: 10px; color: var(--dim); text-transform: uppercase;">Node Balance</div>
+        <div class="bal-val"><span id="total-bal">150.00</span> <small style="font-size: 16px; color: var(--dim);">AXN</small></div>
+        <div class="addr-box" id="node-addr">AX-QUANTUM-SHIELD</div>
     </header>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="UI.tab(this, 'p-main')">Обзор</button>
-        <button class="tab-btn" onclick="UI.tab(this, 'p-tx')">Перевод</button>
         <button class="tab-btn" onclick="UI.tab(this, 'p-mine')">Майнинг</button>
         <button class="tab-btn" onclick="UI.tab(this, 'p-dao')">Управление</button>
     </div>
 
     <div class="content">
-        <!-- Page: Main -->
         <div id="p-main" class="page active">
-            <div class="grid">
-                <div class="card"><div class="card-label">Staked</div><div class="card-val">0.00</div></div>
-                <div class="card"><div class="card-label">Nodes</div><div class="card-val">12</div></div>
-            </div>
-            <div class="card-label" style="margin-left:5px">Live Protocol Stream</div>
-            <div id="log" class="log-box">
-                <span style="opacity:0.5">> AXON PROTOCOL INITIALIZED. P2P MESH READY.</span><br>
-                Ожидание запуска ноды...
-            </div>
+            <div id="log" class="log">> Ожидание инициализации...</div>
         </div>
 
-        <!-- Page: Transfer -->
-        <div id="p-tx" class="page">
-            <div class="card-label">Получатель</div>
-            <input type="text" class="input" placeholder="AX-XXXX-XXXX">
-            <div class="card-label">Сумма</div>
-            <input type="number" class="input" placeholder="0.00">
-            <button class="btn">Отправить AXN</button>
-        </div>
-
-        <!-- Page: Mining (Placeholder) -->
         <div id="p-mine" class="page">
-            <div class="card" style="text-align:center; padding: 40px 20px;">
-                <div class="card-label">Текущая доходность</div>
-                <div class="card-val" style="font-size:32px; color:var(--accent); margin: 10px 0;">+0.0042 AXN</div>
-                <button class="btn" onclick="Core.log('Майнинг запущен...')">Старт Ноды</button>
+            <div class="card" style="text-align: center;">
+                <div style="font-size: 12px; color: var(--dim);">Mining Yield</div>
+                <div id="yield" style="font-size: 32px; font-weight: 800; margin: 15px 0;">0.0000</div>
+                <button class="btn" id="mine-btn" onclick="Core.toggleMining()">Активировать узел</button>
             </div>
         </div>
 
-        <!-- Page: DAO (Placeholder) -->
         <div id="p-dao" class="page">
-            <div class="card-label">Активное предложение</div>
             <div class="card">
-                <div style="font-weight:700; margin-bottom:10px">BIP-44: Снижение эмиссии</div>
-                <div style="height:6px; background:#222; border-radius:3px; margin: 15px 0;">
-                    <div style="width:35%; height:100%; background:var(--accent); border-radius:3px"></div>
+                <h3>BIP-51: Пост-квантовая защита</h3>
+                <div style="height: 4px; background: #222; margin: 20px 0; border-radius: 2px;">
+                    <div id="vote-bar" style="width: 42%; height: 100%; background: var(--accent);"></div>
                 </div>
-                <button class="btn" style="background:#fff; color:#000">Голосовать</button>
+                <button class="btn" style="background: #fff; color: #000;" onclick="Core.vote()">Поддержать (10 AXN)</button>
             </div>
         </div>
     </div>
 
     <script>
         const Core = {
-            auth() {
-                const s = document.getElementById('seed').value;
-                if(s.length < 3) return;
-                document.getElementById('auth').style.display = 'none';
-                this.log("Node status: <span style='color:#fff'>Active</span>");
+            bal: 150.00,
+            active: false,
+            entropy: [],
+            hash: '',
+
+            collectEntropy(e) {
+                if (this.entropy.length >= 200) return;
+                const touch = e.touches ? e.touches[0] : e;
+                this.entropy.push(`${touch.clientX}${touch.clientY}${Date.now()}`);
+                
+                const progress = (this.entropy.length / 200) * 100;
+                document.getElementById('entropy-progress').style.width = progress + '%';
+                
+                if (this.entropy.length === 200) {
+                    document.getElementById('init-btn').style.display = 'block';
+                    document.getElementById('key-preview').innerText = "ENTROPY_READY_HASH_LOCKED";
+                }
             },
-            log(msg) {
+
+            async finalizeAuth() {
+                // Создание "неподбираемого" ключа через SHA-256 (имитация)
+                const rawString = this.entropy.join('-');
+                const msgBuffer = new TextEncoder().encode(rawString);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                this.hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+                document.getElementById('auth-gate').style.display = 'none';
+                document.getElementById('node-addr').innerText = 'AX-' + this.hash.substring(0, 14).toUpperCase();
+                this.log("Node Initialized with Quantum-Safe Key.");
+                this.log("Auth Status: <span style='color:#fff'>DETERMINISTIC_LOCK_ON</span>");
+            },
+
+            log(m) {
                 const l = document.getElementById('log');
-                l.innerHTML = `> ${msg}<br>` + l.innerHTML;
+                l.innerHTML = `[${new Date().toLocaleTimeString()}] > ${m}<br>` + l.innerHTML;
+            },
+
+            toggleMining() {
+                this.active = !this.active;
+                const btn = document.getElementById('mine-btn');
+                btn.innerText = this.active ? "Остановить" : "Запустить";
+                btn.style.background = this.active ? "#ff4141" : "var(--accent)";
+                if (this.active) this.mine();
+            },
+
+            mine() {
+                if (!this.active) return;
+                const reward = 0.0055;
+                this.bal += reward;
+                document.getElementById('total-bal').innerText = this.bal.toFixed(4);
+                document.getElementById('yield').innerText = reward.toFixed(4);
+                this.log(`Packet Relayed. Reward: +${reward} AXN`);
+                UI.haptic(30);
+                setTimeout(() => this.mine(), 3000);
+            },
+
+            vote() {
+                if(this.bal < 10) return;
+                this.bal -= 10;
+                document.getElementById('total-bal').innerText = this.bal.toFixed(4);
+                document.getElementById('vote-bar').style.width = '55%';
+                this.log("Governance vote signed & broadcasted.");
+                UI.haptic(100);
             }
         };
 
@@ -169,9 +159,14 @@
                 document.getElementById(id).classList.add('active');
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                if(window.navigator.vibrate) window.navigator.vibrate(5);
-            }
+                this.haptic(5);
+            },
+            haptic(ms) { if(window.navigator.vibrate) window.navigator.vibrate(ms); }
         };
+
+        const canvas = document.getElementById('e-draw');
+        canvas.addEventListener('mousemove', (e) => Core.collectEntropy(e));
+        canvas.addEventListener('touchmove', (e) => Core.collectEntropy(e));
     </script>
 </body>
 </html>
