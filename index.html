@@ -5,65 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AURA | SYSTEM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com" rel="stylesheet">
     <script src="https://www.gstatic.com"></script>
     <script src="https://www.gstatic.com"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background: #050505; color: #d4af37; margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        input { background: transparent; border-bottom: 1px solid #222; text-align: center; text-transform: uppercase; letter-spacing: 0.2em; font-size: 9px; padding: 8px; color: white; transition: 0.4s; outline: none; }
+        body { background: #050505; color: #d4af37; font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+        input { background: transparent; border-bottom: 1px solid #222; text-align: center; color: white; outline: none; text-transform: uppercase; font-size: 10px; letter-spacing: 2px; transition: 0.3s; }
         input:focus { border-color: #d4af37; }
-        
-        /* Боковые настройки */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 25px 40px; position: fixed; top: 0; width: 100%; z-index: 50; }
-        
-        /* Мигающий индикатор */
-        .indicator { width: 6px; height: 6px; border-radius: 50%; background: #222; transition: 0.5s; position: relative; }
+        .indicator { width: 8px; height: 8px; border-radius: 50%; background: #1a1a1a; transition: 0.5s; margin: 0 20px; }
         .online { background: #00ff88; box-shadow: 0 0 15px #00ff88; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-
-        /* Центр - Чат */
-        .chat-wrap { flex: 1; display: flex; flex-direction: column; max-width: 700px; width: 90%; margin: 100px auto 30px auto; }
-        #messages { flex: 1; overflow-y: auto; padding-right: 15px; display: flex; flex-direction: column; gap: 20px; }
-        .msg { font-size: 13px; border-left: 1px solid rgba(212,175,55,0.1); padding-left: 15px; }
-        .msg-user { font-size: 7px; text-transform: uppercase; opacity: 0.3; margin-bottom: 4px; tracking: 0.2em; }
-
-        /* Поле ввода внизу */
-        .input-area { background: #0a0a0a; border: 1px solid #151515; border-radius: 100px; padding: 10px 30px; display: flex; align-items: center; gap: 20px; margin-top: 20px; }
-        #msg-input { flex: 1; border: none; text-align: left; font-size: 11px; }
-        .send-btn { font-size: 9px; font-weight: bold; letter-spacing: 0.3em; cursor: pointer; opacity: 0.5; transition: 0.3s; }
-        .send-btn:hover { opacity: 1; color: #00ff88; }
-        
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        #messages { flex: 1; overflow-y: auto; padding: 120px 30px 30px; display: flex; flex-direction: column; gap: 25px; scroll-behavior: smooth; }
+        .msg { border-left: 1px solid rgba(212, 175, 55, 0.2); padding-left: 20px; font-size: 14px; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-info { display: flex; justify-content: space-between; width: 100%; opacity: 0.2; font-size: 8px; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
         ::-webkit-scrollbar { width: 1px; }
         ::-webkit-scrollbar-thumb { background: #d4af37; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <input type="text" id="username" placeholder="USER" style="width: 100px;">
-        <div id="status" class="indicator"></div>
-        <input type="text" id="room-id" placeholder="ROOM" style="width: 100px;">
+    <!-- Верхняя панель управления -->
+    <div class="fixed top-0 w-full flex justify-center items-center p-8 bg-gradient-to-b from-[#050505] to-transparent z-50">
+        <input type="text" id="user-input" placeholder="USER" value="ADMIN" class="w-24">
+        <div id="status-dot" class="indicator"></div>
+        <input type="text" id="room-input" placeholder="ROOM" value="LOBBY" class="w-24">
     </div>
 
-    <div class="chat-wrap">
-        <div id="messages">
-            <div style="text-align: center; opacity: 0.1; font-size: 8px; letter-spacing: 0.5em; margin-top: 40vh;">AURA INITIALIZED</div>
-        </div>
-        
-        <div class="input-area">
-            <input type="text" id="msg-input" placeholder="TYPE MESSAGE...">
-            <div id="action-btn" onclick="handleAction()" class="send-btn">JOIN</div>
-        </div>
+    <!-- Область сообщений -->
+    <div id="messages">
+        <div style="text-align: center; opacity: 0.1; font-size: 9px; letter-spacing: 5px; margin-top: 30vh;">AURA INITIALIZED</div>
+    </div>
+
+    <!-- Нижняя панель ввода -->
+    <div class="p-8 bg-[#050505] border-t border-[#111] flex gap-6 items-center">
+        <input type="text" id="msg-input" placeholder="TYPE VIBRATION..." class="flex-1 text-left uppercase py-2">
+        <button onclick="handleAction()" id="action-btn" class="text-[10px] font-bold tracking-[4px] hover:text-white transition-colors">JOIN</button>
     </div>
 
     <script>
+        // Твоя конфигурация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyANJZ1s5s_GtWs3mIjaO5EjjviII_6WVnk",
-            authDomain: "aurachat-f9d4f.firebaseapp.com",
             databaseURL: "https://aurachat-f9d4f-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "aurachat-f9d4f",
-            storageBucket: "aurachat-f9d4f.firebasestorage.app",
-            messagingSenderId: "532846952097",
             appId: "1:532846952097:web:cffa6ee762a1bd347dfae0"
         };
 
@@ -73,37 +57,49 @@
         let roomRef = null;
 
         function handleAction() {
-            const user = document.getElementById('username').value.trim();
-            const room = document.getElementById('room-id').value.trim();
+            const user = document.getElementById('user-input').value.trim();
+            const room = document.getElementById('room-input').value.trim();
+            const msgInput = document.getElementById('msg-input');
+            const btn = document.getElementById('action-btn');
 
             if (!user || !room) return;
 
             if (!isConnected) {
-                // ПЕРВЫЙ КЛИК: ВХОД В КОМНАТУ
+                // ПЕРВЫЙ КЛИК: ПОДКЛЮЧЕНИЕ
                 isConnected = true;
-                document.getElementById('status').classList.add('online');
-                document.getElementById('action-btn').innerText = "SEND";
-                document.getElementById('messages').innerHTML = ""; // Очистка при входе
+                document.getElementById('status-dot').classList.add('online');
+                btn.innerText = "SEND";
+                document.getElementById('messages').innerHTML = ""; 
                 
                 roomRef = db.ref('rooms/' + room);
                 roomRef.on('child_added', (snapshot) => {
                     const data = snapshot.val();
+                    const time = data.timestamp || "";
                     const div = document.createElement('div');
                     div.className = 'msg';
-                    div.innerHTML = `<div class="msg-user">${data.user}</div><div>${data.text}</div>`;
+                    div.innerHTML = `
+                        <div class="msg-info">
+                            <span>${data.user}</span>
+                            <span>${time}</span>
+                        </div>
+                        <div style="color: #eee; font-weight: 200;">${data.text}</div>
+                    `;
                     document.getElementById('messages').appendChild(div);
                     document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
                 });
-            } else {
-                // ПОСЛЕДУЮЩИЕ КЛИКИ: ОТПРАВКА
-                const input = document.getElementById('msg-input');
-                if (!input.value.trim()) return;
-                roomRef.push({ user: user, text: input.value });
-                input.value = '';
+            } else if (msgInput.value.trim()) {
+                // ПОСЛЕДУЮЩИЕ КЛИКИ: ОТПРАВКА С ДАТОЙ
+                const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                roomRef.push({ 
+                    user: user, 
+                    text: msgInput.value,
+                    timestamp: now // Интегрированная дата
+                });
+                msgInput.value = '';
             }
         }
 
-        // Отправка по Enter
+        // Отправка по нажатию Enter
         document.getElementById('msg-input').addEventListener("keypress", (e) => {
             if (e.key === "Enter") handleAction();
         });
