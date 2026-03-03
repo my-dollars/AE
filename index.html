@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AURA | SYSTEM</title>
+    <title>AURA</title>
+    <!-- Подключаем библиотеку Socket.io -->
     <script src="https://cdn.socket.io"></script>
     <style>
         body { background: #000; color: #d4af37; font-family: sans-serif; margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
@@ -20,7 +21,7 @@
 <body>
     <div id="toast"></div>
     <div class="top">
-        <input type="text" id="u" placeholder="ИМЯ" value="USER" style="width: 80px;">
+        <input type="text" id="u" placeholder="NAME" value="USER" style="width: 80px;">
         <span id="st" style="font-size: 9px; letter-spacing: 2px;">ОФЛАЙН</span>
         <input type="text" id="k" placeholder="КЛЮЧ" style="width: 80px;">
     </div>
@@ -36,7 +37,7 @@
         </div>
     </div>
     <script>
-        let socket, curKey;
+        let socket, curKey, connected = false;
         const URL = "https://ae-production.up.railway.app"; 
 
         function notify(t) {
@@ -59,8 +60,14 @@
         }
 
         function connect(key) {
-            socket = io(URL);
+            if (connected) return;
+            notify("ПОДКЛЮЧЕНИЕ...");
+            
+            // Инициализация соединения без блокировки интерфейса
+            socket = io(URL, { timeout: 10000 });
+
             socket.on("connect", () => {
+                connected = true;
                 curKey = key;
                 document.getElementById('st').innerText = "ОНЛАЙН";
                 document.getElementById('st').className = "on";
@@ -78,12 +85,14 @@
                 document.getElementById('msgs').scrollTop = 99999;
             });
 
-            socket.on("connect_error", () => notify("СЕРВЕР ПРОСЫПАЕТСЯ..."));
+            socket.on("connect_error", () => {
+                notify("СЕРВЕР ПРОСЫПАЕТСЯ...");
+            });
         }
 
         function send() {
             const m = document.getElementById('mi').value;
-            if(!m) return;
+            if(!m || !socket) return;
             socket.emit("message", { user: document.getElementById('u').value, room: curKey, msg: m });
             document.getElementById('mi').value = '';
         }
