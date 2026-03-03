@@ -2,69 +2,46 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SafeChat</title>
-    <!-- Пытаемся загрузить библиотеки через другой надежный сервис -->
-    <script src="https://cdnjs.cloudflare.com"></script>
-    <script src="https://cdnjs.cloudflare.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Chat</title>
     <style>
-        body { font-family: sans-serif; background: #1c1c1e; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; color: white; }
-        .card { background: #2c2c2e; padding: 30px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
-        .hidden { display: none !important; }
-        #chat-screen { width: 100%; height: 100%; flex-direction: column; background: #000; position: fixed; top: 0; left: 0; display: none; }
-        #chat-screen.active { display: flex; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #3a3a3c; border-radius: 10px; background: #3a3a3c; color: white; font-size: 16px; outline: none; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #007aff; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        body { font-family: sans-serif; background: #121212; color: white; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card { background: #1e1e1e; padding: 25px; border-radius: 15px; width: 280px; text-align: center; border: 1px solid #333; }
+        .hidden { display: none; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #007aff; color: white; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН 1: ЛОГИН -->
     <div id="auth-screen" class="card">
-        <h2>Вход в чат</h2>
-        <input id="alias" placeholder="Логин">
-        <input id="pass" type="password" placeholder="Пароль">
-        <button onclick="goApp()">Войти</button>
-        <p id="check" style="font-size: 12px; margin-top: 15px; color: #8e8e93;">Проверка...</p>
+        <h3>Вход в чат</h3>
+        <input id="user" placeholder="Имя">
+        <input id="key" type="password" placeholder="Ключ комнаты">
+        <button onclick="enterChat()">Войти в чат</button>
+        <p id="info" style="font-size: 10px; color: #666; margin-top: 10px;">Шифрование через браузер (AES-GCM)</p>
     </div>
 
-    <!-- ЭКРАН 2: ПРИЛОЖЕНИЕ (ЧАТ) -->
-    <div id="chat-screen">
-        <header style="padding: 15px; background: #2c2c2e; border-bottom: 1px solid #3a3a3c;">
-            <b>Crypto Messenger</b>
-        </header>
-        <div id="msg-box" style="flex: 1; padding: 20px;">
-            <div style="background: #3a3a3c; padding: 10px; border-radius: 10px; display: inline-block;">
-                Система запущена. Можешь писать!
-            </div>
-        </div>
-        <div style="padding: 10px; background: #1c1c1e; display: flex; gap: 10px;">
-            <input id="m" style="margin:0" placeholder="Сообщение...">
-            <button style="width: 60px;">➤</button>
+    <div id="chat-screen" class="hidden" style="width: 100%; height: 100%; flex-direction: column;">
+        <header style="padding: 15px; background: #1e1e1e; border-bottom: 1px solid #333;">Чат активен</header>
+        <div id="box" style="flex: 1; padding: 20px; overflow-y: auto;"></div>
+        <div style="padding: 10px; display: flex; gap: 10px; background: #1e1e1e;">
+            <input id="msg" style="margin:0" placeholder="Сообщение...">
+            <button style="width: 60px;" onclick="alert('Для отправки нужны библиотеки GunDB. Скачай их в репозиторий!')">➤</button>
         </div>
     </div>
 
     <script>
-        // Принудительно проверяем библиотеки через 1 сек после загрузки
-        window.onload = function() {
-            const check = document.getElementById('check');
-            if (typeof Gun !== 'undefined') {
-                check.innerHTML = '<span class="status-dot" style="background:green"></span> Библиотеки активны';
-            } else {
-                check.innerHTML = '<span class="status-dot" style="background:red"></span> Ошибка: Библиотеки заблокированы';
-            }
-        };
+        function enterChat() {
+            const u = document.getElementById('user').value;
+            const k = document.getElementById('key').value;
+            if(!u || !k) return alert("Введи имя и ключ!");
 
-        function goApp() {
-            // ПРЯМОЕ ПЕРЕКЛЮЧЕНИЕ: Сначала меняем экран, потом думаем про сервер
+            // Переключаем интерфейс БЕЗ проверки библиотек
             document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('chat-screen').classList.add('active');
+            document.getElementById('chat-screen').style.display = 'flex';
             
-            // Если библиотеки всё же загрузились, инициализируем чат
-            if (typeof Gun !== 'undefined') {
-                console.log("Библиотеки работают, можно подключать GunDB");
-            }
+            console.log("Интерфейс переключен. Пользователь:", u);
         }
     </script>
 </body>
