@@ -1,108 +1,85 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA | SYSTEM</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>AURA</title>
+    <!-- Подключаем только самое необходимое -->
     <script src="https://www.gstatic.com"></script>
     <script src="https://www.gstatic.com"></script>
     <style>
-        body { background: #050505; color: #d4af37; font-family: 'Inter', sans-serif; margin: 0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
-        input { background: transparent; border-bottom: 1px solid #222; text-align: center; color: white; outline: none; text-transform: uppercase; font-size: 10px; letter-spacing: 2px; transition: 0.3s; }
-        input:focus { border-color: #d4af37; }
-        .indicator { width: 8px; height: 8px; border-radius: 50%; background: #1a1a1a; transition: 0.5s; margin: 0 20px; }
-        .online { background: #00ff88; box-shadow: 0 0 15px #00ff88; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-        #messages { flex: 1; overflow-y: auto; padding: 120px 30px 30px; display: flex; flex-direction: column; gap: 25px; scroll-behavior: smooth; }
-        .msg { border-left: 1px solid rgba(212, 175, 55, 0.2); padding-left: 20px; font-size: 14px; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .msg-info { display: flex; justify-content: space-between; width: 100%; opacity: 0.2; font-size: 8px; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px; }
-        ::-webkit-scrollbar { width: 1px; }
-        ::-webkit-scrollbar-thumb { background: #d4af37; }
+        body { background: #050505; color: #d4af37; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #top { display: flex; justify-content: space-between; padding: 20px; border-bottom: 1px solid #111; }
+        input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; padding: 5px; outline: none; font-size: 12px; text-transform: uppercase; }
+        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        #input-area { padding: 20px; border-top: 1px solid #111; display: flex; gap: 10px; }
+        .msg { border-left: 1px solid #d4af3750; padding-left: 10px; font-size: 14px; margin-bottom: 5px; }
+        .online { color: #00ff88; text-shadow: 0 0 5px #00ff88; animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
-    <!-- Верхняя панель управления -->
-    <div class="fixed top-0 w-full flex justify-center items-center p-8 bg-gradient-to-b from-[#050505] to-transparent z-50">
-        <input type="text" id="user-input" placeholder="USER" value="ADMIN" class="w-24">
-        <div id="status-dot" class="indicator"></div>
-        <input type="text" id="room-input" placeholder="ROOM" value="LOBBY" class="w-24">
+    <div id="top">
+        <input type="text" id="user" placeholder="NAME" value="USER" style="width: 80px;">
+        <span id="status">OFFLINE</span>
+        <input type="text" id="room" placeholder="ROOM" value="LOBBY" style="width: 80px;">
     </div>
 
-    <!-- Область сообщений -->
-    <div id="messages">
-        <div style="text-align: center; opacity: 0.1; font-size: 9px; letter-spacing: 5px; margin-top: 30vh;">AURA INITIALIZED</div>
-    </div>
+    <div id="chat"></div>
 
-    <!-- Нижняя панель ввода -->
-    <div class="p-8 bg-[#050505] border-t border-[#111] flex gap-6 items-center">
-        <input type="text" id="msg-input" placeholder="TYPE VIBRATION..." class="flex-1 text-left uppercase py-2">
-        <button onclick="handleAction()" id="action-btn" class="text-[10px] font-bold tracking-[4px] hover:text-white transition-colors">JOIN</button>
+    <div id="input-area">
+        <input type="text" id="m-in" placeholder="MESSAGE..." style="flex: 1; text-align: left;">
+        <button id="btn" onclick="start()" style="background: none; border: 1px solid #d4af37; color: #d4af37; padding: 5px 15px; cursor: pointer;">JOIN</button>
     </div>
 
     <script>
-        // Твоя конфигурация Firebase
-        const firebaseConfig = {
+        // Твои проверенные ключи
+        const config = {
             apiKey: "AIzaSyANJZ1s5s_GtWs3mIjaO5EjjviII_6WVnk",
             databaseURL: "https://aurachat-f9d4f-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "aurachat-f9d4f",
             appId: "1:532846952097:web:cffa6ee762a1bd347dfae0"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        // Инициализация
+        firebase.initializeApp(config);
         const db = firebase.database();
-        let isConnected = false;
-        let roomRef = null;
+        let connected = false;
+        let ref = null;
 
-        function handleAction() {
-            const user = document.getElementById('user-input').value.trim();
-            const room = document.getElementById('room-input').value.trim();
-            const msgInput = document.getElementById('msg-input');
-            const btn = document.getElementById('action-btn');
+        function start() {
+            const u = document.getElementById('user').value;
+            const r = document.getElementById('room').value;
+            const btn = document.getElementById('btn');
+            const msgIn = document.getElementById('m-in');
 
-            if (!user || !room) return;
-
-            if (!isConnected) {
-                // ПЕРВЫЙ КЛИК: ПОДКЛЮЧЕНИЕ
-                isConnected = true;
-                document.getElementById('status-dot').classList.add('online');
+            if (!connected) {
+                // ПОДКЛЮЧЕНИЕ
+                connected = true;
+                document.getElementById('status').innerText = "ONLINE";
+                document.getElementById('status').className = "online";
                 btn.innerText = "SEND";
-                document.getElementById('messages').innerHTML = ""; 
                 
-                roomRef = db.ref('rooms/' + room);
-                roomRef.on('child_added', (snapshot) => {
-                    const data = snapshot.val();
-                    const time = data.timestamp || "";
+                ref = db.ref('rooms/' + r);
+                
+                // Слушаем сервер
+                ref.on('child_added', (s) => {
+                    const d = s.val();
                     const div = document.createElement('div');
                     div.className = 'msg';
-                    div.innerHTML = `
-                        <div class="msg-info">
-                            <span>${data.user}</span>
-                            <span>${time}</span>
-                        </div>
-                        <div style="color: #eee; font-weight: 200;">${data.text}</div>
-                    `;
-                    document.getElementById('messages').appendChild(div);
-                    document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    div.innerHTML = `<small style="opacity:0.3; font-size:9px;">${d.u} • ${d.t}</small><br>${d.m}`;
+                    document.getElementById('chat').appendChild(div);
+                    document.getElementById('chat').scrollTop = 99999;
                 });
-            } else if (msgInput.value.trim()) {
-                // ПОСЛЕДУЮЩИЕ КЛИКИ: ОТПРАВКА С ДАТОЙ
+            } else {
+                // ОТПРАВКА
+                if (msgIn.value.trim() === "") return;
                 const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                roomRef.push({ 
-                    user: user, 
-                    text: msgInput.value,
-                    timestamp: now // Интегрированная дата
-                });
-                msgInput.value = '';
+                ref.push({ u: u, m: msgIn.value, t: now });
+                msgIn.value = "";
             }
         }
-
-        // Отправка по нажатию Enter
-        document.getElementById('msg-input').addEventListener("keypress", (e) => {
-            if (e.key === "Enter") handleAction();
-        });
     </script>
 </body>
 </html>
