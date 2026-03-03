@@ -3,83 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔐 Crypto Messenger</title>
+    <title>🔗 P2P Crypto Chat</title>
+    <!-- Библиотеки: Gun (децентрализация) и CryptoJS (шифрование) -->
+    <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdnjs.cloudflare.com"></script>
-    <script src="https://js.pusher.com"></script>
     <style>
         body { font-family: sans-serif; background: #0b0d0f; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #1e252b; padding: 12px; border-radius: 12px; align-self: flex-start; max-width: 85%; border-left: 4px solid #00ff88; }
+        .msg { background: #1e252b; padding: 12px; border-radius: 12px; align-self: flex-start; max-width: 85%; border-left: 4px solid #00d4ff; }
         .controls { padding: 15px; background: #161b22; border-top: 1px solid #30363d; display: flex; flex-direction: column; gap: 8px; }
         input { padding: 14px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; outline: none; font-size: 16px; }
-        button { padding: 14px; background: #00ff88; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button { padding: 14px; background: #00d4ff; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="chat">
-    <div class="msg">Система: Введите общий пароль с другом и начните чат.</div>
-</div>
+<div id="chat"></div>
 
 <div class="controls">
     <input type="password" id="pass" placeholder="Общий секретный пароль">
-    <input type="text" id="text" placeholder="Введите сообщение..." autocomplete="off">
-    <button onclick="sendMsg()">ОТПРАВИТЬ</button>
+    <input type="text" id="text" placeholder="Сообщение..." autocomplete="off">
+    <button id="sendBtn">ОТПРАВИТЬ (P2P)</button>
 </div>
 
 <script>
-    // ТВОИ КЛЮЧИ PUSHER
-    const PUSHER_KEY = '10e4a846e566c86d9304';
-    const PUSHER_CLUSTER = 'eu';
+    // 1. Инициализируем P2P сеть (используем публичные узлы синхронизации)
+    const gun = Gun([
+        'https://gun-manhattan.herokuapp.com',
+        'https://p2p.dletta.com'
+    ]);
+    
+    // Создаем или подключаемся к "ветке" чата (назови её уникально)
+    const chat = gun.get('my-unique-p2p-chat-room').get('messages');
 
-    const pusher = new Pusher(PUSHER_KEY, {
-        cluster: PUSHER_CLUSTER,
-        forceTLS: true
-    });
-
-    // Используем ПУБЛИЧНЫЙ канал (без private-), чтобы избежать проблем с авторизацией
-    const channel = pusher.subscribe('public-chat');
-
-    // ПРИЕМ И РАСШИФРОВКА
-    channel.bind('msg-event', function(data) {
+    // 2. СЛУШАЕМ СЕТЬ (как в блокчейне: реагируем на появление новых данных)
+    chat.map().on(function(data, id) {
+        if (!data) return;
         const password = document.getElementById('pass').value;
         if (!password) return;
-        
+
         try {
-            const bytes = CryptoJS.AES.decrypt(data.message, password);
-            const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-            if (decryptedText) {
-                render(decryptedText);
-            }
-        } catch (e) { console.error("Ошибка ключа"); }
+            // Расшифровка AES
+            const bytes = CryptoJS.AES.decrypt(data, password);
+            const text = bytes.toString(CryptoJS.enc.Utf8);
+            if (text) render(text);
+        } catch (e) { /* Неверный пароль или мусор в сети */ }
     });
 
-    // ОТПРАВКА (Для полной работы кнопки "Отправить" в Pusher ОБЯЗАТЕЛЬНО включи Client Events в настройках!)
-    function sendMsg() {
+    // 3. ОТПРАВКА
+    document.getElementById('sendBtn').onclick = function() {
         const password = document.getElementById('pass').value;
         const text = document.getElementById('text').value;
 
         if (!password || !text) return alert("Введите пароль и текст!");
 
+        // Шифруем перед отправкой в децентрализованную сеть
         const encrypted = CryptoJS.AES.encrypt(text, password).toString();
-
-        // Пробуем отправить напрямую
-        try {
-            channel.trigger('client-msg-event', { message: encrypted });
-            render("Вы: " + text);
-            document.getElementById('text').value = '';
-        } catch (e) {
-            alert("Для отправки напрямую нужно включить Client Events в Pusher или использовать Debug Console.");
-        }
-    }
+        
+        // "Записываем" в сеть (другие участники увидят это мгновенно)
+        chat.set(encrypted);
+        
+        document.getElementById('text').value = '';
+    };
 
     function render(text) {
         const div = document.createElement('div');
         div.className = 'msg';
         div.textContent = text;
-        const chat = document.getElementById('chat');
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
+        const chatBox = document.getElementById('chat');
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 </script>
 </body>
