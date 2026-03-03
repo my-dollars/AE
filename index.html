@@ -1,83 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA</title>
-    <!-- Подключаем только самое необходимое -->
-    <script src="https://www.gstatic.com"></script>
-    <script src="https://www.gstatic.com"></script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA | LUXURY</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io"></script>
     <style>
-        body { background: #050505; color: #d4af37; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #top { display: flex; justify-content: space-between; padding: 20px; border-bottom: 1px solid #111; }
-        input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; padding: 5px; outline: none; font-size: 12px; text-transform: uppercase; }
-        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        #input-area { padding: 20px; border-top: 1px solid #111; display: flex; gap: 10px; }
-        .msg { border-left: 1px solid #d4af3750; padding-left: 10px; font-size: 14px; margin-bottom: 5px; }
-        .online { color: #00ff88; text-shadow: 0 0 5px #00ff88; animation: blink 2s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        body { background: #050505; color: #d4af37; font-family: sans-serif; margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+        input { background: transparent; border-bottom: 1px solid #222; text-align: center; color: white; outline: none; text-transform: uppercase; font-size: 10px; letter-spacing: 2px; }
+        .indicator { width: 6px; height: 6px; border-radius: 50%; background: #222; transition: 0.5s; }
+        .online { background: #00ff88; box-shadow: 0 0 10px #00ff88; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        #messages { flex: 1; overflow-y: auto; padding: 100px 20px 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { border-left: 1px solid #d4af3730; padding-left: 15px; font-size: 13px; }
     </style>
 </head>
 <body>
-
-    <div id="top">
-        <input type="text" id="user" placeholder="NAME" value="USER" style="width: 80px;">
-        <span id="status">OFFLINE</span>
-        <input type="text" id="room" placeholder="ROOM" value="LOBBY" style="width: 80px;">
+    <div class="fixed top-0 w-full flex justify-between p-8 bg-[#050505] z-50">
+        <input type="text" id="user" placeholder="NAME" value="USER" class="w-24">
+        <div id="dot" class="indicator self-center"></div>
+        <input type="text" id="room" placeholder="ROOM" value="LOBBY" class="w-24">
     </div>
-
-    <div id="chat"></div>
-
-    <div id="input-area">
-        <input type="text" id="m-in" placeholder="MESSAGE..." style="flex: 1; text-align: left;">
-        <button id="btn" onclick="start()" style="background: none; border: 1px solid #d4af37; color: #d4af37; padding: 5px 15px; cursor: pointer;">JOIN</button>
+    <div id="messages"></div>
+    <div class="p-8 bg-[#050505] border-t border-[#111] flex gap-4">
+        <input type="text" id="msg-input" placeholder="VIBRATION..." class="flex-1 text-left uppercase">
+        <button onclick="handle()" id="btn" class="text-[10px] font-bold tracking-[3px]">JOIN</button>
     </div>
-
     <script>
-        // Твои проверенные ключи
-        const config = {
-            apiKey: "AIzaSyANJZ1s5s_GtWs3mIjaO5EjjviII_6WVnk",
-            databaseURL: "https://aurachat-f9d4f-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "aurachat-f9d4f",
-            appId: "1:532846952097:web:cffa6ee762a1bd347dfae0"
-        };
+        let socket, connected = false;
+        const serverUrl = "https://ae-production.up.railway.app"; // ТВОЙ СЕРВЕР
 
-        // Инициализация
-        firebase.initializeApp(config);
-        const db = firebase.database();
-        let connected = false;
-        let ref = null;
-
-        function start() {
+        function handle() {
             const u = document.getElementById('user').value;
             const r = document.getElementById('room').value;
-            const btn = document.getElementById('btn');
-            const msgIn = document.getElementById('m-in');
+            const i = document.getElementById('msg-input');
 
             if (!connected) {
-                // ПОДКЛЮЧЕНИЕ
-                connected = true;
-                document.getElementById('status').innerText = "ONLINE";
-                document.getElementById('status').className = "online";
-                btn.innerText = "SEND";
-                
-                ref = db.ref('rooms/' + r);
-                
-                // Слушаем сервер
-                ref.on('child_added', (s) => {
-                    const d = s.val();
+                socket = io(serverUrl);
+                socket.on("connect", () => {
+                    connected = true;
+                    document.getElementById('dot').classList.add('online');
+                    document.getElementById('btn').innerText = "SEND";
+                    socket.emit("join", { user: u, room: r });
+                });
+                socket.on("update", (d) => {
                     const div = document.createElement('div');
                     div.className = 'msg';
-                    div.innerHTML = `<small style="opacity:0.3; font-size:9px;">${d.u} • ${d.t}</small><br>${d.m}`;
-                    document.getElementById('chat').appendChild(div);
-                    document.getElementById('chat').scrollTop = 99999;
+                    div.innerHTML = `<div class="opacity-20 text-[7px] mb-1">${d.u} • ${d.t}</div>${d.m}`;
+                    document.getElementById('messages').appendChild(div);
+                    document.getElementById('messages').scrollTop = 99999;
                 });
-            } else {
-                // ОТПРАВКА
-                if (msgIn.value.trim() === "") return;
-                const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                ref.push({ u: u, m: msgIn.value, t: now });
-                msgIn.value = "";
+            } else if (i.value.trim()) {
+                socket.emit("message", { user: u, room: r, msg: i.value });
+                i.value = '';
             }
         }
     </script>
