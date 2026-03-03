@@ -1,179 +1,79 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AXON // DETERMINISTIC 12</title>
-    <script src="https://unpkg.com"></script>
-    <style>
-        :root { --bg: #000; --green: #00ff41; --border: #111; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'JetBrains Mono', monospace; }
-        body { background: var(--bg); color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #gate { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; padding: 40px; justify-content: center; align-items: center; }
-        header { padding: 50px 20px 20px; border-bottom: 1px solid var(--border); background: #050505; }
-        .bal { font-size: 40px; color: var(--green); font-weight: 900; }
-        .net-bar { background: #080808; padding: 10px 20px; font-size: 8px; display: flex; justify-content: space-between; color: #444; border-bottom: 1px solid var(--border); }
-        .viewport { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 230px; }
-        .block { border-left: 2px solid var(--green); background: #050505; padding: 12px; margin-bottom: 15px; border-radius: 0 4px 4px 0; }
-        .msg { color: #ffaa00; font-size: 11px; margin-top: 5px; }
-        .controls { position: fixed; bottom: 0; width: 100%; background: #000; padding: 20px; border-top: 1px solid var(--border); z-index: 100; }
-        .in { background: #000; border: 1px solid #222; color: var(--green); padding: 14px; width: 100%; font-size: 10px; margin-bottom: 8px; outline: none; border-radius: 4px; }
-        .btn { width: 100%; background: var(--green); color: #000; border: none; padding: 18px; font-weight: 900; cursor: pointer; border-radius: 4px; text-transform: uppercase; }
-        .btn:disabled { background: #111; color: #333; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoChat</title>
+    <!-- Подключаем GunDB и модули шифрования -->
+    <script src="https://cdn.jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net"></script>
 </head>
 <body>
-
-<div id="gate">
-    <div style="color: var(--green); font-size: 12px; letter-spacing: 5px; margin-bottom: 20px;">AXON_DETERMINISTIC_v12</div>
-    <input type="text" id="seed-in" class="in" placeholder="ВВЕДИТЕ ВАШ КОД ДОСТУПА...">
-    <button class="btn" onclick="Axon.launch()">АКТИВИРОВАТЬ УЗЕЛ</button>
-    <p style="color:#222; font-size:8px; margin-top:15px;">ИМЕЯ КОД — ИМЕЕШЬ ЛИЧНОСТЬ</p>
-</div>
-
-<header>
-    <div style="font-size: 8px; color: #444;">NETWORK ASSET VALUE</div>
-    <div class="bal" id="ui-bal">0.0000</div>
-    <div id="ui-addr" style="font-size: 7px; color: #222; margin-top: 5px; word-break: break-all;">OFFLINE</div>
-</header>
-
-<div class="net-bar">
-    <div id="ui-net">STATUS: INITIALIZING...</div>
-    <div id="ui-id" style="color: var(--green)">ID: ???</div>
-</div>
-
-<div class="viewport" id="view"></div>
-
-<div class="controls">
-    <div style="display:flex; gap:5px">
-        <input type="text" id="target-id" class="in" style="margin-bottom:0" placeholder="ID ЦЕЛИ (axon-...)">
-        <button class="btn" style="width:auto; padding:0 15px" onclick="Axon.connect()">СВЯЗАТЬ</button>
+    <div id="auth">
+        <input id="alias" placeholder="Имя">
+        <input id="pass" type="password" placeholder="Пароль">
+        <button onclick="signUp()">Создать аккаунт</button>
+        <button onclick="signIn()">Войти</button>
     </div>
-    <input type="text" id="msg-in" class="in" style="margin-top:8px" placeholder="СООБЩЕНИЕ В ТЕНЬ...">
-    <button id="m-btn" class="btn" onclick="Axon.mine()">ПОДТВЕРДИТЬ (PoW)</button>
-</div>
 
-<script>
-const Axon = {
-    chain: [], peer: null, conn: null, addr: null, seed: "",
+    <div id="chat-ui" style="display:none;">
+        <div id="messages" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc;"></div>
+        <input id="msg-input" placeholder="Сообщение...">
+        <button onclick="send()">Отправить</button>
+    </div>
 
-    async hash(m) {
-        const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(m));
-        return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2,'0')).join('');
-    },
+    <script>
+        const gun = Gun(['https://gun-manhattan.herokuapp.com']); // Публичный узел для синхронизации
+        const user = gun.user().recall({storage: true});
 
-    // Математическое шифрование данных на базе кода доступа
-    cipher(str, key) {
-        return btoa(str.split('').map((char, i) => 
-            String.fromCharCode(char.charCodeAt(0) ^ key.charCodeAt(i % key.length))
-        ).join(''));
-    },
-
-    async launch() {
-        const s = document.getElementById('seed-in').value.trim();
-        if(!s) return alert("НУЖЕН КОД");
-        this.seed = s;
-        
-        // Генерируем ADDR (для баланса) и PeerID (для связи) из одного зерна
-        const h = await this.hash(s);
-        this.addr = "AX-" + h.substring(0, 12).toUpperCase();
-        const peerId = 'axon-' + h.substring(12, 24); // Детерминированный ID
-
-        document.getElementById('ui-addr').innerText = "ADDR: " + h;
-        document.getElementById('gate').style.display = 'none';
-        
-        this.initNet(peerId);
-        this.render();
-    },
-
-    initNet(pid) {
-        // Мы используем WebSocket-порты и STUN для пробива "замедлений"
-        this.peer = new Peer(pid, {
-            config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
-        });
-        
-        this.peer.on('open', (id) => {
-            document.getElementById('ui-id').innerText = "ID: " + id;
-            document.getElementById('ui-net').innerText = "STATUS: MESH_ONLINE";
-            document.getElementById('ui-net').style.color = "#00ff41";
-        });
-
-        this.peer.on('connection', (c) => { 
-            this.conn = c; 
-            this.setupHandlers(); 
-        });
-
-        this.peer.on('error', (err) => {
-            if(err.type === 'unavailable-id') {
-                // Если ID занят, значит узел с таким кодом уже в сети
-                document.getElementById('ui-net').innerText = "STATUS: ID_CONFLICT";
-            }
-        });
-    },
-
-    connect() {
-        const tid = document.getElementById('target-id').value.trim();
-        if(!tid) return;
-        this.conn = this.peer.connect(tid, { reliable: true });
-        this.setupHandlers();
-    },
-
-    setupHandlers() {
-        this.conn.on('open', () => {
-            document.getElementById('ui-net').innerText = "STATUS: ENCRYPTED_LINK";
-            this.conn.send({ type: 'SYNC', chain: this.chain });
-        });
-        this.conn.on('data', (d) => {
-            if(d.type === 'BLOCK') this.add(d.block, false);
-            if(d.type === 'SYNC') d.chain.forEach(b => this.add(b, false));
-        });
-    },
-
-    async mine() {
-        const raw = document.getElementById('msg-in').value || "VOID_SIGNAL";
-        const btn = document.getElementById('m-btn');
-        btn.disabled = true; btn.innerText = "SHADOW_WORK...";
-
-        // PoW: Каждый блок требует вычислительной "жертвы"
-        let n = 0, h = "";
-        while(true) {
-            n++; h = await this.hash(raw + n + this.addr);
-            if(h.startsWith("00")) break;
-            if(n % 1000 === 0) await new Promise(r => setTimeout(r, 0));
+        // Регистрация
+        async function signUp() {
+            user.create(document.getElementById('alias').value, document.getElementById('pass').value, (ack) => {
+                if (ack.err) alert(ack.err); else signIn();
+            });
         }
 
-        const block = {
-            ts: Date.now(),
-            // Данные шифруются кодом доступа перед отправкой
-            data: this.cipher(raw, this.seed), 
-            author: this.addr,
-            hash: h
-        };
+        // Вход
+        async function signIn() {
+            user.auth(document.getElementById('alias').value, document.getElementById('pass').value, (ack) => {
+                if (ack.err) alert(ack.err); else {
+                    document.getElementById('auth').style.display = 'none';
+                    document.getElementById('chat-ui').style.display = 'block';
+                    loadMessages();
+                    requestNotifications(); // Просим разрешение на уведомления
+                }
+            });
+        }
 
-        this.add(block, true);
-        document.getElementById('msg-in').value = "";
-        btn.disabled = false; btn.innerText = "ПОДТВЕРДИТЬ (PoW)";
-    },
+        // Отправка (сообщение шифруется ключом группы/пользователя)
+        async function send() {
+            const secret = await SEA.encrypt(document.getElementById('msg-input').value, 'наш-общий-ключ');
+            gun.get('our-secret-chat-room').set(secret);
+            document.getElementById('msg-input').value = '';
+        }
 
-    add(b, s) {
-        if(this.chain.find(x => x.hash === b.hash)) return;
-        this.chain.unshift(b);
-        this.render();
-        if(s && this.conn) this.conn.send({ type: 'BLOCK', block: b });
-    },
+        // Получение и расшифровка
+        async function loadMessages() {
+            gun.get('our-secret-chat-room').map().once(async (data) => {
+                const dec = await SEA.decrypt(data, 'наш-общий-ключ');
+                if (dec) {
+                    const div = document.createElement('div');
+                    div.innerText = dec;
+                    document.getElementById('messages').appendChild(div);
+                    showNotification(dec); // Пуш, если свернуто
+                }
+            });
+        }
 
-    render() {
-        const v = document.getElementById('view');
-        v.innerHTML = this.chain.map(x => `
-            <div class="block">
-                <div style="font-size:7px; color:#222">${new Date(x.ts).toLocaleTimeString()} | NODE: ${x.author}</div>
-                <div class="msg">> ${x.data}</div>
-                <div style="font-size:6px; color:#0a0a0a; margin-top:5px">SIG: ${x.hash.substring(0,32)}...</div>
-            </div>
-        `).join('');
-        document.getElementById('ui-bal').innerText = (this.chain.length * 12.5).toFixed(4);
-    }
-};
-</script>
+        function requestNotifications() {
+            Notification.requestPermission();
+        }
+
+        function showNotification(text) {
+            if (Notification.permission === 'granted' && document.hidden) {
+                new Notification('Новое сообщение', { body: text });
+            }
+        }
+    </script>
 </body>
 </html>
