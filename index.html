@@ -3,101 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Secure Chat</title>
-    <!-- Подключаем всё одним бандлом для стабильности -->
+    <title>Crypto Chat</title>
+    <!-- Пытаемся загрузить библиотеки снова -->
     <script src="https://cdn.jsdelivr.net"></script>
     <script src="https://cdn.jsdelivr.net"></script>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
         .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 320px; text-align: center; }
-        .screen { display: none; width: 100%; height: 100%; flex-direction: column; background: #f0f2f5; position: fixed; top: 0; left: 0; }
-        .active { display: flex; }
-        h2 { margin-bottom: 20px; color: #333; }
+        .hidden { display: none !important; }
+        #chat-screen { width: 100%; height: 100%; flex-direction: column; background: #e5ddd5; position: fixed; top: 0; left: 0; display: none; }
+        #chat-screen.active { display: flex; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #0088cc; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        .secondary { background: none; color: #0088cc; margin-top: 15px; border: 1px solid #0088cc; }
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; background: #e5ddd5; }
-        .msg { padding: 8px 12px; border-radius: 10px; background: white; max-width: 80%; align-self: flex-start; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
-        .msg.me { align-self: flex-end; background: #dcf8c6; }
-        .footer { padding: 10px; background: white; display: flex; gap: 10px; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #0088cc; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
+        #status { font-size: 10px; color: red; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ЛОГИНА -->
+    <!-- ЭКРАН 1: ВХОД -->
     <div id="auth-screen" class="card">
         <h2>Вход в чат</h2>
         <input id="alias" placeholder="Логин">
         <input id="pass" type="password" placeholder="Пароль">
-        <button onclick="doLogin()">Войти</button>
-        <button class="secondary" onclick="doRegister()">Создать аккаунт</button>
+        <button onclick="handleLogin()">Войти</button>
+        <button onclick="handleReg()" style="background:none; color:#0088cc; margin-top:10px;">Создать аккаунт</button>
+        <div id="status">Проверка системы...</div>
     </div>
 
-    <!-- ЭКРАН ЧАТА -->
-    <div id="chat-screen" class="screen">
-        <div style="background:#0088cc; color:white; padding:15px; font-weight:bold; display:flex; justify-content:space-between;">
-            <span>Crypto Chat</span>
-            <span onclick="location.reload()">Выход</span>
+    <!-- ЭКРАН 2: ПРИЛОЖЕНИЕ -->
+    <div id="chat-screen">
+        <div style="background:#0088cc; color:white; padding:15px; font-weight:bold;">
+            Чат запущен!
         </div>
-        <div id="messages"></div>
-        <div class="footer">
-            <input id="msg-input" placeholder="Сообщение...">
-            <button style="width:60px;" onclick="send()">➤</button>
+        <div id="msg-box" style="flex:1; padding:20px;">
+            Привет! Если ты это видишь, интерфейс переключился.
+        </div>
+        <div style="padding:10px; background:white; display:flex;">
+            <input id="m" style="flex:1" placeholder="Сообщение">
+            <button style="width:60px" onclick="alert('Отправлено (тест)')">➤</button>
         </div>
     </div>
 
     <script>
-        // Инициализация
-        const gun = Gun(['https://gun-manhattan.herokuapp.com']);
-        const user = gun.user();
+        // Проверка: загрузились ли библиотеки
+        window.onload = function() {
+            const status = document.getElementById('status');
+            if (typeof Gun !== 'undefined') {
+                status.style.color = "green";
+                status.innerText = "Система готова к работе";
+            } else {
+                status.innerText = "Ошибка: Библиотеки заблокированы браузером!";
+            }
+        };
 
-        // 1. Создание аккаунта
-        function doRegister() {
-            const a = document.getElementById('alias').value;
-            const p = document.getElementById('pass').value;
-            if(!a || !p) return alert("Заполни поля!");
+        const gun = (typeof Gun !== 'undefined') ? Gun(['https://gun-manhattan.herokuapp.com']) : null;
 
-            user.create(a, p, (ack) => {
-                if(ack.err) alert("Ошибка: " + ack.err);
-                else alert("Аккаунт " + a + " создан! Теперь жми Войти");
-            });
-        }
-
-        // 2. Вход
-        function doLogin() {
+        function handleReg() {
+            alert("Пытаюсь создать аккаунт...");
+            if(!gun) return alert("Ошибка: Нет связи с сервером Gun");
+            
             const a = document.getElementById('alias').value;
             const p = document.getElementById('pass').value;
             
-            user.auth(a, p, (ack) => {
-                if(ack.err) alert("Неверный логин/пароль");
-                else {
-                    // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
-                    document.getElementById('auth-screen').style.display = 'none';
-                    document.getElementById('chat-screen').classList.add('active');
-                    startApp();
-                }
+            gun.user().create(a, p, (ack) => {
+                if(ack.err) alert("Ошибка: " + ack.err);
+                else alert("Готово! Теперь входи.");
             });
         }
 
-        // 3. Работа чата
-        async function send() {
-            const input = document.getElementById('msg-input');
-            if(!input.value) return;
-            const secret = await SEA.encrypt(input.value, 'room123'); // Шифруем
-            gun.get('global-chat-v1').set({ name: document.getElementById('alias').value, text: secret });
-            input.value = '';
-        }
-
-        function startApp() {
-            gun.get('global-chat-v1').map().once(async (data) => {
-                if(!data || !data.text) return;
-                const dec = await SEA.decrypt(data.text, 'room123');
-                const div = document.createElement('div');
-                div.className = 'msg ' + (data.name === document.getElementById('alias').value ? 'me' : '');
-                div.innerText = data.name + ": " + dec;
-                document.getElementById('messages').appendChild(div);
-                document.getElementById('messages').scrollTop = 99999;
-            });
+        function handleLogin() {
+            // МГНОВЕННОЕ ПЕРЕКЛЮЧЕНИЕ ДЛЯ ПРОВЕРКИ
+            console.log("Клик по 'Войти'");
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('chat-screen').classList.add('active');
+            
+            // Здесь должна быть реальная проверка пароля, 
+            // но мы сначала проверяем, работает ли вообще переключение
         }
     </script>
 </body>
