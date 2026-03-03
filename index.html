@@ -2,101 +2,141 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeChat P2P</title>
-    <!-- ПОДКЛЮЧАЕМ ТВОИ ЛОКАЛЬНЫЕ ФАЙЛЫ (Они не заблокируются) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Crypto Chat PWA</title>
+    <!-- Пытаемся загрузить из интернета. Если не сработает - используем твои файлы -->
+    <script src="https://cdnjs.cloudflare.com"></script>
+    <script src="https://cdnjs.cloudflare.com"></script>
+    <!-- Если интернет-ссылки заблокированы, подхватятся твои файлы в репозитории: -->
     <script src="gun.js"></script>
     <script src="sea.js"></script>
+    
     <style>
-        body { font-family: sans-serif; background: #1c1c1e; color: white; margin: 0; display: flex; height: 100vh; justify-content: center; align-items: center; }
-        .hidden { display: none !important; }
-        .card { background: #2c2c2e; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #3a3a3c; background: #3a3a3c; color: white; font-size: 16px; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #007aff; color: white; font-weight: bold; cursor: pointer; }
-        #chat { width: 100%; height: 100vh; flex-direction: column; display: none; background: #000; position: fixed; top: 0; left: 0; }
-        #msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .m { padding: 10px; border-radius: 12px; background: #3a3a3c; align-self: flex-start; max-width: 80%; }
-        .m.me { background: #007aff; align-self: flex-end; }
+        :root { --tg-blue: #248bcf; --bg: #f0f2f5; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Экраны */
+        .screen { display: none; flex-direction: column; height: 100vh; width: 100%; position: absolute; }
+        .active { display: flex; }
+
+        /* Вход */
+        #auth-screen { justify-content: center; align-items: center; background: white; }
+        .card { width: 85%; max-width: 320px; text-align: center; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; background: var(--tg-blue); color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .secondary { background: none; color: var(--tg-blue); margin-top: 10px; }
+
+        /* Чат */
+        header { background: white; padding: 15px; font-weight: bold; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; background: #e5ddd5; }
+        .msg { padding: 8px 12px; border-radius: 12px; max-width: 75%; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); word-wrap: break-word; }
+        .me { align-self: flex-end; background: #effdde; }
+        .them { align-self: flex-start; background: white; }
+        .user-name { font-size: 10px; color: var(--tg-blue); font-weight: bold; display: block; margin-bottom: 2px; }
+
+        .footer { padding: 10px; background: white; display: flex; gap: 10px; align-items: center; }
+        #status { font-size: 11px; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <!-- ЭКРАН ВХОДА -->
-    <div id="auth" class="card">
-        <h2>Crypto Chat</h2>
-        <input id="user" placeholder="Твоё имя">
-        <input id="pass" type="password" placeholder="Пароль">
-        <button onclick="start()">Войти</button>
-        <p id="st" style="font-size: 10px; color: #8e8e93; margin-top: 10px;">Статус: Ожидание файлов...</p>
+    <!-- ЭКРАН 1: ВХОД -->
+    <div id="auth-screen" class="screen active">
+        <div class="card">
+            <h2 style="color: var(--tg-blue)">Safe Messenger</h2>
+            <input id="alias" placeholder="Твой логин">
+            <input id="pass" type="password" placeholder="Твой пароль">
+            <button onclick="handleAuth('login')">Войти</button>
+            <button class="secondary" onclick="handleAuth('reg')">Создать аккаунт</button>
+            <div id="status">Проверка библиотек...</div>
+        </div>
     </div>
 
-    <!-- ЭКРАН ЧАТА -->
-    <div id="chat">
-        <header style="padding: 15px; background: #2c2c2e; border-bottom: 1px solid #3a3a3c;">Чат группы</header>
-        <div id="msgs"></div>
-        <div style="padding: 15px; background: #1c1c1e; display: flex; gap: 10px;">
-            <input id="msg" style="margin:0" placeholder="Сообщение...">
-            <button style="width: 70px" onclick="send()">➤</button>
+    <!-- ЭКРАН 2: ЧАТ -->
+    <div id="chat-screen" class="screen">
+        <header>
+            <span id="header-user">Чат группы</span>
+            <span style="color: #999; font-weight: normal;" onclick="location.reload()">Выход</span>
+        </header>
+        <div id="messages"></div>
+        <div class="footer">
+            <input id="msg-input" style="margin:0" placeholder="Сообщение...">
+            <button style="width: 60px;" onclick="send()">➤</button>
         </div>
     </div>
 
     <script>
+        // Инициализация
         let gun, user;
+        const ROOM = 'secret_global_room_v2';
+        const KEY = '12345'; // Ключ для шифрования сообщений
 
-        // Проверяем загрузку локальных файлов
         window.onload = () => {
-            const st = document.getElementById('st');
+            const st = document.getElementById('status');
             if (typeof Gun !== 'undefined') {
-                st.innerText = "Система готова!";
-                st.style.color = "green";
-                // Подключаемся к надежному реле (синхронизация)
+                st.innerHTML = "<span style='color:green'>● Система готова</span>";
                 gun = Gun(['https://gun-manhattan.herokuapp.com']);
-                user = gun.user();
+                user = gun.user().recall({storage: true});
             } else {
-                st.innerText = "Ошибка: Файлы gun.js или sea.js не найдены в репозитории!";
-                st.style.color = "red";
+                st.innerHTML = "<span style='color:red'>● Ошибка: Библиотеки заблокированы.<br>Создай файлы gun.js и sea.js в GitHub!</span>";
             }
         };
 
-        function start() {
-            const u = document.getElementById('user').value;
+        async function handleAuth(type) {
+            const a = document.getElementById('alias').value;
             const p = document.getElementById('pass').value;
-            if(!u || !p) return alert("Введите данные!");
+            if(!a || !p) return alert("Заполни поля!");
 
-            user.auth(u, p, (ack) => {
-                if(ack.err) {
-                    // Если аккаунта нет - создаем
-                    user.create(u, p, (res) => {
-                        if(res.err) alert(res.err);
-                        else alert("Аккаунт создан! Нажми 'Войти' еще раз.");
-                    });
-                } else {
-                    document.getElementById('auth').classList.add('hidden');
-                    document.getElementById('chat').style.display = 'flex';
-                    listen();
-                }
+            if(type === 'reg') {
+                user.create(a, p, (ack) => {
+                    if(ack.err) alert(ack.err);
+                    else alert("Аккаунт создан! Теперь жми Войти.");
+                });
+            } else {
+                user.auth(a, p, (ack) => {
+                    if(ack.err) alert("Ошибка: " + ack.err);
+                    else showChat(a);
+                });
+            }
+        }
+
+        function showChat(name) {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('chat-screen').classList.add('active');
+            document.getElementById('header-user').innerText = "Я: " + name;
+            
+            // Подписка на сообщения
+            gun.get(ROOM).map().once(async (data) => {
+                if(!data || !data.text) return;
+                const dec = await SEA.decrypt(data.text, KEY);
+                if(!dec) return;
+
+                const isMe = data.who === document.getElementById('alias').value;
+                const div = document.createElement('div');
+                div.className = `msg ${isMe ? 'me' : 'them'}`;
+                div.innerHTML = `<span class="user-name">${data.who}</span>${dec}`;
+                
+                const box = document.getElementById('messages');
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+
+                if(document.hidden && !isMe) new Notification("Новое сообщение от " + data.who);
             });
+            
+            if(Notification.permission !== 'granted') Notification.requestPermission();
         }
 
         async function send() {
-            const input = document.getElementById('msg');
+            const input = document.getElementById('msg-input');
             if(!input.value) return;
-            // Шифруем (SEA) и отправляем в общую комнату
-            const secret = await SEA.encrypt(input.value, 'shared_key_123');
-            gun.get('our_global_room').set({ name: document.getElementById('user').value, text: secret });
-            input.value = '';
-        }
-
-        function listen() {
-            gun.get('our_global_room').map().once(async (data) => {
-                if(!data || !data.text) return;
-                const dec = await SEA.decrypt(data.text, 'shared_key_123');
-                const div = document.createElement('div');
-                div.className = 'm ' + (data.name === document.getElementById('user').value ? 'me' : '');
-                div.innerText = data.name + ": " + dec;
-                document.getElementById('msgs').appendChild(div);
-                document.getElementById('msgs').scrollTop = 99999;
+            
+            const encrypted = await SEA.encrypt(input.value, KEY);
+            gun.get(ROOM).set({
+                who: document.getElementById('alias').value,
+                text: encrypted,
+                time: Date.now()
             });
+            input.value = '';
         }
     </script>
 </body>
