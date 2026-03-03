@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AURA</title>
-    <!-- Самые надежные ссылки на библиотеки -->
     <script src="https://www.gstatic.com"></script>
     <script src="https://www.gstatic.com"></script>
     <style>
@@ -13,16 +12,16 @@
         #msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 110px; }
         .m { border-left: 1px solid #d4af3730; padding-left: 15px; font-size: 13px; }
         .bot { position: fixed; bottom: 40px; left: 0; right: 0; padding: 20px; display: flex; gap: 10px; background: #000; border-top: 1px solid #111; z-index: 100; }
-        .btn { background: none; border: 1px solid #d4af37; color: #d4af37; font-size: 9px; padding: 12px; cursor: pointer; border-radius: 5px; text-transform: uppercase; flex: 1; }
+        .btn { background: none; border: 1px solid #d4af37; color: #d4af37; font-size: 9px; padding: 15px; cursor: pointer; border-radius: 5px; text-transform: uppercase; flex: 1; }
         .on { color: #00ff88 !important; text-shadow: 0 0 10px #00ff88; animation: blink 2s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
     <div class="top">
-        <input type="text" id="u" placeholder="NAME" value="USER" style="width: 80px;">
-        <span id="st" style="font-size: 8px; letter-spacing: 1px;">ПОДКЛЮЧЕНИЕ...</span>
-        <input type="text" id="k" placeholder="KEY" style="width: 80px;">
+        <input type="text" id="u" placeholder="NAME" value="USER" style="width: 70px;">
+        <span id="st" style="font-size: 9px; letter-spacing: 2px;">ОФЛАЙН</span>
+        <input type="text" id="k" placeholder="КЛЮЧ" style="width: 70px;">
     </div>
     <div id="msgs"></div>
     <div class="bot" id="btns">
@@ -31,11 +30,10 @@
     </div>
     <div class="bot" id="chat" style="display: none;">
         <input type="text" id="mi" placeholder="VIBRATION..." style="flex: 1; text-align: left; border-bottom: 1px solid #d4af3730;">
-        <button onclick="window.send()" class="btn" style="flex: 0; padding: 15px 30px;">SEND</button>
+        <button onclick="window.sendMsg()" class="btn" style="flex: 0; padding: 15px 30px;">SEND</button>
     </div>
 
     <script>
-        // Твои проверенные ключи
         const config = {
             apiKey: "AIzaSyANJZ1s5s_GtWs3mIjaO5EjjviII_6WVnk",
             databaseURL: "https://aurachat-f9d4f-default-rtdb.europe-west1.firebasedatabase.app",
@@ -43,67 +41,52 @@
             appId: "1:532846952097:web:cffa6ee762a1bd347dfae0"
         };
 
-        // Принудительная инициализация
-        window.onload = function() {
-            firebase.initializeApp(config);
-            const db = firebase.database();
-            let ref, connected = false;
+        // Запуск сразу
+        firebase.initializeApp(config);
+        const db = firebase.database();
+        let ref = null;
 
-            const statusLabel = document.getElementById('st');
-
-            // СЛУШАЕМ СТАТУС СЕРВЕРА СРАЗУ
-            db.ref(".info/connected").on("value", (snap) => {
-                if (snap.val() === true) {
-                    statusLabel.innerText = "ГОТОВ";
-                    statusLabel.style.color = "#d4af37";
-                } else {
-                    statusLabel.innerText = "ОФЛАЙН";
-                    statusLabel.style.color = "#444";
-                }
-            });
-
-            window.gen = function() {
-                const k = "AX-" + Math.floor(100 + Math.random() * 899);
-                document.getElementById('k').value = k;
-                db.ref('rooms/' + k + '/active').set(true);
-                connect(k);
-            };
-
-            window.join = function() {
-                const k = document.getElementById('k').value.trim();
-                if(!k) return;
-                db.ref('rooms/' + k).once('value', (s) => {
-                    if (s.exists()) connect(k);
-                    else alert("КЛЮЧ НЕ ВЕРЕН");
-                });
-            };
-
-            function connect(k) {
-                connected = true;
-                statusLabel.innerText = "В СЕТИ";
-                statusLabel.className = "on";
-                document.getElementById('btns').style.display = 'none';
-                document.getElementById('chat').style.display = 'flex';
-                
-                ref = db.ref('rooms/' + k + '/msgs');
-                ref.on('child_added', (s) => {
-                    const d = s.val();
-                    const div = document.createElement('div');
-                    div.className = 'm';
-                    div.innerHTML = `<div style="opacity:0.2; font-size:7px;">${d.u} • ${d.t}</div>${d.m}`;
-                    document.getElementById('msgs').appendChild(div);
-                    document.getElementById('msgs').scrollTop = 99999;
-                });
-            }
-
-            window.send = function() {
-                const m = document.getElementById('mi').value;
-                if(!m || !ref) return;
-                const t = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                ref.push({ u: document.getElementById('u').value, m: m, t: t });
-                document.getElementById('mi').value = '';
-            };
+        // ПРОВЕРКА КНОПОК - Если они не нажимаются, значит скрипт упал раньше
+        window.gen = function() {
+            const key = "AX-" + Math.floor(100 + Math.random() * 899);
+            document.getElementById('k').value = key;
+            db.ref('rooms/' + key + '/active').set(true);
+            activate(key);
         };
+
+        window.join = function() {
+            const key = document.getElementById('k').value.trim();
+            if(!key) return;
+            db.ref('rooms/' + key).once('value', (s) => {
+                if (s.exists()) activate(key);
+                else alert("КЛЮЧ НЕ ВЕРЕН");
+            });
+        };
+
+        function activate(key) {
+            document.getElementById('st').innerText = "ОНЛАЙН";
+            document.getElementById('st').className = "on";
+            document.getElementById('btns').style.display = 'none';
+            document.getElementById('chat').style.display = 'flex';
+            
+            ref = db.ref('rooms/' + key + '/msgs');
+            ref.on('child_added', (s) => {
+                const d = s.val();
+                const div = document.createElement('div');
+                div.className = 'm';
+                div.innerHTML = `<div style="opacity:0.2; font-size:7px;">${d.u} • ${d.t}</div>${d.m}`;
+                document.getElementById('msgs').appendChild(div);
+                document.getElementById('msgs').scrollTop = 99999;
+            });
+        }
+
+        window.sendMsg = function() {
+            const m = document.getElementById('mi').value;
+            if(!m || !ref) return;
+            const t = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            ref.push({ u: document.getElementById('u').value, m: m, t: t });
+            document.getElementById('mi').value = '';
+        }
     </script>
 </body>
 </html>
