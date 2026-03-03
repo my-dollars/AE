@@ -1,92 +1,67 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AURA</title>
-    <script src="https://www.gstatic.com"></script>
-    <script src="https://www.gstatic.com"></script>
+    <title>CryptoChat</title>
+    <!-- Подключаем библиотеку для шифрования и связи -->
+    <script src="https://cdnjs.cloudflare.com"></script>
+    <script src="https://js.pusher.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background: #000; color: #d4af37; font-family: sans-serif; margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        .top { padding: 25px; display: flex; justify-content: space-between; border-bottom: 1px solid #111; background: #000; z-index: 10; align-items: center; }
-        input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; text-align: center; text-transform: uppercase; font-size: 10px; letter-spacing: 2px; outline: none; }
-        #msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 110px; }
-        .m { border-left: 1px solid #d4af3730; padding-left: 15px; font-size: 13px; }
-        .bot { position: fixed; bottom: 40px; left: 0; right: 0; padding: 20px; display: flex; gap: 10px; background: #000; border-top: 1px solid #111; z-index: 100; }
-        .btn { background: none; border: 1px solid #d4af37; color: #d4af37; font-size: 9px; padding: 15px; cursor: pointer; border-radius: 5px; text-transform: uppercase; flex: 1; }
-        .on { color: #00ff88 !important; text-shadow: 0 0 10px #00ff88; animation: blink 2s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        body { font-family: sans-serif; padding: 20px; background: #121212; color: white; }
+        #chat { border: 1px solid #333; height: 300px; overflow-y: scroll; margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+        input { width: 80%; padding: 10px; background: #222; border: 1px solid #444; color: white; }
+        button { padding: 10px; background: #075e54; color: white; border: none; border-radius: 5px; }
+        .msg { margin-bottom: 8px; font-size: 0.9em; }
     </style>
 </head>
 <body>
-    <div class="top">
-        <input type="text" id="u" placeholder="NAME" value="USER" style="width: 70px;">
-        <span id="st" style="font-size: 9px; letter-spacing: 2px;">ОФЛАЙН</span>
-        <input type="text" id="k" placeholder="КЛЮЧ" style="width: 70px;">
-    </div>
-    <div id="msgs"></div>
-    <div class="bot" id="btns">
-        <button onclick="window.gen()" class="btn">ГЕНЕРИРОВАТЬ</button>
-        <button onclick="window.join()" class="btn">ПРИСОЕДИНИТЬСЯ</button>
-    </div>
-    <div class="bot" id="chat" style="display: none;">
-        <input type="text" id="mi" placeholder="VIBRATION..." style="flex: 1; text-align: left; border-bottom: 1px solid #d4af3730;">
-        <button onclick="window.sendMsg()" class="btn" style="flex: 0; padding: 15px 30px;">SEND</button>
-    </div>
+    <h2>Private Chat</h2>
+    <input type="password" id="secret" placeholder="Секретный пароль (ключ)">
+    <div id="chat"></div>
+    <form id="send-form">
+        <input type="text" id="message" placeholder="Сообщение..." required>
+        <button type="submit">Отправить</button>
+    </form>
 
     <script>
-        const config = {
-            apiKey: "AIzaSyANJZ1s5s_GtWs3mIjaO5EjjviII_6WVnk",
-            databaseURL: "https://aurachat-f9d4f-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "aurachat-f9d4f",
-            appId: "1:532846952097:web:cffa6ee762a1bd347dfae0"
-        };
+        // 1. НАСТРОЙКА PUSHER (вставь свой ключ)
+        const pusher = new Pusher('ТВОЙ_APP_KEY', { cluster: 'eu' });
+        const channel = pusher.subscribe('my-chat');
+        const secretInput = document.getElementById('secret');
 
-        // Запуск сразу
-        firebase.initializeApp(config);
-        const db = firebase.database();
-        let ref = null;
-
-        // ПРОВЕРКА КНОПОК - Если они не нажимаются, значит скрипт упал раньше
-        window.gen = function() {
-            const key = "AX-" + Math.floor(100 + Math.random() * 899);
-            document.getElementById('k').value = key;
-            db.ref('rooms/' + key + '/active').set(true);
-            activate(key);
-        };
-
-        window.join = function() {
-            const key = document.getElementById('k').value.trim();
-            if(!key) return;
-            db.ref('rooms/' + key).once('value', (s) => {
-                if (s.exists()) activate(key);
-                else alert("КЛЮЧ НЕ ВЕРЕН");
-            });
-        };
-
-        function activate(key) {
-            document.getElementById('st').innerText = "ОНЛАЙН";
-            document.getElementById('st').className = "on";
-            document.getElementById('btns').style.display = 'none';
-            document.getElementById('chat').style.display = 'flex';
+        // 2. ПОЛУЧЕНИЕ И РАСШИФРОВКА
+        channel.bind('message', function(data) {
+            const secret = secretInput.value;
+            if (!secret) return alert('Введите пароль для расшифровки!');
             
-            ref = db.ref('rooms/' + key + '/msgs');
-            ref.on('child_added', (s) => {
-                const d = s.val();
-                const div = document.createElement('div');
-                div.className = 'm';
-                div.innerHTML = `<div style="opacity:0.2; font-size:7px;">${d.u} • ${d.t}</div>${d.m}`;
-                document.getElementById('msgs').appendChild(div);
-                document.getElementById('msgs').scrollTop = 99999;
-            });
-        }
+            try {
+                const bytes = CryptoJS.AES.decrypt(data.text, secret);
+                const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+                
+                if (decryptedText) {
+                    const div = document.createElement('div');
+                    div.className = 'msg';
+                    div.textContent = "> " + decryptedText;
+                    document.getElementById('chat').appendChild(div);
+                }
+            } catch (e) { console.log("Ошибка ключа"); }
+        });
 
-        window.sendMsg = function() {
-            const m = document.getElementById('mi').value;
-            if(!m || !ref) return;
-            const t = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            ref.push({ u: document.getElementById('u').value, m: m, t: t });
-            document.getElementById('mi').value = '';
-        }
+        // 3. ШИФРОВАНИЕ И ОТПРАВКА
+        document.getElementById('send-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('message').value;
+            const secret = secretInput.value;
+
+            if (!secret) return alert('Установите пароль!');
+
+            // Шифруем текст
+            const encrypted = CryptoJS.AES.encrypt(text, secret).toString();
+
+            // Отправляем зашифрованный текст через Pusher API (нужен бэкенд или Debug Console)
+            console.log("Зашифровано для отправки:", encrypted);
+            document.getElementById('message').value = '';
+        };
     </script>
 </body>
 </html>
