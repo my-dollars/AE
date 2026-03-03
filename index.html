@@ -1,41 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Chat</title>
+    <title>🔐 Crypto Messenger</title>
     <script src="https://cdnjs.cloudflare.com"></script>
     <script src="https://js.pusher.com"></script>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; margin: 0; }
-        #chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #2c2c2c; padding: 10px; border-radius: 10px; align-self: flex-start; max-width: 80%; }
-        .controls { padding: 15px; background: #1f1f1f; }
-        input { width: 90%; padding: 12px; border-radius: 5px; border: 1px solid #444; background: #2c2c2c; color: white; }
+        body { font-family: sans-serif; background: #0b0d0f; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { background: #1e252b; padding: 12px; border-radius: 12px; align-self: flex-start; max-width: 85%; border-left: 4px solid #00ff88; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .controls { padding: 15px; background: #161b22; border-top: 1px dotted #30363d; display: flex; flex-direction: column; gap: 8px; }
+        input { padding: 14px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; outline: none; font-size: 16px; }
+        button { padding: 14px; background: #00ff88; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:active { transform: scale(0.98); background: #00cc6e; }
+        #pass { border-color: #f44336; }
     </style>
 </head>
 <body>
-    <div id="chat"><div class="msg">Enter password and wait for messages.</div></div>
-    <div class="controls">
-        <input type="password" id="pass" placeholder="Secret Password">
-    </div>
-    <script>
-        const pusher = new Pusher('89ebab06ba698e6e5944', { cluster: 'eu' });
-        const channel = pusher.subscribe('my-channel');
-        channel.bind('my-event', function(data) {
-            const password = document.getElementById('pass').value;
-            if (!password) return;
-            try {
-                const bytes = CryptoJS.AES.decrypt(data.message, password);
-                const text = bytes.toString(CryptoJS.enc.Utf8);
-                if (text) {
-                    const div = document.createElement('div');
-                    div.className = 'msg';
-                    div.textContent = text;
-                    document.getElementById('chat').appendChild(div);
-                }
-            } catch (e) {}
-        });
-    </script>
+
+<div id="chat">
+    <div class="msg">Система: Введите пароль и начните переписку. Сообщения шифруются на вашем устройстве.</div>
+</div>
+
+<div class="controls">
+    <input type="password" id="pass" placeholder="Секретный пароль (общий с другом)">
+    <input type="text" id="text" placeholder="Введите сообщение..." autocomplete="off">
+    <button onclick="sendMsg()">ОТПРАВИТЬ</button>
+</div>
+
+<script>
+    // Твои настройки Pusher со скриншота
+    const PUSHER_KEY = '89ebab06ba698e6e5944';
+    const PUSHER_CLUSTER = 'eu';
+
+    // Включаем "ленивую" авторизацию для приватного канала без сервера
+    Pusher.logToConsole = true;
+    const pusher = new Pusher(PUSHER_KEY, {
+        cluster: PUSHER_CLUSTER,
+        forceTLS: true,
+        channelAuthorization: {
+            transport: 'jsonp',
+            endpoint: 'https://pusher-auth-proxy.herokuapp.com' // Публичный прокси для тестов
+        }
+    });
+
+    // Подписываемся на приватный канал (нужен для Client Events)
+    const channel = pusher.subscribe('private-chat');
+
+    // ПРИЕМ СООБЩЕНИЙ
+    channel.bind('client-msg', function(data) {
+        const password = document.getElementById('pass').value;
+        if (!password) return;
+        
+        try {
+            const bytes = CryptoJS.AES.decrypt(data.message, password);
+            const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+            if (decryptedText) {
+                render("Друг: " + decryptedText);
+            }
+        } catch (e) {
+            console.error("Ошибка расшифровки");
+        }
+    });
+
+    // ОТПРАВКА СООБЩЕНИЙ
+    function sendMsg() {
+        const password = document.getElementById('pass').value;
+        const text = document.getElementById('text').value;
+
+        if (!password || !text) {
+            alert("Нужен пароль и текст сообщения!");
+            return;
+        }
+
+        // 1. Шифруем текст паролем
+        const encrypted = CryptoJS.AES.encrypt(text, password).toString();
+
+        // 2. Отправляем напрямую другим участникам (client events)
+        const triggered = channel.trigger('client-msg', { message: encrypted });
+
+        if (triggered) {
+            render("Вы: " + text);
+            document.getElementById('text').value = '';
+        } else {
+            alert("Ошибка отправки. Проверьте настройки Client Events в Pusher!");
+        }
+    }
+
+    function render(text) {
+        const div = document.createElement('div');
+        div.className = 'msg';
+        div.textContent = text;
+        const chat = document.getElementById('chat');
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+</script>
+
 </body>
 </html>
