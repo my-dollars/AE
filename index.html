@@ -1,146 +1,21 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>P2P Cloud Chat</title>
-    <!-- Основные библиотеки для P2P связи -->
-    <script src="https://cdn.jsdelivr.net"></script>
-    <script src="https://cdn.jsdelivr.net"></script>
-    <style>
-        :root { --blue: #0088cc; --bg: #e5ddd5; }
-        body { font-family: -apple-system, sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
-        /* Экран входа */
-        .screen { display: none; flex-direction: column; height: 100vh; width: 100%; position: absolute; background: white; justify-content: center; align-items: center; }
-        .active { display: flex; }
-        .card { width: 90%; max-width: 350px; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #ddd; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; }
-        button { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--blue); color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
-        
-        /* Чат */
-        header { background: white; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
-        .msg { padding: 10px; border-radius: 12px; background: white; max-width: 80%; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.1); position: relative; }
-        .me { align-self: flex-end; background: #dcf8c6; }
-        .user { font-size: 12px; color: var(--blue); font-weight: bold; display: block; margin-bottom: 4px; }
-        
-        /* Медиа */
-        img, video { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; }
-        
-        /* Футер */
-        .footer { padding: 10px; background: white; display: flex; gap: 10px; align-items: center; }
-        .file-btn { background: #eee; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; }
-        #msg-input { flex: 1; margin: 0; background: #f0f2f5; border: none; }
-    </style>
-</head>
-<body>
+<!-- Подключение Tailwind и Google Fonts -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="stylesheet">
 
-    <!-- Экран выбора комнаты -->
-    <div id="join-screen" class="screen active">
-        <div class="card">
-            <h2 style="color:var(--blue)">P2P Мессенджер</h2>
-            <input id="username" placeholder="Ваше имя">
-            <input id="roomname" placeholder="Название комнаты">
-            <button onclick="joinRoom()">Войти в комнату</button>
-            <p id="st" style="font-size: 12px; color: gray; margin-top: 20px;">Подключение к сети...</p>
-        </div>
+<body class="bg-[#0D0D0D] text-[#E0E0E0] font-['Inter'] flex items-center justify-center min-h-screen">
+  <div class="w-full max-w-md p-8 bg-[#1A1A1A] border border-[#2A2A2A] rounded-3xl shadow-2xl backdrop-blur-md bg-opacity-80">
+    <h1 class="text-3xl font-light tracking-widest text-center mb-8 bg-gradient-to-r from-[#D4AF37] to-[#F9E29C] bg-clip-text text-transparent">LUMINA</h1>
+    
+    <div class="space-y-6">
+      <input type="text" id="name" placeholder="Ваше имя" 
+             class="w-full bg-transparent border-b border-[#333] py-2 outline-none focus:border-[#D4AF37] transition-colors placeholder-[#555]">
+      
+      <input type="text" id="roomId" placeholder="ID Комнаты" 
+             class="w-full bg-transparent border-b border-[#333] py-2 outline-none focus:border-[#D4AF37] transition-colors placeholder-[#555]">
+      
+      <button class="w-full py-4 mt-4 bg-[#D4AF37] text-black font-semibold rounded-xl hover:bg-[#F9E29C] transition-all transform active:scale-95 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+        Войти в пространство
+      </button>
     </div>
-
-    <!-- Экран чата -->
-    <div id="chat-screen" class="screen">
-        <header>
-            <span id="display-room">Комната</span>
-            <button onclick="deleteRoom()" style="width:auto; padding:5px 10px; background:#ff3b30; font-size:12px;">Удалить всё</button>
-        </header>
-        <div id="messages"></div>
-        <div class="footer">
-            <label class="file-btn">📎<input type="file" id="file-input" hidden onchange="sendFile()"></label>
-            <input id="msg-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendText()">
-            <button style="width: 60px;" onclick="sendText()">➤</button>
-        </div>
-    </div>
-
-    <script>
-        // Инициализация децентрализованной сети
-        const gun = Gun(['https://gun-manhattan.herokuapp.com', 'https://relay.peer.ooo']);
-        let currentRoom, myName;
-
-        // Проверка статуса
-        gun.on('hi', () => document.getElementById('st').innerText = "Сеть готова! Можно входить.");
-
-        function joinRoom() {
-            myName = document.getElementById('username').value;
-            const roomName = document.getElementById('roomname').value;
-            if(!myName || !roomName) return alert("Заполните поля!");
-
-            currentRoom = roomName;
-            document.getElementById('join-screen').classList.remove('active');
-            document.getElementById('chat-screen').classList.add('active');
-            document.getElementById('display-room').innerText = "# " + roomName;
-
-            startChat(roomName);
-        }
-
-        function startChat(room) {
-            const msgsDiv = document.getElementById('messages');
-            // Слушаем изменения в комнате
-            gun.get('chat-app-rooms').get(room).map().once(async (data) => {
-                if(!data || !data.content) return;
-
-                const div = document.createElement('div');
-                const isMe = data.user === myName;
-                div.className = `msg ${isMe ? 'me' : 'them'}`;
-                
-                let contentHTML = `<span class="user">${data.user}</span>`;
-                
-                if(data.type === 'text') {
-                    contentHTML += `<span>${data.content}</span>`;
-                } else if(data.type === 'image') {
-                    contentHTML += `<img src="${data.content}" onclick="window.open(this.src)">`;
-                } else if(data.type === 'video') {
-                    contentHTML += `<video src="${data.content}" controls></video>`;
-                }
-
-                div.innerHTML = contentHTML;
-                msgsDiv.appendChild(div);
-                msgsDiv.scrollTop = msgsDiv.scrollHeight;
-            });
-        }
-
-        function sendText() {
-            const input = document.getElementById('msg-input');
-            if(!input.value) return;
-            postToGun({ type: 'text', content: input.value });
-            input.value = '';
-        }
-
-        function sendFile() {
-            const file = document.getElementById('file-input').files[0];
-            if(!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const type = file.type.startsWith('image') ? 'image' : 'video';
-                postToGun({ type: type, content: e.target.result });
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function postToGun(obj) {
-            gun.get('chat-app-rooms').get(currentRoom).set({
-                user: myName,
-                ...obj,
-                time: Date.now()
-            });
-        }
-
-        function deleteRoom() {
-            if(confirm("Вы уверены, что хотите очистить чат для себя?")) {
-                gun.get('chat-app-rooms').get(currentRoom).put(null);
-                location.reload();
-            }
-        }
-    </script>
+  </div>
 </body>
-</html>
