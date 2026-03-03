@@ -3,48 +3,55 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AURA</title>
-    <!-- Только одна легкая библиотека для связи -->
-    <script src="https://cdn.socket.io"></script>
+    <!-- Самые быстрые ссылки на библиотеки Google -->
+    <script src="https://www.gstatic.com"></script>
+    <script src="https://www.gstatic.com"></script>
     <style>
         body { background: #000; color: #d4af37; font-family: sans-serif; margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         .top { padding: 20px; display: flex; justify-content: space-between; border-bottom: 1px solid #111; background: #000; z-index: 10; }
         input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; text-align: center; text-transform: uppercase; font-size: 10px; letter-spacing: 2px; outline: none; }
-        #msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 110px; }
+        #msgs { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 100px; }
         .m { border-left: 1px solid #d4af3730; padding-left: 15px; font-size: 13px; }
-        .bot { position: fixed; bottom: 40px; left: 0; right: 0; padding: 20px; display: flex; gap: 10px; background: #000; border-top: 1px solid #111; z-index: 100; }
+        .bot { position: fixed; bottom: 30px; left: 0; right: 0; padding: 20px; display: flex; gap: 10px; background: #000; border-top: 1px solid #111; }
         .on { color: #00ff88; text-shadow: 0 0 10px #00ff88; animation: blink 2s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
     <div class="top">
-        <input type="text" id="u" placeholder="ИМЯ" value="USER" style="width: 80px;">
+        <input type="text" id="u" placeholder="NAME" value="USER" style="width: 80px;">
         <span id="st" style="font-size: 9px; letter-spacing: 2px;">ОФЛАЙН</span>
-        <input type="text" id="r" placeholder="КОМНАТА" value="777" style="width: 80px;">
+        <input type="text" id="r" placeholder="ROOM" value="777" style="width: 80px;">
     </div>
     <div id="msgs"></div>
     <div class="bot">
-        <input type="text" id="i" placeholder="VIBRATION..." style="flex: 1; text-align: left;">
-        <button onclick="h()" id="btn" style="background: none; border: 1px solid #d4af37; color: #d4af37; font-size: 10px; padding: 12px 18px; cursor: pointer;">JOIN</button>
+        <input type="text" id="i" placeholder="MESSAGE..." style="flex: 1; text-align: left;">
+        <button onclick="h()" id="btn" style="background: none; border: 1px solid #d4af37; color: #d4af37; font-size: 10px; padding: 10px 15px; cursor: pointer; border-radius: 5px;">JOIN</button>
     </div>
+
     <script>
-        let s, c = false;
-        const URL = "https://ae-production.up.railway.app"; 
+        // Твои проверенные ключи Firebase
+        const config = {
+            apiKey: "AIzaSyANJZ1s5s_GtWs3mIjaO5EjjviII_6WVnk",
+            databaseURL: "https://aurachat-f9d4f-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "aurachat-f9d4f",
+            appId: "1:532846952097:web:cffa6ee762a1bd347dfae0"
+        };
+
+        firebase.initializeApp(config);
+        const db = firebase.database();
+        let connected = false, ref = null;
 
         function h() {
             const u = document.getElementById('u').value, r = document.getElementById('r').value, i = document.getElementById('i');
-            const btn = document.getElementById('btn');
-            if (!c) {
-                btn.innerText = "...";
-                s = io(URL);
-                s.on("connect", () => {
-                    c = true;
-                    document.getElementById('st').innerText = "ОНЛАЙН";
-                    document.getElementById('st').className = "on";
-                    btn.innerText = "SEND";
-                    s.emit("join", { user: u, room: r });
-                });
-                s.on("update", (d) => {
+            if (!connected) {
+                connected = true;
+                document.getElementById('st').innerText = "ОНЛАЙН";
+                document.getElementById('st').className = "on";
+                document.getElementById('btn').innerText = "SEND";
+                ref = db.ref('rooms/' + r);
+                ref.on('child_added', (s) => {
+                    const d = s.val();
                     const div = document.createElement('div');
                     div.className = 'm';
                     div.innerHTML = `<div style="opacity:0.2; font-size:7px;">${d.u} • ${d.t}</div>${d.m}`;
@@ -52,7 +59,8 @@
                     document.getElementById('msgs').scrollTop = 99999;
                 });
             } else if (i.value.trim()) {
-                s.emit("message", { user: u, room: r, msg: i.value });
+                const t = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                ref.push({ u: u, m: i.value, t: t });
                 i.value = '';
             }
         }
