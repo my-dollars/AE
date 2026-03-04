@@ -3,90 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⛓ Stable-Chat (P2P)</title>
-    <script src="https://cdn.jsdelivr.net"></script>
-    <script src="https://cdnjs.cloudflare.com"></script>
+    <title>TG Crypto Private</title>
     <style>
-        body { font-family: sans-serif; background: #0b0d0f; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { background: #1e252b; padding: 12px; border-radius: 12px; align-self: flex-start; max-width: 85%; border-left: 4px solid #00ff88; }
-        .controls { padding: 15px; background: #161b22; border-top: 1px solid #30363d; display: flex; flex-direction: column; gap: 8px; }
-        input { padding: 14px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; outline: none; font-size: 16px; }
-        button { padding: 14px; background: #00ff88; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .label { font-size: 12px; color: #888; margin-bottom: -5px; margin-left: 5px; }
+        body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #0f1621; color: white; display: flex; flex-direction: column; height: 100vh; }
+        .header { background: #17212b; padding: 15px; display: flex; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10; }
+        input { background: #242f3d; border: 1px solid #2f3947; color: white; padding: 10px; border-radius: 10px; outline: none; }
+        #chat { flex: 1; overflow-y: auto; padding: 20px; background-color: #0f1621; }
+        .footer { background: #17212b; padding: 15px; display: flex; gap: 10px; }
+        button { background: #5288c1; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        .msg { margin-bottom: 12px; padding: 10px 15px; border-radius: 15px; background: #182533; max-width: 75%; clear: both; float: left; word-wrap: break-word; line-height: 1.4; }
+        .own { background: #2b5278; float: right; border-bottom-right-radius: 4px; }
+        .system { text-align: center; color: #7f91a4; font-size: 0.85em; margin: 15px 0; clear: both; }
     </style>
 </head>
 <body>
-
-<div id="chat"></div>
-
-<div class="controls">
-    <div class="label">Ключ состыковки (адрес сети)</div>
-    <input type="text" id="pair-key" placeholder="Пример: my-secure-bridge-777">
-    
-    <div class="label">Пароль шифрования сообщений</div>
-    <input type="password" id="pass" placeholder="Секретный код">
-    
-    <input type="text" id="text" placeholder="Введите сообщение..." autocomplete="off">
-    <button id="sendBtn">ОТПРАВИТЬ В СЕТЬ</button>
-</div>
+    <div class="header">
+        <input id="user" placeholder="Имя" style="width: 80px;">
+        <input id="room" type="password" placeholder="Ключ комнаты" style="flex: 1;">
+        <button onclick="init()">ВХОД</button>
+    </div>
+    <div id="chat"><div class="system">Введите секретный ключ для входа</div></div>
+    <div class="footer">
+        <input id="msgInp" placeholder="Сообщение..." style="flex: 1;" disabled onkeypress="if(event.keyCode==13) send()">
+        <button onclick="send()" id="sendBtn" disabled>➤</button>
+    </div>
 
 <script>
-    // Инициализация P2P узлов (имитация узлов блокчейна)
-    const gun = Gun(['https://gun-manhattan.herokuapp.com']);
-    let currentChannel = null;
+    let ws, roomKey, currentRoom;
 
-    // Функция подписки на "адрес" (ключ состыковки)
-    function connectToNetwork() {
-        const pairKey = document.getElementById('pair-key').value;
-        if (!pairKey) return;
-
-        // Если мы уже подписаны, отписываемся (для смены ключа)
-        if (currentChannel) currentChannel.off();
-
-        // Подключаемся к "ветке" сети по ключу состыковки
-        currentChannel = gun.get('stable-net-' + pairKey).get('tx-history');
-
-        // РЕАКЦИЯ ПО ФАКТУ: слушаем новые транзакции в этой ветке
-        currentChannel.map().once(function(data, id) {
-            const password = document.getElementById('pass').value;
-            if (!password || !data) return;
-
-            try {
-                const bytes = CryptoJS.AES.decrypt(data, password);
-                const text = bytes.toString(CryptoJS.enc.Utf8);
-                if (text) render(text);
-            } catch (e) { /* Данные не для нас или неверный пароль */ }
-        });
+    async function deriveKey(pwd) {
+        const enc = new TextEncoder();
+        const material = await crypto.subtle.importKey("raw", enc.encode(pwd), "PBKDF2", false, ["deriveKey"]);
+        return crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: enc.encode("tg-salt-v1"), iterations: 100000, hash: "SHA-256" },
+            material, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+        );
     }
 
-    // Отслеживаем ввод ключа состыковки для переподключения
-    document.getElementById('pair-key').onchange = connectToNetwork;
-
-    // ОТПРАВКА (как транзакция USDT)
-    document.getElementById('sendBtn').onclick = function() {
-        const pairKey = document.getElementById('pair-key').value;
-        const password = document.getElementById('pass').value;
-        const text = document.getElementById('text').value;
-
-        if (!pairKey || !password || !text) return alert("Заполните все поля!");
-
-        // 1. Шифруем данные
-        const encrypted = CryptoJS.AES.encrypt(text, password).toString();
-
-        // 2. Отправляем в ветку, привязанную к ключу состыковки
-        gun.get('stable-net-' + pairKey).get('tx-history').set(encrypted);
+    async function init() {
+        currentRoom = document.getElementById('room').value;
+        if (!currentRoom) return alert("Введите ключ!");
         
-        document.getElementById('text').value = '';
-    };
+        roomKey = await deriveKey(currentRoom);
+        
+        // Авто-определение протокола: wss для https и ws для http
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        // Подключаемся к тому же хосту, на котором открыт сайт
+        const wsUrl = `${protocol}//${window.location.host}`;
+        
+        ws = new WebSocket(wsUrl);
 
-    function render(text) {
-        const div = document.createElement('div');
-        div.className = 'msg';
-        div.textContent = text;
-        const chatBox = document.getElementById('chat');
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ type: 'join', room: currentRoom }));
+            document.getElementById('msgInp').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('chat').innerHTML = "<div class='system'>Безопасное соединение установлено</div>";
+        };
+
+        ws.onmessage = async (e) => {
+            const data = JSON.parse(e.data);
+            try {
+                const dec = await crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: new Uint8Array(data.iv) }, 
+                    roomKey, 
+                    new Uint8Array(data.text)
+                );
+                addMsg(data.user, new TextDecoder().decode(dec), 'in');
+            } catch(err) { 
+                addMsg(data.user, "[Ошибка расшифровки: неверный ключ]", 'in'); 
+            }
+        };
+
+        ws.onclose = () => {
+            document.getElementById('chat').innerHTML += "<div class='system' style='color:red'>Связь разорвана. Перезагрузите страницу.</div>";
+        };
+    }
+
+    async function send() {
+        const text = document.getElementById('msgInp').value;
+        const user = document.getElementById('user').value || "Аноним";
+        if (!text || !ws) return;
+
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, roomKey, new TextEncoder().encode(text));
+        
+        ws.send(JSON.stringify({ 
+            type: 'msg', 
+            room: currentRoom, 
+            user, 
+            text: Array.from(new Uint8Array(enc)), 
+            iv: Array.from(iv) 
+        }));
+        
+        addMsg(user, text, 'own');
+        document.getElementById('msgInp').value = "";
+    }
+
+    function addMsg(u, t, type) {
+        const chat = document.getElementById('chat');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `msg ${type === 'own' ? 'own' : ''}`;
+        msgDiv.innerHTML = `<b>${u}</b><br>${t}`;
+        chat.appendChild(msgDiv);
+        
+        const spacer = document.createElement('div');
+        spacer.style.clear = 'both';
+        chat.appendChild(spacer);
+        
+        chat.scrollTop = chat.scrollHeight;
     }
 </script>
 </body>
