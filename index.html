@@ -1,117 +1,386 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG Crypto Private</title>
-    <style>
-        body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #0f1621; color: white; display: flex; flex-direction: column; height: 100vh; }
-        .header { background: #17212b; padding: 15px; display: flex; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10; }
-        input { background: #242f3d; border: 1px solid #2f3947; color: white; padding: 10px; border-radius: 10px; outline: none; }
-        #chat { flex: 1; overflow-y: auto; padding: 20px; background-color: #0f1621; }
-        .footer { background: #17212b; padding: 15px; display: flex; gap: 10px; }
-        button { background: #5288c1; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        .msg { margin-bottom: 12px; padding: 10px 15px; border-radius: 15px; background: #182533; max-width: 75%; clear: both; float: left; word-wrap: break-word; line-height: 1.4; }
-        .own { background: #2b5278; float: right; border-bottom-right-radius: 4px; }
-        .system { text-align: center; color: #7f91a4; font-size: 0.85em; margin: 15px 0; clear: both; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <input id="user" placeholder="Имя" style="width: 80px;">
-        <input id="room" type="password" placeholder="Ключ комнаты" style="flex: 1;">
-        <button onclick="init()">ВХОД</button>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Инспекция объектов с БПЛА</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Sofia+Sans+Extra+Condensed:wght@700;800&display=swap">
+<style>
+/* Layout: инженерный лист. Слева текст, справа «экран оператора»; акцент взят из авиационной маркировки высотных сооружений. */
+:root {
+  --bg: #eef1f3; --surface: #ffffff; --fg: #14202b; --muted: #53636f; --line: #c8d0d6;
+  --accent: #c23a0c; --accent-soft: #f8e2d8;
+  --scr: #0c141a; --scr-line: #2c3c47; --scr-fg: #e7ecef; --scr-muted: #93a3ae; --scr-accent: #ff6b35; --scr-heat: #ffd166;
+  --display: "Sofia Sans Extra Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "Golos Text", "Segoe UI", Arial, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10181f; --surface: #18232c; --fg: #e7ecef; --muted: #93a3ae; --line: #2f3d48;
+  --accent: #ff7a48; --accent-soft: #3a2219; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #10181f; --surface: #18232c; --fg: #e7ecef; --muted: #93a3ae; --line: #2f3d48;
+  --accent: #ff7a48; --accent-soft: #3a2219; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--body); }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+section { padding-block: clamp(48px, 7vw, 88px); border-top: 1px solid var(--line); }
+h1, h2 { font-family: var(--display); font-weight: 800; text-transform: uppercase; line-height: .98; letter-spacing: .005em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(50px, 7.2vw, 88px); }
+h2 { font-size: clamp(38px, 5vw, 60px); max-width: 20ch; }
+h3 { font-size: 18px; line-height: 1.3; font-weight: 600; margin: 0; }
+p { margin: 0; }
+.label { font: 500 12px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { max-width: 62ch; color: var(--muted); }
+.head { display: grid; gap: 16px; margin-bottom: clamp(28px, 4vw, 48px); }
+
+/* Hero */
+.hero { padding-block: clamp(28px, 5vw, 64px); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.02fr); gap: clamp(28px, 4vw, 56px); align-items: start; }
+.hero-text { display: grid; gap: 24px; min-width: 0; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--line); }
+.fact { padding: 14px 14px 14px 0; display: grid; gap: 4px; align-content: start; }
+.fact + .fact { padding-left: 14px; border-left: 1px solid var(--line); }
+.fact b { font: 800 clamp(26px, 3vw, 36px)/1 var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Экран оператора: тёмный в обеих темах, как настоящий монитор */
+.screen { background: var(--scr); color: var(--scr-fg); border-radius: 6px; overflow: hidden; min-width: 0; }
+.screen-bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--scr-line); }
+.screen-bar .label, .report .label { color: var(--scr-muted); }
+.modes { display: flex; border: 1px solid var(--scr-line); border-radius: 4px; }
+.modes button { font: 500 12px/1 var(--mono); padding: 9px 12px; background: none; color: var(--scr-muted); border: 0; cursor: pointer; }
+.modes button[aria-pressed="true"] { background: var(--scr-accent); color: #10181f; }
+button:focus-visible { outline: 2px solid var(--scr-heat); outline-offset: 2px; }
+svg { display: block; width: 100%; height: auto; }
+.layer { transition: opacity .35s; }
+.screen[data-mode="optic"] .thermal, .screen[data-mode="thermal"] .optic { opacity: 0; pointer-events: none; }
+.box rect { fill: none; stroke: var(--scr-accent); stroke-width: 2; }
+.box text { fill: var(--scr-accent); font: 500 15px var(--mono); paint-order: stroke; stroke: var(--scr); stroke-width: 4px; }
+.thermal .box rect { stroke: var(--scr-heat); }
+.thermal .box text { fill: var(--scr-heat); }
+.box.hl rect { stroke-width: 4; }
+.hud { fill: var(--scr-muted); font: 400 13px var(--mono); }
+.report { border-top: 1px solid var(--scr-line); padding: 12px; display: grid; gap: 8px; }
+.report ul { list-style: none; margin: 0; padding: 0; }
+.report button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 8px 6px; background: none; border: 0; border-top: 1px solid var(--scr-line); color: var(--scr-fg); font: 400 14px/1.3 var(--body); text-align: left; cursor: pointer; }
+.report button:hover { background: #16222b; }
+.report button span:last-child { font: 400 12px/1.5 var(--mono); color: var(--scr-muted); }
+.report button[aria-pressed="true"] { color: var(--scr-accent); }
+
+/* Статус */
+.status { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+.status > * { min-width: 0; }
+.absent { list-style: none; margin: 0; padding: 0; display: grid; }
+.absent li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.absent li:first-child { border-top: 1px solid var(--line); }
+.absent span:last-child { font: 500 13px/1.7 var(--mono); color: var(--muted); white-space: nowrap; }
+.absent li.yes span:last-child { color: var(--accent); }
+.goal { margin-top: 20px; font-weight: 500; max-width: 60ch; }
+
+/* Проблема */
+.pains { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 32px; margin-bottom: 32px; }
+.pain { border-top: 3px solid var(--fg); padding-top: 12px; display: grid; gap: 6px; align-content: start; }
+.pain p { color: var(--muted); }
+.objects { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.objects li { list-style: none; font-weight: 500; }
+.objects { padding: 0; margin: 12px 0 0; }
+
+/* Экосистема */
+.chain { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; }
+.node { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 10px; grid-template-rows: auto 1fr auto; position: relative; }
+.node + .node::before { content: "→"; position: absolute; left: -22px; top: 50%; transform: translateY(-50%); color: var(--accent); font: 500 18px var(--mono); }
+.node p { color: var(--muted); font-size: 15px; line-height: 1.5; }
+.tag { justify-self: start; font: 500 11px/1.4 var(--mono); letter-spacing: .04em; padding: 3px 7px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+.tag.now { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+
+/* Дорожки: три блока параллельно */
+.lanes { display: grid; }
+.lane-head, .lane { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.5fr) minmax(0, 1.3fr); gap: 24px; }
+.lane-head { padding-bottom: 10px; }
+.lane { padding-block: 24px; border-top: 1px solid var(--line); position: relative; }
+.lane > * { min-width: 0; }
+.lane h3 { font: 800 30px/1 var(--display); text-transform: uppercase; }
+.lane .block { display: grid; gap: 6px; align-content: start; }
+.work { display: grid; gap: 12px; align-content: start; }
+.work p { font-size: 15px; line-height: 1.55; color: var(--muted); }
+.work b { color: var(--fg); font-weight: 600; }
+.result { display: grid; gap: 14px; align-content: start; border-left: 3px solid var(--accent); padding-left: 16px; }
+.result p { font-size: 15px; line-height: 1.55; }
+.result .label { display: block; margin-bottom: 2px; color: var(--accent); }
+.outcome { margin-top: 28px; max-width: 62ch; font-weight: 500; }
+
+/* Бизнес-модель */
+.model-wrap { overflow-x: auto; }
+.model { width: 100%; min-width: 620px; border-collapse: collapse; }
+.model th, .model td { text-align: left; vertical-align: top; padding: 14px 20px 14px 0; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.5; }
+.model thead th { border-top: 0; font: 800 34px/1 var(--display); text-transform: uppercase; }
+.model tbody th { font: 500 12px/1.6 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); width: 22%; }
+footer { border-top: 1px solid var(--line); padding-block: 24px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .hero-grid, .status { grid-template-columns: minmax(0, 1fr); }
+  .chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .node:nth-child(3)::before { content: none; }
+  .lane-head { display: none; }
+  .lane { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
+@media (max-width: 560px) {
+  .chain, .pains { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .chain .node + .node::before { content: "↓"; display: block; left: 16px; top: -24px; transform: none; }
+  .facts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .fact:last-child { grid-column: 1 / -1; padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) { .layer { transition: none; } }
+</style>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <p class="label">Концепция инвестиционного проекта</p>
+      <h1>Автоматизированная инспекция промышленных объектов на базе БПЛА</h1>
+      <p class="lead">Дроны, автоматические дронопорты и ИИ, который сам находит дефекты на конструкциях. Цель проекта: получать точную аналитику без риска для людей на высоте.</p>
+      <div class="facts">
+        <div class="fact"><b>10 000 000 ₽</b><span class="label">Объём инвестиций</span></div>
+        <div class="fact"><b>9–12 мес.</b><span class="label">До результатов раунда</span></div>
+        <div class="fact"><b>Pre-seed</b><span class="label">Стадия чистой идеи</span></div>
+      </div>
     </div>
-    <div id="chat"><div class="system">Введите секретный ключ для входа</div></div>
-    <div class="footer">
-        <input id="msgInp" placeholder="Сообщение..." style="flex: 1;" disabled onkeypress="if(event.keyCode==13) send()">
-        <button onclick="send()" id="sendBtn" disabled>➤</button>
+
+    <div class="screen" id="screen" data-mode="optic">
+      <div class="screen-bar">
+        <span class="label">Как будет работать · иллюстрация</span>
+        <div class="modes" role="group" aria-label="Сенсор">
+          <button type="button" id="mode-optic" data-mode="optic" aria-pressed="true">Камера</button>
+          <button type="button" id="mode-thermal" data-mode="thermal" aria-pressed="false">Тепловизор</button>
+        </div>
+      </div>
+      <svg viewBox="0 0 560 500" role="img" aria-label="Схема: дрон облетает градирню и трубопровод, система отмечает рамками трещину, коррозию, порыв и утечку тепла">
+        <defs>
+          <clipPath id="tower-clip"><path id="tower-shape" d="M185 62 C205 180 200 280 130 440 L430 440 C360 280 355 180 375 62 Z"/></clipPath>
+          <linearGradient id="optic-fill" x1="0" x2="1"><stop offset="0" stop-color="#55646f"/><stop offset=".55" stop-color="#8d9ba5"/><stop offset="1" stop-color="#46545e"/></linearGradient>
+          <linearGradient id="heat-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1464"/><stop offset=".6" stop-color="#4b1d84"/><stop offset="1" stop-color="#8f2a7c"/></linearGradient>
+          <radialGradient id="hot"><stop offset="0" stop-color="#fff3b0"/><stop offset=".35" stop-color="#ffb627"/><stop offset=".7" stop-color="#e8431f" stop-opacity=".7"/><stop offset="1" stop-color="#e8431f" stop-opacity="0"/></radialGradient>
+        </defs>
+
+        <g class="layer optic">
+          <use href="#tower-shape" fill="url(#optic-fill)"/>
+          <g clip-path="url(#tower-clip)">
+            <rect x="170" y="62" width="220" height="16" fill="#ff6b35"/>
+            <rect x="170" y="78" width="220" height="16" fill="#e7ecef"/>
+            <rect x="170" y="94" width="220" height="16" fill="#ff6b35"/>
+            <g stroke="#0c141a" stroke-opacity=".22" fill="none">
+              <path d="M120 170H440M120 230H440M120 290H440M120 350H440M120 410H440"/>
+              <path d="M240 62C250 180 240 290 190 440M280 62V440M320 62C310 180 320 290 370 440"/>
+            </g>
+            <path d="M262 152 l8 16 -10 14 12 16 -6 18" fill="none" stroke="#0c141a" stroke-width="2.5"/>
+            <g fill="#7a3b1c"><ellipse cx="322" cy="346" rx="20" ry="11"/><ellipse cx="303" cy="362" rx="11" ry="7"/><ellipse cx="338" cy="366" rx="9" ry="6"/></g>
+          </g>
+          <rect x="20" y="452" width="520" height="16" fill="#6b7a85"/>
+          <path d="M84 452 l8 7 -6 9h26l-7 -9 7 -7z" fill="#0c141a"/>
+        </g>
+
+        <g class="layer thermal">
+          <use href="#tower-shape" fill="url(#heat-fill)"/>
+          <rect x="20" y="452" width="520" height="16" fill="#6a1f7c"/>
+          <ellipse cx="440" cy="460" rx="66" ry="36" fill="url(#hot)"/>
+        </g>
+
+        <path id="flight" d="M40 40H520V136H70V264H500V390H60" fill="none" stroke="#e7ecef" stroke-opacity=".4" stroke-dasharray="3 8" stroke-width="1.5"/>
+
+        <g class="layer optic">
+          <g class="box" id="box-crack"><rect x="240" y="142" width="54" height="84"/><text x="240" y="134">ТРЕЩИНА</text></g>
+          <g class="box" id="box-rust"><rect x="288" y="330" width="66" height="50"/><text x="288" y="322">КОРРОЗИЯ</text></g>
+          <g class="box" id="box-tear"><rect x="74" y="442" width="48" height="36"/><text x="74" y="434">ПОРЫВ</text></g>
+        </g>
+        <g class="layer thermal">
+          <g class="box" id="box-heat"><rect x="396" y="438" width="90" height="44"/><text x="384" y="430">УТЕЧКА ТЕПЛА</text></g>
+        </g>
+
+        <g id="drone" transform="translate(40 40)">
+          <g stroke="#e7ecef" stroke-width="2.5"><path d="M-14 -9L14 9M14 -9L-14 9"/></g>
+          <g fill="none" stroke="#e7ecef" stroke-width="1.5"><ellipse cx="-14" cy="-9" rx="9" ry="3"/><ellipse cx="14" cy="-9" rx="9" ry="3"/><ellipse cx="-14" cy="9" rx="9" ry="3"/><ellipse cx="14" cy="9" rx="9" ry="3"/></g>
+          <rect x="-7" y="-5" width="14" height="10" rx="2" fill="#ff6b35"/>
+        </g>
+      </svg>
+      <div class="report">
+        <span class="label">Отчёт о дефектах · пример</span>
+        <ul>
+          <li><button type="button" id="r-crack" data-box="box-crack" data-mode="optic" aria-pressed="false"><span>Трещина, верхний пояс градирни</span><span>камера</span></button></li>
+          <li><button type="button" id="r-rust" data-box="box-rust" data-mode="optic" aria-pressed="false"><span>Коррозия, нижний пояс градирни</span><span>камера</span></button></li>
+          <li><button type="button" id="r-tear" data-box="box-tear" data-mode="optic" aria-pressed="false"><span>Порыв, трубопровод</span><span>камера</span></button></li>
+          <li><button type="button" id="r-heat" data-box="box-heat" data-mode="thermal" aria-pressed="false"><span>Утечка тепла, трубопровод</span><span>тепловизор</span></button></li>
+        </ul>
+      </div>
     </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="wrap status">
+      <div class="head" style="margin:0">
+        <p class="label">Важно для инвестора</p>
+        <h2>Сегодня проект существует на бумаге</h2>
+        <p class="lead">Инвестиции идут на то, чтобы превратить теоретическую концепцию в материальный работающий прототип (MVP) и подготовить базу для получения регуляторных разрешений.</p>
+      </div>
+      <div>
+        <ul class="absent">
+          <li class="yes"><span>Концепция проекта</span><span>формируется</span></li>
+          <li><span>Готовое оборудование</span><span>отсутствует</span></li>
+          <li><span>Разработанное ПО</span><span>отсутствует</span></li>
+          <li><span>Штат сотрудников</span><span>отсутствует</span></li>
+          <li><span>Разрешения на полёты</span><span>отсутствуют</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Рыночная проблема</p>
+        <h2>Альпинисты и наземные группы не дают оперативной аналитики</h2>
+      </div>
+      <div class="pains">
+        <div class="pain"><h3>Риск</h3><p>Традиционный мониторинг сопряжён с высокими рисками для жизни людей.</p></div>
+        <div class="pain"><h3>Затраты</h3><p>Осмотр крупных объектов требует огромных финансовых затрат.</p></div>
+        <div class="pain"><h3>Скорость</h3><p>Данные собираются медленно, точную аналитику нельзя получить оперативно.</p></div>
+      </div>
+      <p class="label">Какие объекты осматривать</p>
+      <ul class="objects"><li>Высотные сооружения</li><li>Трубопроводы</li><li>Градирни</li><li>Линии электропередач</li></ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Глобальное видение</p>
+        <h2>Автономная экосистема роботизированного контроля</h2>
+        <p class="lead">Комплекс работает без участия человека. Текущий раунд закрывает дрон и программную платформу; дронопорт остаётся частью общего видения.</p>
+      </div>
+      <div class="chain">
+        <div class="node"><h3>Дронопорт</h3><p>Автоматическая базовая станция для зарядки дронов.</p><span class="tag">Видение</span></div>
+        <div class="node"><h3>БПЛА</h3><p>Облетает объект и снимает его камерой и тепловизором.</p><span class="tag now">В раунде: прототип</span></div>
+        <div class="node"><h3>ИИ-платформа</h3><p>Принимает видеопоток и сама находит дефекты на конструкциях.</p><span class="tag now">В раунде: альфа-версия</span></div>
+        <div class="node"><h3>Отчёт</h3><p>Структурированный список найденных дефектов.</p><span class="tag now">В раунде: альфа-версия</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Стратегия реализации с нуля</p>
+        <h2>Три блока идут параллельно и приводят к MVP</h2>
+        <p class="lead">Проект начинается без физических наработок и разрешений, поэтому вся сумма в 10 000 000 рублей идёт на создание фундамента бизнеса.</p>
+      </div>
+      <div class="lanes">
+        <div class="lane-head"><span class="label">Блок</span><span class="label">Что делаем</span><span class="label">Что есть через 9–12 месяцев</span></div>
+
+        <div class="lane">
+          <div class="block"><span class="label">Блок А</span><h3>Продукт</h3></div>
+          <div class="work">
+            <p><b>Архитектура ПАК.</b> Детальная инженерная спецификация и подбор комплектующих для первого тестового дрона: сенсоры, оптические камеры, тепловизоры, полётные контроллеры.</p>
+            <p><b>Ядро ИИ.</b> Алгоритмы компьютерного зрения распознают базовые повреждения на размеченных датасетах: трещины, коррозию, порывы, утечки тепла.</p>
+          </div>
+          <div class="result">
+            <p><span class="label">Железо</span>Собранный действующий предсерийный прототип инспекционного дрона с интегрированным модулем полезной нагрузки (камера и тепловизор).</p>
+            <p><span class="label">Софт</span>Рабочая альфа-версия облачной платформы, которая принимает видеопоток, обрабатывает его и выдаёт структурированный отчёт о найденных дефектах.</p>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="block"><span class="label">Блок Б</span><h3>Разрешения</h3></div>
+          <div class="work">
+            <p><b>Экспертное сопровождение.</b> Профильные юристы по авиационному праву выстраивают взаимодействие с Росавиацией и Минтрансом.</p>
+            <p><b>Регламенты безопасности.</b> Внутренние документы о безопасности полётов, аварийном возврате БПЛА и защите персональных данных при съёмке объектов.</p>
+          </div>
+          <div class="result">
+            <p><span class="label">Юридический комплаенс</span>Готовый, протестированный алгоритм законного согласования полётов и поданные заявки на патентование ключевых узлов системы или алгоритмов.</p>
+          </div>
+        </div>
+
+        <div class="lane">
+          <div class="block"><span class="label">Блок В</span><h3>Команда</h3></div>
+          <div class="work">
+            <p>Наём ядра команды, которое даст ключевую техническую экспертизу: ведущий инженер-конструктор БПЛА, архитектор ПО и специалист по Computer Vision, проектный менеджер с опытом в технологических стартапах.</p>
+          </div>
+          <div class="result">
+            <p><span class="label">Люди</span>Ядро команды, которое создаёт прототип и платформу.</p>
+          </div>
+        </div>
+      </div>
+      <p class="outcome">Через 9–12 месяцев после получения финансирования инвестор получает материальный технологический актив с кратно возросшей капитализацией.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Бизнес-модель</p>
+        <h2>Гибридная B2B-модель: сначала услуга, затем подписка</h2>
+      </div>
+      <div class="model-wrap">
+        <table class="model">
+          <thead><tr><th scope="col"><span class="label">Монетизация</span></th><th scope="col">Drone-as-a-Service</th><th scope="col">SaaS</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Что продаём</th><td>Комплексные услуги инспекции</td><td>Лицензионную подписку на интеллектуальное ПО</td></tr>
+            <tr><th scope="row">Кто заказчик</th><td>Владельцы промышленных объектов</td><td>Крупные компании со своим парком дронов, но без автоматизированной аналитики дефектов</td></tr>
+            <tr><th scope="row">Кто выполняет работу</th><td>Наша команда</td><td>Заказчик летает сам, анализ делает наше ПО</td></tr>
+            <tr><th scope="row">Зачем на этом этапе</th><td>На начальном этапе подтверждает технологию на практике</td><td>Подключается по мере готовности продукта</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">Схема инспекции и отчёт на этой странице иллюстрируют идею. Это не результаты реальных полётов: на стадии Pre-seed их ещё нет.</div></footer>
 
 <script>
-    let ws, roomKey, currentRoom;
+(function () {
+  var screen = document.getElementById('screen');
+  var modeBtns = screen.querySelectorAll('.modes button');
+  var rows = screen.querySelectorAll('.report button');
 
-    async function deriveKey(pwd) {
-        const enc = new TextEncoder();
-        const material = await crypto.subtle.importKey("raw", enc.encode(pwd), "PBKDF2", false, ["deriveKey"]);
-        return crypto.subtle.deriveKey(
-            { name: "PBKDF2", salt: enc.encode("tg-salt-v1"), iterations: 100000, hash: "SHA-256" },
-            material, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
-        );
-    }
+  function setMode(mode) {
+    screen.dataset.mode = mode;
+    modeBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === mode)); });
+  }
+  function clearHighlight() {
+    screen.querySelectorAll('.box.hl').forEach(function (b) { b.classList.remove('hl'); });
+    rows.forEach(function (r) { r.setAttribute('aria-pressed', 'false'); });
+  }
+  modeBtns.forEach(function (b) {
+    b.addEventListener('click', function () { clearHighlight(); setMode(b.dataset.mode); });
+  });
+  rows.forEach(function (r) {
+    r.addEventListener('click', function () {
+      clearHighlight();
+      setMode(r.dataset.mode);
+      document.getElementById(r.dataset.box).classList.add('hl');
+      r.setAttribute('aria-pressed', 'true');
+    });
+  });
 
-    async function init() {
-        currentRoom = document.getElementById('room').value;
-        if (!currentRoom) return alert("Введите ключ!");
-        
-        roomKey = await deriveKey(currentRoom);
-        
-        // Авто-определение протокола: wss для https и ws для http
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Подключаемся к тому же хосту, на котором открыт сайт
-        const wsUrl = `${protocol}//${window.location.host}`;
-        
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'join', room: currentRoom }));
-            document.getElementById('msgInp').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('chat').innerHTML = "<div class='system'>Безопасное соединение установлено</div>";
-        };
-
-        ws.onmessage = async (e) => {
-            const data = JSON.parse(e.data);
-            try {
-                const dec = await crypto.subtle.decrypt(
-                    { name: "AES-GCM", iv: new Uint8Array(data.iv) }, 
-                    roomKey, 
-                    new Uint8Array(data.text)
-                );
-                addMsg(data.user, new TextDecoder().decode(dec), 'in');
-            } catch(err) { 
-                addMsg(data.user, "[Ошибка расшифровки: неверный ключ]", 'in'); 
-            }
-        };
-
-        ws.onclose = () => {
-            document.getElementById('chat').innerHTML += "<div class='system' style='color:red'>Связь разорвана. Перезагрузите страницу.</div>";
-        };
-    }
-
-    async function send() {
-        const text = document.getElementById('msgInp').value;
-        const user = document.getElementById('user').value || "Аноним";
-        if (!text || !ws) return;
-
-        const iv = crypto.getRandomValues(new Uint8Array(12));
-        const enc = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, roomKey, new TextEncoder().encode(text));
-        
-        ws.send(JSON.stringify({ 
-            type: 'msg', 
-            room: currentRoom, 
-            user, 
-            text: Array.from(new Uint8Array(enc)), 
-            iv: Array.from(iv) 
-        }));
-        
-        addMsg(user, text, 'own');
-        document.getElementById('msgInp').value = "";
-    }
-
-    function addMsg(u, t, type) {
-        const chat = document.getElementById('chat');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `msg ${type === 'own' ? 'own' : ''}`;
-        msgDiv.innerHTML = `<b>${u}</b><br>${t}`;
-        chat.appendChild(msgDiv);
-        
-        const spacer = document.createElement('div');
-        spacer.style.clear = 'both';
-        chat.appendChild(spacer);
-        
-        chat.scrollTop = chat.scrollHeight;
-    }
+  var path = document.getElementById('flight');
+  var drone = document.getElementById('drone');
+  var total = path.getTotalLength();
+  function place(len) {
+    var p = path.getPointAtLength(len);
+    drone.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ')');
+  }
+  place(total * 0.34);
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var duration = 26000, start = null;
+  function tick(t) {
+    if (start === null) start = t - duration * 0.34;
+    place(((t - start) % duration) / duration * total);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
 </script>
-</body>
-</html>
+
+</body></html>
