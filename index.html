@@ -11,43 +11,53 @@
 </script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-  body { background: #000; color: #fff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-  #viewport { position: relative; flex: 1; width: 100%; overflow: hidden; }
+  html, body { width: 100%; height: 100dvh; background: #000; color: #fff; overflow: hidden; position: fixed; }
   video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-  #hud { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; pointer-events: none; z-index: 5; }
-  .badge { background: rgba(15,23,42,0.8); padding: 6px 12px; border-radius: 20px; font-size: 13px; border: 1px solid rgba(255,255,255,0.2); }
-  #controls { padding: 14px; background: #0f172a; display: flex; gap: 10px; z-index: 10; }
-  button { background: #ef4444; color: #fff; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; width: 100%; }
-  button:disabled { opacity: 0.5; }
-  #risk-card {
-    position: absolute; bottom: 82px; left: 12px; right: 12px;
-    background: rgba(15, 23, 42, 0.96); border: 1px solid #ef4444;
-    border-radius: 16px; padding: 16px; display: none; z-index: 20;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.85);
+  #hud {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between; pointer-events: none; z-index: 10;
   }
-  #risk-card h3 { font-size: 17px; margin-bottom: 6px; color: #f87171; display: flex; justify-content: space-between; }
-  #risk-card p { font-size: 14px; color: #e2e8f0; line-height: 1.4; margin-bottom: 8px; }
+  .badge { background: rgba(15,23,42,0.85); padding: 7px 14px; border-radius: 20px; font-size: 13px; border: 1px solid rgba(255,255,255,0.25); }
+  #controls {
+    position: absolute; bottom: 20px; left: 14px; right: 14px;
+    display: flex; gap: 10px; z-index: 15;
+  }
+  button {
+    flex: 1; background: #ef4444; color: #fff; border: none; padding: 15px;
+    border-radius: 14px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 20px rgba(239,68,68,0.5);
+  }
+  button:active { transform: scale(0.98); }
+  #risk-card {
+    position: absolute; bottom: 88px; left: 14px; right: 14px;
+    background: rgba(15, 23, 42, 0.97); border: 1px solid #ef4444;
+    border-radius: 16px; padding: 16px; display: none; z-index: 25;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.9); max-height: 55dvh; overflow-y: auto;
+  }
+  #risk-card h3 { font-size: 16px; margin-bottom: 8px; color: #f87171; display: flex; justify-content: space-between; }
+  #risk-card p { font-size: 13px; color: #e2e8f0; line-height: 1.45; margin-bottom: 8px; }
+  .tag { color: #94a3b8; font-weight: 600; }
   .close-btn { color: #94a3b8; font-size: 20px; cursor: pointer; padding-left: 12px; }
 </style>
 </head>
 <body>
 
-<div id="viewport">
-  <video id="video" autoplay playsinline></video>
-  <canvas id="overlay"></canvas>
-  <div id="hud">
-    <div class="badge" id="status">AR-камера активна</div>
-    <div class="badge" id="counter">Зон: 0</div>
-  </div>
-  <div id="risk-card">
-    <h3><span id="card-title">Дефект</span><span class="close-btn" onclick="closeCard()">✕</span></h3>
-    <p id="card-desc"></p>
-    <p style="color: #fca5a5; font-weight: 600;" id="card-action"></p>
-  </div>
+<video id="video" autoplay playsinline></video>
+<canvas id="overlay"></canvas>
+
+<div id="hud">
+  <div class="badge" id="status">AR-камера готова</div>
+  <div class="badge" id="counter">Дефектов: 0</div>
+</div>
+
+<div id="risk-card">
+  <h3><span id="card-title">Дефект</span><span class="close-btn" onclick="closeCard()">✕</span></h3>
+  <p><span class="tag">Причина:</span> <span id="card-cause"></span></p>
+  <p><span class="tag">Опасность и риски:</span> <span id="card-risk"></span></p>
+  <p style="color:#fca5a5;"><span class="tag" style="color:#f87171;">Исправление:</span> <span id="card-fix"></span></p>
 </div>
 
 <div id="controls">
-  <button id="scan-btn" onclick="analyzeAR()">🔍 Сканировать поверхность</button>
+  <button id="scan-btn" onclick="scanSurface()">🔍 Найти дефекты в кадре</button>
 </div>
 
 <script>
@@ -60,84 +70,96 @@ window.addEventListener("load", () => {
 const video = document.getElementById("video");
 const canvas = document.getElementById("overlay");
 const ctx = canvas.getContext("2d");
-let activeZones = [];
+let zones = [];
 
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
   .then(stream => { video.srcObject = stream; })
-  .catch(() => { document.getElementById("status").innerText = "Разрешите доступ к камере"; });
+  .catch(() => { document.getElementById("status").innerText = "Нет доступа к камере"; });
 
-// Анализ цвета и текстуры кадра (выделение очагов ржавчины/трещин локально в AR без задержек)
-function analyzeAR() {
+function scanSurface() {
   const status = document.getElementById("status");
-  status.innerText = "Сканирование спектра...";
+  status.innerText = "Анализ геометрии и текстуры...";
 
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const w = video.videoWidth || 640;
+  const h = video.videoHeight || 480;
+  canvas.width = w;
+  canvas.height = h;
 
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imgData.data;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  activeZones = [];
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = w;
+  tempCanvas.height = h;
+  const tCtx = tempCanvas.getContext("2d");
+  tCtx.drawImage(video, 0, 0, w, h);
+  const data = tCtx.getImageData(0, 0, w, h).data;
 
-  const gridCols = 8, gridRows = 10;
-  const cellW = canvas.width / gridCols;
-  const cellH = canvas.height / gridRows;
+  ctx.clearRect(0, 0, w, h);
+  zones = [];
 
-  for (let r = 1; r < gridRows - 1; r++) {
-    for (let c = 1; c < gridCols - 1; c++) {
-      let rustPixels = 0, darkCrackPixels = 0, total = 0;
-      const startX = Math.floor(c * cellW), startY = Math.floor(r * cellH);
+  const cols = 6, rows = 8;
+  const cw = w / cols, ch = h / rows;
 
-      for (let y = startY; y < startY + cellH; y += 4) {
-        for (let x = startX; x < startX + cellW; x += 4) {
-          const i = (y * canvas.width + x) * 4;
+  for (let r = 1; r < rows - 1; r++) {
+    for (let c = 1; c < cols - 1; c++) {
+      let sx = Math.floor(c * cw), sy = Math.floor(r * ch);
+      let rustCount = 0, edgeContrast = 0, darkCount = 0, samples = 0;
+
+      for (let y = sy; y < sy + ch - 4; y += 4) {
+        for (let x = sx; x < sx + cw - 4; x += 4) {
+          const i = (y * w + x) * 4;
+          const iRight = (y * w + (x + 4)) * 4;
           const R = data[i], G = data[i + 1], B = data[i + 2];
-          total++;
-          // Детекция спектра оксида железа (ржавчина/коррозия)
-          if (R > 95 && G > 35 && G < 130 && B < 75 && (R - G) > 30 && (G - B) > 10) rustPixels++;
-          // Детекция глубоких теневых разломов/трещин
-          if (R < 45 && G < 45 && B < 45) darkCrackPixels++;
+          const diff = Math.abs(R - data[iRight]) + Math.abs(G - data[iRight + 1]) + Math.abs(B - data[iRight + 2]);
+
+          samples++;
+          // Ржавчина / окисление / отслоение темного слоя
+          if (R > 80 && G > 35 && G < 130 && B < 85 && (R - B) > 25) rustCount++;
+          // Резкий перепад контраста (сколы, трещины, расхождение швов)
+          if (diff > 95) edgeContrast++;
+          // Глубокие щели / разломы
+          if (R < 55 && G < 55 && B < 55) darkCount++;
         }
       }
 
-      if (rustPixels / total > 0.22) {
-        drawZone(startX, startY, cellW, cellH, "#ef4444", "Коррозия металла (7/10)",
-          "Активное окисление поверхности. Риск утонения стенки и разгерметизации узла.",
-          "Зачистить до чистого металла, замерить толщину, нанести грунт-эмаль.");
-      } else if (darkCrackPixels / total > 0.45) {
-        drawZone(startX, startY, cellW, cellH, "#eab308", "Трещина / разлом (8/10)",
-          "Нарушение целостности материала. Риск дальнейшего раскрытия под нагрузкой.",
-          "Установить контрольные маяки, провести инъектирование или усиление узла.");
+      if (rustCount / samples > 0.25) {
+        addZone(sx, sy, cw, ch, "#ef4444", "Коррозия / отслоение слоя (7/10)",
+          "Воздействие влаги, механический износ защитного покрытия или окисление материала.",
+          "Дальнейшее разрушение кромки, попадание влаги внутрь конструкции и потеря прочности.",
+          "Зачистить поврежденный участок, просушить, обработать грунтом и восстановить защитный слой.");
+      } else if (edgeContrast / samples > 0.14 || darkCount / samples > 0.35) {
+        addZone(sx, sy, cw, ch, "#eab308", "Скол / трещина / нарушение стыка (8/10)",
+          "Механическое ударное воздействие, усадка конструкции или перекос крепежных элементов.",
+          "Риск расхождения шва, заклинивания механизма или откола фрагментов конструкции.",
+          "Зафиксировать узел, заделать трещину/скол ремонтным составом и отрегулировать геометрию.");
       }
     }
   }
 
-  document.getElementById("counter").innerText = `Зон: ${activeZones.length}`;
-  status.innerText = activeZones.length > 0 ? "Нажмите на цветную зону" : "Дефектов не выявлено";
+  document.getElementById("counter").innerText = `Дефектов: ${zones.length}`;
+  status.innerText = zones.length > 0 ? "Нажмите на подсветку дефекта" : "Поверхность в норме";
 }
 
-function drawZone(x, y, w, h, color, title, risk, action) {
-  ctx.fillStyle = color + "44";
-  ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
+function addZone(x, y, w, h, color, title, cause, risk, fix) {
+  ctx.fillStyle = color + "45";
+  ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
   ctx.lineWidth = 3;
   ctx.strokeStyle = color;
-  ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
-  activeZones.push({ x, y, w, h, title, risk, action });
+  ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+  zones.push({ x, y, w, h, title, cause, risk, fix });
 }
 
-canvas.addEventListener("click", (e) => {
+canvas.addEventListener("pointerdown", (e) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  const cx = (e.clientX - rect.left) * scaleX;
-  const cy = (e.clientY - rect.top) * scaleY;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
 
-  for (let z of activeZones) {
-    if (cx >= z.x && cx <= z.x + z.w && cy >= z.y && cy <= z.y + z.h) {
+  for (let z of zones) {
+    if (px >= z.x && px <= z.x + z.w && py >= z.y && py <= z.y + z.h) {
       document.getElementById("card-title").innerText = z.title;
-      document.getElementById("card-desc").innerText = "Риск: " + z.risk;
-      document.getElementById("card-action").innerText = "Меры: " + z.action;
+      document.getElementById("card-cause").innerText = z.cause;
+      document.getElementById("card-risk").innerText = z.risk;
+      document.getElementById("card-fix").innerText = z.fix;
       document.getElementById("risk-card").style.display = "block";
       return;
     }
