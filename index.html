@@ -13,20 +13,22 @@
     --glass: rgba(8, 16, 26, 0.55);
     --text: #dff7ff;
     --dim: #7fa8b8;
+    --amber: #ffc46b;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
   body {
     margin: 0; overflow: hidden; background: #04060b; color: var(--text);
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    touch-action: pan-y;
   }
   .hide { display: none !important; }
 
-  /* ---------- КАМЕРА ---------- */
   #cam {
     position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh;
     object-fit: cover; filter: brightness(0.92) saturate(1.05); background: #04060b;
   }
+  #cam.mirror { transform: scaleX(-1); }
   #vignette {
     position: fixed; inset: 0; pointer-events: none; z-index: 5;
     background:
@@ -34,7 +36,6 @@
       radial-gradient(ellipse at center, transparent 46%, rgba(2,6,12,0.62) 100%);
   }
 
-  /* ---------- HUD ---------- */
   #hud {
     position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 14px; z-index: 30;
     display: flex; align-items: center; gap: 8px;
@@ -44,12 +45,13 @@
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan);
     box-shadow: 0 0 10px var(--cyan); animation: pulse 2s ease-in-out infinite; }
   .dot.talk { background: #7dffd4; box-shadow: 0 0 12px #7dffd4; animation-duration: 0.7s; }
-  .dot.think { background: #ffc46b; box-shadow: 0 0 12px #ffc46b; animation-duration: 0.9s; }
+  .dot.think { background: var(--amber); box-shadow: 0 0 12px var(--amber); animation-duration: 0.9s; }
   .dot.off { background: #5a6b74; box-shadow: none; animation: none; }
   #statusText { color: var(--dim); letter-spacing: 0.18em; }
+  #taskBadge { color: var(--amber); border: 1px solid rgba(255,196,107,0.5);
+    padding: 2px 7px; border-radius: 999px; font-size: 9px; letter-spacing: 0.16em; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
-  /* ---------- ВЕРХНИЙ АУДИОПЛЕЕР ---------- */
   #player {
     position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 50%; z-index: 60;
     width: min(94vw, 560px); padding: 10px 12px;
@@ -78,7 +80,6 @@
   #timeLabel { font-size: 11px; color: var(--dim); min-width: 76px; text-align: right;
     font-variant-numeric: tabular-nums; }
 
-  /* ---------- ЖИВЫЕ СУБТИТРЫ ---------- */
   #caption {
     position: fixed; bottom: 118px; left: 50%; transform: translateX(-50%); z-index: 35;
     max-width: 86vw; padding: 8px 16px; border-radius: 999px; text-align: center;
@@ -90,7 +91,6 @@
   }
   #caption.show { opacity: 1; }
 
-  /* ---------- ОКНА (ЧАТ И ВЕБ) ---------- */
   .win {
     position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
     display: flex; flex-direction: column; overflow: hidden;
@@ -120,7 +120,6 @@
     font-size: 13px; line-height: 1; font-family: inherit; }
   .wbtn:active { background: rgba(0,240,255,0.22); }
 
-  /* ---------- ЧАТ ---------- */
   #msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex;
     flex-direction: column; gap: 8px; }
   #msgs::-webkit-scrollbar { width: 4px; }
@@ -133,6 +132,9 @@
   .msg.jarvis { align-self: flex-start; color: var(--text);
     background: rgba(10,20,32,0.72); border: 1px solid rgba(0,240,255,0.18);
     border-bottom-left-radius: 4px; }
+  .msg.imgmsg { padding: 6px; max-width: 92%; }
+  .msg.imgmsg img { display: block; width: 100%; border-radius: 10px; }
+  .msg.imgmsg .lab { padding: 6px 6px 2px; font-size: 11px; letter-spacing: 0.08em; color: var(--cyan); }
   .msg.typing { display: flex; gap: 5px; align-items: center; padding: 12px 14px; }
   .msg.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan);
     animation: pulse 1s ease-in-out infinite; }
@@ -155,12 +157,10 @@
     color: var(--cyan); font-size: 18px; font-family: inherit; }
   #btnPlus:active, #btnSend:active { background: rgba(0,240,255,0.25); }
 
-  /* ---------- ВЕБ-ОКНО ---------- */
   #webHint { padding: 6px 12px; font-size: 11px; color: var(--dim);
     border-bottom: 1px solid rgba(0,240,255,0.12); }
   #webFrame { flex: 1; width: 100%; border: 0; background: #0a121c; }
 
-  /* ---------- СВЁРНУТЫЕ ВКЛАДКИ ---------- */
   .sideTab {
     position: fixed; right: 0; z-index: 45; display: none; cursor: pointer;
     padding: 12px 10px; border-radius: 12px 0 0 12px; font-size: 16px;
@@ -176,7 +176,6 @@
     50% { box-shadow: 0 0 26px rgba(0,240,255,0.65); }
   }
 
-  /* ---------- НИЖНИЙ ДОК ---------- */
   #dock { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 18px);
     left: 50%; transform: translateX(-50%); z-index: 50;
     display: flex; align-items: center; gap: 16px; }
@@ -195,7 +194,7 @@
     box-shadow: 0 0 14px var(--cyan); animation: pulse 2.4s ease-in-out infinite; }
   #btnRing.listening { animation: ringBreath 2.4s ease-in-out infinite; }
   #btnRing.speaking { animation: ringBreath 0.8s ease-in-out infinite; }
-  #btnRing.thinking .core { background: #ffc46b; box-shadow: 0 0 14px #ffc46b; }
+  #btnRing.thinking .core { background: var(--amber); box-shadow: 0 0 14px var(--amber); }
   #btnRing.muted { border-color: rgba(140,160,170,0.4); box-shadow: none; animation: none; }
   #btnRing.muted .core { background: #5a6b74; box-shadow: none; animation: none; }
   @keyframes ringBreath {
@@ -225,6 +224,7 @@
   <span class="dot" id="liveDot"></span>
   <span>JARVIS</span>
   <span id="statusText">ЗАПУСК</span>
+  <span id="taskBadge" class="hide">ЗАДАЧА</span>
 </div>
 
 <div id="player">
@@ -295,22 +295,24 @@ var SILENT_WAV = "data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+
 function $(id) { return document.getElementById(id); }
 
 var cam = $("cam"), grab = $("grab"), ctx = grab.getContext("2d");
-var liveDot = $("liveDot"), statusText = $("statusText"), caption = $("caption");
+var liveDot = $("liveDot"), statusText = $("statusText"), caption = $("caption"), taskBadge = $("taskBadge");
 var player = $("player"), tts = $("tts"), btnPlay = $("btnPlay");
 var btnBack = $("btnBack"), btnFwd = $("btnFwd"), seek = $("seek"), timeLabel = $("timeLabel");
 var chatWin = $("chatWin"), webWin = $("webWin"), chatTab = $("chatTab"), webTab = $("webTab");
 var msgs = $("msgs"), txt = $("txt"), btnSend = $("btnSend"), btnPlus = $("btnPlus");
 var fileInput = $("fileInput"), attachChip = $("attachChip"), attachName = $("attachName"), attachDel = $("attachDel");
-var webFrame = $("webFrame"), webTitle = $("webTitle"), webOpen = $("webOpen"), webHint = $("webHint");
+var webFrame = $("webFrame"), webTitle = $("webTitle"), webOpen = $("webOpen");
 var ring = $("btnRing"), btnMute = $("btnMute"), muteSlash = $("muteSlash");
 
 var stream = null, rec = null, recWanted = true;
-var muted = false, speaking = false, busy = false, seeking = false;
+var muted = false, speaking = false, busy = false, seeking = false, watching = false;
 var currentFrame = "", attachedFile = null, currentUrl = "";
 var queue = [], zTop = 40, captionTimer = null;
 var audioUnlocked = false, unlocking = false;
+var taskActive = false, lastSay = "", followUntil = 0;
+var cams = [], camIdx = 0, visualMem = [], ruVoice = null;
+var WAKE_RE = /(джарвис|жарвис|джарвисс|jarvis)/i;
 
-/* ---------- Telegram Mini App ---------- */
 try {
   if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();
@@ -322,13 +324,14 @@ try {
   }
 } catch (e) {}
 
-/* ---------- Статус ---------- */
 function setStatus(text, mode) {
   statusText.textContent = text;
   liveDot.className = "dot " + (mode || "");
 }
 function idleStatus() {
-  if (muted) { setStatus("ПАУЗА", "off"); } else { setStatus("СЛУШАЮ", ""); }
+  if (muted) { setStatus("ПАУЗА", "off"); }
+  else if (Date.now() < followUntil) { setStatus("ДИАЛОГ", ""); }
+  else { setStatus("СЛУШАЮ • ЖДУ ИМЯ", ""); }
 }
 function showCaption(text, autohide) {
   caption.textContent = text;
@@ -339,7 +342,50 @@ function showCaption(text, autohide) {
   }
 }
 
-/* ---------- Разблокировка звука на мобильных ---------- */
+/* ---------- Запасной голос браузера ---------- */
+function pickVoice() {
+  if (!window.speechSynthesis) { return; }
+  var voices = window.speechSynthesis.getVoices();
+  var fallback = null;
+  for (var i = 0; i < voices.length; i++) {
+    var v = voices[i];
+    if (/ru/i.test(v.lang)) {
+      if (/male|dmitry|муж|pavel|юрий/i.test(v.name)) { ruVoice = v; return; }
+      if (!fallback) { fallback = v; }
+    }
+  }
+  if (!ruVoice) { ruVoice = fallback; }
+}
+if (window.speechSynthesis) {
+  pickVoice();
+  window.speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speakLocal(text) {
+  if (!window.speechSynthesis || !text) { return; }
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = "ru-RU";
+    u.pitch = 0.8;
+    u.rate = 1.0;
+    if (ruVoice) { u.voice = ruVoice; }
+    u.onstart = function () {
+      speaking = true; stopRec();
+      ring.classList.add("speaking");
+      setStatus("ГОВОРЮ", "talk");
+    };
+    u.onend = function () {
+      speaking = false;
+      ring.classList.remove("speaking");
+      if (!muted) { startRec(); }
+      idleStatus();
+    };
+    u.onerror = u.onend;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+/* ---------- Разблокировка звука ---------- */
 function unlockAudio() {
   if (audioUnlocked) { return; }
   audioUnlocked = true;
@@ -354,22 +400,28 @@ function unlockAudio() {
         tts.removeAttribute("src");
         tts.muted = false;
         setTimeout(function () { unlocking = false; }, 300);
-      }).catch(function () {
-        tts.muted = false;
-        unlocking = false;
-      });
-    } else {
-      tts.muted = false;
-      unlocking = false;
-    }
-  } catch (e) {
-    tts.muted = false;
-    unlocking = false;
-  }
+      }).catch(function () { tts.muted = false; unlocking = false; });
+    } else { tts.muted = false; unlocking = false; }
+  } catch (e) { tts.muted = false; unlocking = false; }
 }
 document.addEventListener("pointerdown", unlockAudio, { once: true });
 
-/* ---------- Камера: непрерывный поток ---------- */
+/* ---------- Камера + свайп-переворот ---------- */
+function applyStream(s) {
+  stream = s;
+  cam.srcObject = s;
+  cam.play().catch(function () {});
+  var front = false;
+  try {
+    var tr = s.getVideoTracks();
+    if (tr.length) {
+      var st = tr.item(0).getSettings ? tr.item(0).getSettings() : {};
+      front = st.facingMode === "user";
+    }
+  } catch (e) {}
+  cam.classList.toggle("mirror", front);
+  idleStatus();
+}
 function startCamera() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setStatus("КАМЕРА НЕДОСТУПНА", "off");
@@ -377,36 +429,92 @@ function startCamera() {
   }
   navigator.mediaDevices.getUserMedia({
     audio: false,
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 }
-    }
-  }).then(function (s) {
-    stream = s;
-    cam.srcObject = s;
-    cam.play().catch(function () {});
-    idleStatus();
-  }).catch(function () {
-    setStatus("НЕТ ДОСТУПА К КАМЕРЕ", "off");
-  });
+    video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+  }).then(applyStream).catch(function () { setStatus("НЕТ ДОСТУПА К КАМЕРЕ", "off"); });
+  listCams();
 }
+function listCams() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) { return; }
+  navigator.mediaDevices.enumerateDevices().then(function (devices) {
+    cams = [];
+    for (var i = 0; i < devices.length; i++) {
+      if (devices[i].kind === "videoinput") { cams.push(devices[i]); }
+    }
+  }).catch(function () {});
+}
+function flipCamera() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { return; }
+  if (!cams.length) { listCams(); showCaption("Камеры ещё не перечислены, попробуйте свайп ещё раз", true); return; }
+  camIdx = (camIdx + 1) % cams.length;
+  var dev = cams[camIdx];
+  if (stream) {
+    var old = stream.getTracks();
+    for (var i = 0; i < old.length; i++) { old[i].stop(); }
+  }
+  navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: { deviceId: { exact: dev.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+  }).then(function (s) {
+    applyStream(s);
+    var label = dev.label || ("камера " + (camIdx + 1));
+    showCaption("КАМЕРА " + (camIdx + 1) + "/" + cams.length + " • " + label.toUpperCase(), true);
+  }).catch(function () { showCaption("Эта камера недоступна", true); });
+}
+var touchX = 0, touchY = 0, touchT = 0;
+document.addEventListener("touchstart", function (e) {
+  var t = e.changedTouches.item(0);
+  touchX = t.clientX; touchY = t.clientY; touchT = Date.now();
+}, { passive: true });
+document.addEventListener("touchend", function (e) {
+  var t = e.changedTouches.item(0);
+  var dx = t.clientX - touchX, dy = t.clientY - touchY;
+  var inWin = e.target.closest && e.target.closest(".win, #dock, #player, input, button");
+  if (!inWin && Math.abs(dx) > 60 && Math.abs(dy) < 80 && Date.now() - touchT < 600) {
+    flipCamera();
+  }
+}, { passive: true });
 
-/* ---------- Кадр в память каждые 1.5 секунды ---------- */
+/* ---------- Кадр в память каждые 1.5 с ---------- */
 setInterval(function () {
   if (muted || !stream || cam.readyState < 2) { return; }
   var w = cam.videoWidth, h = cam.videoHeight;
   if (!w || !h) { return; }
-  var scale = Math.min(1, 960 / w);
+  var scale = Math.min(1, 1280 / w);
   grab.width = Math.round(w * scale);
   grab.height = Math.round(h * scale);
   ctx.drawImage(cam, 0, 0, grab.width, grab.height);
-  currentFrame = grab.toDataURL("image/jpeg", 0.72);
+  currentFrame = grab.toDataURL("image/jpeg", 0.8);
 }, 1500);
 
-/* ---------- Постоянное распознавание речи ---------- */
-var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* ---------- Непрерывное наблюдение (/watch) ---------- */
+setInterval(function () {
+  if (muted || watching || !currentFrame || document.hidden) { return; }
+  watching = true;
+  var fd = new FormData();
+  fd.append("image", currentFrame);
+  fd.append("voice", taskActive ? "true" : "false");
+  fetch(API_BASE + "/watch", { method: "POST", body: fd })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      taskActive = !!data.task;
+      taskBadge.classList.toggle("hide", !taskActive);
+      if (data.say && data.say !== lastSay) {
+        lastSay = data.say;
+        showCaption(data.say, true);
+        addMsg("jarvis", data.say);
+        if (data.has_audio) { playVoice(); } else { speakLocal(data.say); }
+      }
+      if (!taskActive && data.objects && data.objects.length && currentFrame) {
+        visualMem.push({ t: Date.now(), frame: currentFrame, objects: data.objects, box: data.box || [] });
+        if (visualMem.length > 10) { visualMem.shift(); }
+      }
+      watching = false;
+    })
+    .catch(function () { watching = false; });
+}, 5000);
 
+/* ---------- Распознавание речи + обращение по имени ---------- */
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 function startRec() {
   if (!rec || !recWanted || muted || speaking || document.hidden) { return; }
   try { rec.start(); } catch (e) {}
@@ -415,11 +523,10 @@ function stopRec() {
   if (!rec) { return; }
   try { rec.stop(); } catch (e) {}
 }
-
 function setupRecognition() {
   if (!SR) {
     recWanted = false;
-    showCaption("Распознавание речи не поддерживается этим браузером — используйте чат.", true);
+    showCaption("Распознавание речи не поддерживается — используйте чат.", true);
     return;
   }
   rec = new SR();
@@ -427,9 +534,7 @@ function setupRecognition() {
   rec.continuous = true;
   rec.interimResults = true;
   rec.maxAlternatives = 1;
-
   rec.onstart = function () { ring.classList.add("listening"); };
-
   rec.onresult = function (event) {
     var finalText = "", interim = "";
     for (var i = event.resultIndex; i < event.results.length; i++) {
@@ -441,17 +546,18 @@ function setupRecognition() {
     interim = interim.trim();
     if (interim) { showCaption(interim, false); }
     finalText = finalText.trim();
-    if (finalText) {
-      showCaption(finalText, true);
-      enqueue(finalText, null);
-    }
+    if (!finalText) { return; }
+    var addressed = WAKE_RE.test(finalText) || Date.now() < followUntil;
+    if (!addressed) { return; }
+    var clean = finalText.replace(WAKE_RE, "").replace(/^[,.\s-]+/, "").trim();
+    if (!clean) { clean = "Да, сэр?"; }
+    showCaption(clean, true);
+    enqueue(clean, null);
   };
-
   rec.onend = function () {
     ring.classList.remove("listening");
     if (recWanted && !muted && !speaking) { setTimeout(startRec, 350); }
   };
-
   rec.onerror = function (event) {
     if (event.error === "not-allowed" || event.error === "service-not-allowed") {
       recWanted = false;
@@ -460,7 +566,7 @@ function setupRecognition() {
   };
 }
 
-/* ---------- Пауза микрофона и камеры (Mute) ---------- */
+/* ---------- Mute ---------- */
 btnMute.onclick = function () {
   unlockAudio();
   muted = !muted;
@@ -483,25 +589,16 @@ btnMute.onclick = function () {
   }
 };
 
-/* ---------- Окна: открыть / свернуть / закрыть ---------- */
+/* ---------- Окна ---------- */
 function showWin(win, tab) {
   win.classList.remove("hide");
   tab.classList.remove("show");
   zTop += 1;
   win.style.zIndex = zTop;
 }
-function minimizeWin(win, tab) {
-  win.classList.add("hide");
-  tab.classList.add("show");
-}
-function closeWin(win, tab) {
-  win.classList.add("hide");
-  tab.classList.remove("show");
-}
-function openChat() {
-  showWin(chatWin, chatTab);
-  msgs.scrollTop = msgs.scrollHeight;
-}
+function minimizeWin(win, tab) { win.classList.add("hide"); tab.classList.add("show"); }
+function closeWin(win, tab) { win.classList.add("hide"); tab.classList.remove("show"); }
+function openChat() { showWin(chatWin, chatTab); msgs.scrollTop = msgs.scrollHeight; }
 function openWeb(url) {
   currentUrl = url;
   webFrame.src = url;
@@ -509,7 +606,6 @@ function openWeb(url) {
   catch (e) { webTitle.textContent = "ВЕБ-ОКНО"; }
   showWin(webWin, webTab);
 }
-
 $("chatMin").onclick = function () { minimizeWin(chatWin, chatTab); };
 $("chatClose").onclick = function () { closeWin(chatWin, chatTab); };
 chatTab.onclick = function () { openChat(); };
@@ -519,14 +615,13 @@ webTab.onclick = function () { showWin(webWin, webTab); };
 webOpen.onclick = function () { if (currentUrl) { window.open(currentUrl, "_blank"); } };
 chatWin.addEventListener("pointerdown", function () { zTop += 1; chatWin.style.zIndex = zTop; });
 webWin.addEventListener("pointerdown", function () { zTop += 1; webWin.style.zIndex = zTop; });
-
 ring.onclick = function () {
   unlockAudio();
   if (chatWin.classList.contains("hide")) { openChat(); }
   else { minimizeWin(chatWin, chatTab); }
 };
 
-/* ---------- Сообщения чата ---------- */
+/* ---------- Сообщения ---------- */
 function addMsg(role, text) {
   var div = document.createElement("div");
   div.className = "msg " + role;
@@ -535,23 +630,77 @@ function addMsg(role, text) {
   msgs.scrollTop = msgs.scrollHeight;
   return div;
 }
+function addImageMsg(src, label) {
+  var div = document.createElement("div");
+  div.className = "msg jarvis imgmsg";
+  var img = document.createElement("img");
+  img.src = src;
+  var lab = document.createElement("div");
+  lab.className = "lab";
+  lab.textContent = label;
+  div.appendChild(img);
+  div.appendChild(lab);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
 function showTyping() {
   var div = document.createElement("div");
   div.className = "msg jarvis typing";
-  var s1 = document.createElement("span");
-  var s2 = document.createElement("span");
-  var s3 = document.createElement("span");
-  div.appendChild(s1); div.appendChild(s2); div.appendChild(s3);
+  div.appendChild(document.createElement("span"));
+  div.appendChild(document.createElement("span"));
+  div.appendChild(document.createElement("span"));
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
   return div;
 }
 
-/* ---------- Очередь отправки на сервер ---------- */
-function enqueue(text, file) {
-  queue.push({ text: text, file: file });
-  pump();
+/* ---------- Обводка потерянной вещи на кадре памяти ---------- */
+function annotate(mark) {
+  var needle = mark.toLowerCase();
+  var entry = null;
+  for (var i = visualMem.length - 1; i >= 0; i--) {
+    var joined = visualMem[i].objects.join(" ").toLowerCase();
+    if (joined.indexOf(needle) >= 0 || needle.indexOf(joined.split(" ").shift()) >= 0) {
+      entry = visualMem[i];
+      break;
+    }
+  }
+  if (!entry) { return; }
+  var img = new Image();
+  img.onload = function () {
+    var c = document.createElement("canvas");
+    c.width = img.width; c.height = img.height;
+    var g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    var b = entry.box.slice();
+    var x = 0.2, y = 0.2, w = 0.6, h = 0.6;
+    if (b.length >= 4) {
+      x = Number(b.shift()) / 100; y = Number(b.shift()) / 100;
+      w = Number(b.shift()) / 100; h = Number(b.shift()) / 100;
+      if (!(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= 1.2 && y + h <= 1.2)) {
+        x = 0.2; y = 0.2; w = 0.6; h = 0.6;
+      }
+    }
+    g.strokeStyle = "#00f0ff";
+    g.lineWidth = Math.max(3, c.width / 220);
+    g.shadowColor = "#00f0ff";
+    g.shadowBlur = 18;
+    g.strokeRect(x * c.width, y * c.height, w * c.width, h * c.height);
+    g.shadowBlur = 0;
+    g.fillStyle = "#00f0ff";
+    g.font = Math.max(14, c.width / 34) + "px Segoe UI, sans-serif";
+    var when = new Date(entry.t);
+    var hh = when.getHours(), mm = when.getMinutes();
+    g.fillText(mark.toUpperCase() + " • " + hh + ":" + (mm < 10 ? "0" : "") + mm,
+      x * c.width, Math.max(20, y * c.height - 8));
+    addImageMsg(c.toDataURL("image/jpeg", 0.85), "ВИДЕЛ ЗДЕСЬ • " + mark);
+    openChat();
+  };
+  img.src = entry.frame;
 }
+
+/* ---------- Очередь /ask ---------- */
+function enqueue(text, file) { queue.push({ text: text, file: file }); pump(); }
 function pump() {
   if (busy || queue.length === 0) { return; }
   busy = true;
@@ -581,9 +730,13 @@ function pump() {
     .then(function (data) {
       typing.remove();
       addMsg("jarvis", data.reply || "…");
+      followUntil = Date.now() + 12000;
+      taskActive = !!data.task;
+      taskBadge.classList.toggle("hide", !taskActive);
       openChat();
+      if (data.mark) { annotate(data.mark); }
       if (data.action_url) { openWeb(data.action_url); }
-      if (data.has_audio) { playVoice(); }
+      if (data.has_audio) { playVoice(); } else { speakLocal(data.reply || ""); }
       finish();
     })
     .catch(function () {
@@ -593,7 +746,7 @@ function pump() {
     });
 }
 
-/* ---------- Верхний аудиоплеер ---------- */
+/* ---------- Плеер ---------- */
 function fmt(s) {
   if (!isFinite(s) || s < 0) { s = 0; }
   s = Math.floor(s);
@@ -631,9 +784,7 @@ tts.onloadedmetadata = function () {
   timeLabel.textContent = fmt(tts.currentTime) + " / " + fmt(tts.duration);
 };
 tts.ontimeupdate = function () {
-  if (!seeking && isFinite(tts.duration) && tts.duration > 0) {
-    seek.value = String(tts.currentTime);
-  }
+  if (!seeking && isFinite(tts.duration) && tts.duration > 0) { seek.value = String(tts.currentTime); }
   timeLabel.textContent = fmt(tts.currentTime) + " / " + fmt(tts.duration);
 };
 seek.addEventListener("input", function () {
@@ -643,8 +794,7 @@ seek.addEventListener("input", function () {
 });
 seek.addEventListener("change", function () { seeking = false; });
 btnPlay.onclick = function () {
-  if (tts.paused) { tts.play().catch(function () {}); }
-  else { tts.pause(); }
+  if (tts.paused) { tts.play().catch(function () {}); } else { tts.pause(); }
 };
 btnBack.onclick = function () { tts.currentTime = Math.max(0, tts.currentTime - 10); };
 btnFwd.onclick = function () {
@@ -652,7 +802,7 @@ btnFwd.onclick = function () {
   tts.currentTime = Math.min(d, tts.currentTime + 10);
 };
 
-/* ---------- Кнопка + : файлы ---------- */
+/* ---------- Файлы и текст ---------- */
 function clearAttach() {
   attachedFile = null;
   fileInput.value = "";
@@ -668,12 +818,11 @@ fileInput.onchange = function () {
   }
 };
 attachDel.onclick = clearAttach;
-
-/* ---------- Отправка текста ---------- */
 function sendText() {
   var t = txt.value.trim();
   if (!t && !attachedFile) { return; }
   unlockAudio();
+  followUntil = Date.now() + 12000;
   enqueue(t || "Проанализируй прикреплённый файл.", attachedFile);
   txt.value = "";
   clearAttach();
@@ -683,17 +832,17 @@ txt.addEventListener("keydown", function (e) {
   if (e.key === "Enter") { e.preventDefault(); sendText(); }
 });
 
-/* ---------- Экономия при сворачивании вкладки ---------- */
 document.addEventListener("visibilitychange", function () {
-  if (document.hidden) { stopRec(); } else { startRec(); }
+  if (document.hidden) { stopRec(); } else { startRec(); idleStatus(); }
 });
+setInterval(idleStatus, 4000);
 
-/* ---------- Старт системы ---------- */
+/* ---------- Старт ---------- */
 setupRecognition();
 startCamera();
 startRec();
-addMsg("jarvis", "Системы активны, сэр. Я вижу вашу камеру и слышу вас. Говорите в любой момент.");
-showCaption("Джарвис на связи. Говорите.", true);
+addMsg("jarvis", "Системы активны, сэр. Обращайтесь по имени: «Джарвис, …». Свайп вбок перевернёт камеру.");
+showCaption("Скажите «Джарвис, …» — я слушаю.", true);
 idleStatus();
 </script>
 </body>
