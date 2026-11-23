@@ -3,339 +3,330 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>JARVIS</title>
+<title>J.A.R.V.I.S.</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{
-  --bg:#050a12; --panel:#0a1626; --line:#123a5c; --accent:#00d4ff;
-  --accent2:#ffaa00; --text:#cfe9ff; --dim:#5a7a99;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:radial-gradient(1200px 800px at 50% -10%,#0b2038 0%,var(--bg) 60%);
-  color:var(--text); font-family:'Segoe UI',Roboto,monospace; height:100vh;
-  overflow:hidden; display:flex; flex-direction:column;
-}
-#header{
-  display:flex;align-items:center;gap:10px;padding:10px 14px;
-  border-bottom:1px solid var(--line); background:rgba(10,22,38,.9);
-}
-#core{
-  width:38px;height:38px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%,#7ff0ff,#0077aa 60%,#002233);
-  box-shadow:0 0 18px var(--accent),0 0 40px rgba(0,212,255,.35);
-  animation:pulse 2.4s ease-in-out infinite;
-}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-#title{font-size:18px;letter-spacing:3px;color:var(--accent);font-weight:700}
-#status{font-size:11px;color:var(--dim)}
-#chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.4;
-  border:1px solid var(--line); white-space:pre-wrap; word-break:break-word}
-.msg.user{align-self:flex-end;background:#0d2b45;border-color:#1c5a86}
-.msg.bot{align-self:flex-start;background:var(--panel)}
-.msg .link{display:block;color:var(--accent);margin-top:4px;word-break:break-all}
-#camWrap{display:none;position:relative;margin:0 12px;border:1px solid var(--line);
-  border-radius:10px;overflow:hidden;background:#000}
-#cam{display:block;width:100%;max-height:180px;object-fit:cover}
-#camClose{position:absolute;top:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;
-  border:1px solid var(--line);border-radius:6px;padding:2px 8px}
-#inputBar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);
-  background:rgba(10,22,38,.95)}
-#input{flex:1;background:#071525;border:1px solid var(--line);border-radius:10px;
-  color:var(--text);padding:10px 12px;font-size:14px;outline:none}
-.btn{background:#0d2b45;border:1px solid var(--accent);color:var(--accent);
-  border-radius:10px;padding:10px 13px;font-size:16px;cursor:pointer}
-.btn:active{background:#154e77}
-.btn.rec{border-color:#ff3355;color:#ff3355;animation:pulse 1s infinite}
-/* === floating windows manager (Windows-style) === */
-.win{position:fixed;left:8px;top:80px;width:calc(100vw - 24px);max-height:70vh;
-  background:rgba(6,16,28,.97);border:1px solid var(--accent);border-radius:10px;
-  box-shadow:0 8px 30px rgba(0,0,0,.7);display:flex;flex-direction:column;z-index:50;
-  animation:open .18s ease}
-@keyframes open{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
-.winbar{display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:grab;
-  background:#0d2b45;border-bottom:1px solid var(--line);border-radius:9px 9px 0 0;
-  touch-action:none;user-select:none}
-.winbar .wt{flex:1;font-size:13px;color:var(--accent);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
-.wbtn{width:28px;height:24px;border:none;border-radius:5px;font-size:13px;cursor:pointer;
-  background:#123a5c;color:var(--text)}
-.wbtn.x{background:#7a1020}
-.winbody{overflow-y:auto;padding:10px;font-size:13px}
-.resItem{padding:8px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;
-  background:var(--panel)}
-.resItem a{color:var(--accent);font-size:14px;display:block;margin-bottom:4px}
-.resItem p{color:var(--dim);font-size:12px}
-.webframe{width:100%;height:50vh;border:none;background:#fff;border-radius:6px}
-/* minimized dock at the RIGHT edge */
-#dock{position:fixed;right:0;top:30%;display:flex;flex-direction:column;gap:6px;z-index:60}
-.dockBtn{writing-mode:vertical-rl;transform:rotate(180deg);
-  background:#0d2b45;border:1px solid var(--accent);border-right:none;
-  border-radius:8px 0 0 8px;color:var(--accent);padding:10px 4px;font-size:11px;
-  max-height:110px;overflow:hidden;cursor:pointer}
+  :root{ --acc:#39d7ff; --bg:#05070c; --panel:rgba(10,16,26,.82); --line:rgba(57,215,255,.25); }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Segoe UI',system-ui,monospace;color:#cfeaff;}
+  #cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55) saturate(1.1);}
+  #scan{position:fixed;inset:0;pointer-events:none;z-index:2;
+    background:repeating-linear-gradient(0deg,rgba(57,215,255,.03) 0 2px,transparent 2px 4px);}
+  #hdr{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:8px;
+    padding:10px 14px;background:linear-gradient(180deg,rgba(5,7,12,.85),transparent);}
+  #hdr .dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 10px var(--acc);
+    animation:pul 2s infinite;}
+  @keyframes pul{0%,100%{opacity:1}50%{opacity:.25}}
+  #hdr b{font-size:15px;letter-spacing:3px;color:var(--acc);font-weight:600;}
+  #status{flex:1;text-align:right;font-size:11px;color:#7fb8d9;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;}
+  #log{position:fixed;left:0;right:0;bottom:118px;z-index:9;padding:6px 14px;pointer-events:none;
+    max-height:120px;overflow:hidden;font-size:12px;color:#9fd8f5;text-shadow:0 1px 3px #000;}
+  #log div{margin:2px 0;opacity:.9;animation:fin .3s;}
+  @keyframes fin{from{opacity:0;transform:translateY(6px)}}
+  #bar{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;gap:8px;padding:10px 12px 14px;
+    background:linear-gradient(0deg,rgba(5,7,12,.9),transparent);}
+  #inp{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:#dff4ff;
+    padding:11px 12px;font-size:14px;outline:none;font-family:inherit;}
+  .btn{border:1px solid var(--line);background:var(--panel);color:var(--acc);border-radius:10px;
+    padding:0 16px;font-size:18px;font-family:inherit;}
+  .btn:active{transform:scale(.94);}
+  /* ---------- окна ---------- */
+  .win{position:fixed;z-index:20;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;backdrop-filter:blur(8px);box-shadow:0 8px 40px rgba(0,0,0,.6);
+    display:flex;flex-direction:column;overflow:hidden;animation:wopen .25s;}
+  @keyframes wopen{from{opacity:0;transform:scale(.85)}}
+  .whd{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:grab;user-select:none;
+    border-bottom:1px solid var(--line);background:rgba(57,215,255,.06);touch-action:none;}
+  .whd .t{flex:1;font-size:12px;letter-spacing:1px;color:var(--acc);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;}
+  .wb{width:30px;height:26px;border:none;border-radius:6px;background:transparent;color:#8fd8ff;
+    font-size:15px;font-family:inherit;}
+  .wb:active{background:rgba(57,215,255,.15);}
+  .wbd{flex:1;overflow:auto;padding:10px;font-size:13px;line-height:1.5;-webkit-overflow-scrolling:touch;}
+  .wbd a{color:var(--acc);display:block;padding:7px 4px;border-bottom:1px dashed rgba(57,215,255,.15);
+    text-decoration:none;font-size:13px;}
+  .wbd iframe{width:100%;height:100%;border:none;background:#fff;}
+  .wbd pre{background:rgba(0,0,0,.5);border:1px solid var(--line);border-radius:8px;padding:10px;
+    font-size:12px;overflow:auto;white-space:pre-wrap;color:#b7f3ff;}
+  /* свёрнутые — вплотную к правой стенке */
+  .min{position:fixed;right:0;z-index:19;width:44px;height:44px;border:1px solid var(--line);
+    border-right:none;border-radius:10px 0 0 10px;background:var(--panel);color:var(--acc);
+    display:flex;align-items:center;justify-content:center;font-size:17px;backdrop-filter:blur(8px);
+    animation:minslide .25s;}
+  @keyframes minslide{from{transform:translateX(50px)}}
+  .min span{position:absolute;right:48px;font-size:10px;color:#7fb8d9;white-space:nowrap;
+    background:rgba(5,7,12,.8);padding:3px 8px;border-radius:6px;border:1px solid var(--line);
+    display:none;}
+  .min:active span{display:block;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .grid figure{border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  .grid img{width:100%;display:block;}
+  .grid figcaption{font-size:10px;color:#9fd8f5;padding:5px;}
+  #fx{position:fixed;inset:0;z-index:60;pointer-events:none;}
 </style>
 </head>
 <body>
-<div id="header">
-  <div id="core"></div>
-  <div>
-    <div id="title">J.A.R.V.I.S.</div>
-    <div id="status">готов</div>
-  </div>
+<video id="cam" autoplay playsinline muted></video>
+<div id="scan"></div>
+<div id="hdr"><div class="dot"></div><b>J.A.R.V.I.S.</b><div id="status">инициализация…</div></div>
+<div id="log"></div>
+<div id="bar">
+  <input id="inp" placeholder="команда или вопрос…" autocomplete="off">
+  <button class="btn" id="send">➤</button>
+  <button class="btn" id="mic">🎙</button>
 </div>
-
-<div id="chat"></div>
-
-<div id="camWrap">
-  <video id="cam" autoplay playsinline muted></video>
-  <button id="camClose">✕</button>
-</div>
-
-<div id="inputBar">
-  <button class="btn" id="micBtn" title="Голос">🎙</button>
-  <button class="btn" id="camBtn" title="Зрение">📷</button>
-  <input id="input" placeholder="Спроси что-нибудь…" autocomplete="off">
-  <button class="btn" id="sendBtn">➤</button>
-</div>
-
-<div id="dock"></div>
+<canvas id="fx"></canvas>
 
 <script>
-/* ==================== SETTINGS ==================== */
-const TUNNEL_URL = "https://alpine-guitars-preserve-cups.trycloudflare.com";
- // <- your HTTPS tunnel to Termux
-const API = TUNNEL_URL.replace(/\/$/, "");
-const tg = window.Telegram?.WebApp;
-tg?.ready(); tg?.expand();
+/* =========================================================
+   НАСТРОЙКА: вставь сюда HTTPS-адрес туннеля из Termux
+   (выдаёт cloudflared: https://xxxx.trycloudflare.com)
+   ========================================================= */
+const SERVER_URL = "https://b5d267845bb62826-141-227-160-192.serveousercontent.com";
 
-/* ==================== UI helpers ==================== */
-const chat = document.getElementById('chat');
-const statusEl = document.getElementById('status');
-let history = [];
+if (window.Telegram && Telegram.WebApp) Telegram.WebApp.expand();
 
-function setStatus(t){ statusEl.textContent = t; }
-function addMsg(text, cls){
-  const d = document.createElement('div');
-  d.className = 'msg ' + cls;
-  d.textContent = text;
-  chat.appendChild(d);
-  chat.scrollTop = chat.scrollHeight;
-  return d;
+const $ = s => document.querySelector(s);
+const log = t => { const d=document.createElement('div'); d.textContent='» '+t;
+  $('#log').prepend(d); while($('#log').children.length>6) $('#log').lastChild.remove(); };
+const setStatus = t => $('#status').textContent = t;
+
+/* ---------- камера ---------- */
+let facing = "environment", stream = null;
+async function startCam(){
+  if (stream) stream.getTracks().forEach(t=>t.stop());
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false});
+    $('#cam').srcObject = stream;
+    setStatus(facing==="user" ? "камера: фронтальная" : "камера: основная");
+  }catch(e){ setStatus("камера недоступна: "+e.message); }
+}
+/* свайп вправо по экрану — перевернуть камеру */
+let tsx=0,tsy=0;
+document.addEventListener('touchstart',e=>{tsx=e.touches[0].clientX;tsy=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tsx, dy=e.changedTouches[0].clientY-tsy;
+  if (dx>90 && Math.abs(dy)<70){ facing = facing==="user"?"environment":"user"; startCam(); log("камера перевернута"); }
+},{passive:true});
+startCam();
+
+function captureFrame(){
+  const v=$('#cam'); if(!v.videoWidth) return null;
+  const c=document.createElement('canvas');
+  c.width=640; c.height=Math.round(640*v.videoHeight/v.videoWidth)||480;
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',0.7);
 }
 
-/* ==================== Floating window manager ==================== */
-const dock = document.getElementById('dock');
-let winCount = 0;
-
-function createWindow(title, bodyHTML, opts = {}){
-  const id = 'win' + (++winCount);
-  const win = document.createElement('div');
-  win.className = 'win';
-  win.id = id;
-  win.style.top = (70 + winCount * 24) + 'px';
-  win.style.zIndex = 50 + winCount;
-  win.innerHTML = `
-    <div class="winbar">
-      <span class="wt">${title}</span>
-      <button class="wbtn min" title="Свернуть">_</button>
-      <button class="wbtn x" title="Закрыть">✕</button>
-    </div>
-    <div class="winbody">${bodyHTML}</div>`;
-  document.body.appendChild(win);
-
-  const bar = win.querySelector('.winbar');
-  bar.querySelector('.x').onclick = () => { win.remove(); dockBtn?.remove(); };
-  const dockBtn = document.createElement('button');
-  dockBtn.className = 'dockBtn'; dockBtn.textContent = title;
-  dockBtn.onclick = () => { win.style.display = 'flex'; dockBtn.remove(); };
-  bar.querySelector('.min').onclick = () => {
-    win.style.display = 'none'; dock.appendChild(dockBtn);
+/* ---------- голос ---------- */
+function speak(t){
+  if(!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t.replace(/```[\s\S]*?```/g," [показываю код в окне] "));
+  u.lang='ru-RU'; u.rate=1.02; speechSynthesis.speak(u);
+}
+let recog=null, listening=false, awake=false;
+function startRecog(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ setStatus("распознавание не поддерживается"); return; }
+  recog=new SR(); recog.lang='ru-RU'; recog.continuous=true; recog.interimResults=false;
+  recog.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(!e.results[i].isFinal) continue;
+      const t=e.results[i][0].transcript.trim().toLowerCase();
+      log("слышу: "+t);
+      if(t.includes("джарвис")){
+        awake=true; setStatus("слушаю вас…");
+        const cmd=t.replace(/джарвис[\s,:\-]*/,'').trim();
+        if(cmd) handleCommand(cmd);
+      } else if(awake){
+        handleCommand(t); awake=false; setStatus("режим ожидания");
+      }
+    }
   };
+  recog.onerror=e=>{ if(e.error==='not-allowed') setStatus("дайте доступ к микрофону"); };
+  recog.onend=()=>{ if(listening) try{recog.start();}catch(e){} };
+  recog.start(); listening=true; setStatus("ожидание слова «Джарвис»…");
+}
+$('#mic').onclick=()=>{ if(listening){listening=false;recog.stop();setStatus("микрофон выкл");} else startRecog(); };
 
-  /* drag by title bar */
-  let sx, sy, ox, oy, drag = false;
-  bar.addEventListener('pointerdown', e => {
-    drag = true; sx = e.clientX; sy = e.clientY;
-    ox = win.offsetLeft; oy = win.offsetTop;
-    bar.setPointerCapture(e.pointerId);
-  });
-  bar.addEventListener('pointermove', e => {
-    if (!drag) return;
-    win.style.left = Math.max(0, Math.min(innerWidth - 60, ox + e.clientX - sx)) + 'px';
-    win.style.top  = Math.max(50, Math.min(innerHeight - 80, oy + e.clientY - sy)) + 'px';
-  });
-  bar.addEventListener('pointerup', () => drag = false);
+/* ---------- оконный менеджер ---------- */
+const minimized=[];
+function relayoutMin(){
+  minimized.forEach((w,i)=>{ w.style.top=(70+i*52)+"px"; });
+}
+function makeWindow(title, content, w, h, x, y){
+  const win=document.createElement('div'); win.className='win';
+  w=w||Math.min(innerWidth-24,340); h=h||Math.min(innerHeight-200,380);
+  x=(x!==undefined)?x:Math.max(8,(innerWidth-w)/2+ (Math.random()*60-30));
+  y=(y!==undefined)?y:120;
+  win.style.cssText="width:"+w+"px;height:"+h+"px;left:"+x+"px;top:"+y+"px";
+  const hd=document.createElement('div'); hd.className='whd';
+  const t=document.createElement('div'); t.className='t'; t.textContent=title;
+  const bMin=document.createElement('button'); bMin.className='wb'; bMin.textContent='_';
+  const bCls=document.createElement('button'); bCls.className='wb'; bCls.textContent='✕';
+  hd.append(t,bMin,bCls);
+  const bd=document.createElement('div'); bd.className='wbd';
+  if(typeof content==='string') bd.innerHTML=content; else bd.appendChild(content);
+  win.append(hd,bd); document.body.appendChild(win);
+  /* drag */
+  let ox=0,oy=0,drag=false;
+  hd.addEventListener('touchstart',e=>{drag=true;ox=e.touches[0].clientX-win.offsetLeft;oy=e.touches[0].clientY-win.offsetTop;},{passive:true});
+  hd.addEventListener('touchmove',e=>{ if(!drag)return;
+    win.style.left=Math.max(0,Math.min(innerWidth-60,e.touches[0].clientX-ox))+"px";
+    win.style.top=Math.max(40,Math.min(innerHeight-60,e.touches[0].clientY-oy))+"px";},{passive:true});
+  hd.addEventListener('touchend',()=>drag=false);
+  /* свернуть — вправо в упор */
+  bMin.onclick=e=>{ e.stopPropagation();
+    win.style.display='none';
+    const tab=document.createElement('div'); tab.className='min';
+    tab.textContent='▣';
+    const hint=document.createElement('span'); hint.textContent=title; tab.appendChild(hint);
+    tab.style.top='0px';
+    tab.onclick=()=>{ tab.remove(); const i=minimized.indexOf(tab); if(i>-1)minimized.splice(i,1);
+      relayoutMin(); win.style.display='flex'; };
+    document.body.appendChild(tab); minimized.push(tab); relayoutMin();
+  };
+  /* закрыть — рассыпание */
+  bCls.onclick=e=>{ e.stopPropagation(); disintegrate(win); };
   return win;
 }
-
-function showResults(query, results){
-  if (!results.length){
-    createWindow('Поиск: ' + query, '<p>Ничего не найдено.</p>');
-    return;
+/* эффект «рассыпания в RAM» */
+function disintegrate(el){
+  const r=el.getBoundingClientRect();
+  const cvs=$('#fx'), ctx=cvs.getContext('2d');
+  cvs.width=innerWidth; cvs.height=innerHeight;
+  const parts=[];
+  const cols=22, rows=14;
+  for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){
+    parts.push({x:r.left+r.width*i/cols, y:r.top+r.height*j/rows,
+      vx:(Math.random()-0.5)*7, vy:(Math.random()-0.9)*7,
+      s:r.width/cols, life:1, hue:190+Math.random()*30});
   }
-  const html = results.map(r => `
-    <div class="resItem">
-      <a href="${r.url}" target="_blank">${r.title}</a>
-      <p>${r.snippet || ''}</p>
-    </div>`).join('');
-  createWindow('🔎 ' + query, html);
-}
-
-function openSite(url){
-  createWindow(url, `<iframe class="webframe" src="${url}" sandbox="allow-scripts allow-same-origin"></iframe>`);
-}
-
-/* ==================== Chat ==================== */
-async function sendChat(text){
-  addMsg(text, 'user');
-  history.push({role: 'user', content: text});
-  setStatus('думаю…');
-  try {
-    const r = await fetch(API + '/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: text, history: history.slice(0, -1)})
-    });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error);
-    addMsg(d.answer, 'bot');
-    speak(d.answer);
-    history.push({role: 'assistant', content: d.answer});
-  } catch(e){
-    addMsg('Ошибка связи с бэкендом: ' + e.message, 'bot');
-  }
-  setStatus('готов');
-}
-
-/* ==================== Web search ==================== */
-async function doSearch(q){
-  setStatus('ищу в интернете…');
-  addMsg('🔎 ' + q, 'user');
-  try {
-    const r = await fetch(API + '/api/search?q=' + encodeURIComponent(q));
-    const d = await r.json();
-    showResults(d.query || q, d.results || []);
-    if (d.results?.length){
-      addMsg('Нашёл ' + d.results.length + ' результатов — открыл окно.', 'bot');
-    } else {
-      addMsg('Ничего не найдено.', 'bot');
+  let f=0;
+  (function anim(){
+    ctx.clearRect(0,0,cvs.width,cvs.height); f++;
+    let alive=false;
+    for(const p of parts){
+      if(p.life<=0) continue; alive=true;
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.12; p.vx*=0.985; p.life-=0.022;
+      ctx.globalAlpha=Math.max(0,p.life);
+      ctx.fillStyle="hsl("+p.hue+",100%,60%)";
+      ctx.fillRect(p.x,p.y,p.s*0.8,p.s*0.8);
     }
-  } catch(e){
-    addMsg('Ошибка поиска: ' + e.message, 'bot');
-  }
-  setStatus('готов');
+    ctx.globalAlpha=1;
+    if(alive && f<80) requestAnimationFrame(anim);
+    else ctx.clearRect(0,0,cvs.width,cvs.height);
+  })();
+  el.remove();
 }
 
-/* ==================== Vision ==================== */
-const camWrap = document.getElementById('camWrap');
-const cam = document.getElementById('cam');
-let stream = null;
-
-async function toggleCam(){
-  if (stream){
-    stream.getTracks().forEach(t => t.stop());
-    stream = null; camWrap.style.display = 'none';
-    return;
-  }
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
-    cam.srcObject = stream;
-    camWrap.style.display = 'block';
-  } catch(e){ addMsg('Нет доступа к камере: ' + e.message, 'bot'); }
+/* ---------- инструменты ---------- */
+async function jPost(path, body){
+  const r=await fetch(SERVER_URL+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return r.json();
 }
-document.getElementById('camClose').onclick = toggleCam;
+const snapshots=[]; // память «что видел»
 
-async function captureAndAnalyze(prompt){
-  if (!stream) return;
-  setStatus('смотрю…');
-  const c = document.createElement('canvas');
-  c.width = cam.videoWidth; c.height = cam.videoHeight;
-  c.getContext('2d').drawImage(cam, 0, 0);
-  const b64 = c.toDataURL('image/jpeg', 0.7);
-  try {
-    const r = await fetch(API + '/api/vision', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({image: b64, prompt: prompt || 'Опиши, что ты видишь, и ответь голосом кратко.'})
+async function askJarvis(text, useVision){
+  setStatus("думаю…");
+  try{
+    let resp;
+    const frame = useVision ? captureFrame() : null;
+    if(frame){
+      resp = await jPost('/api/vision',{image:frame, prompt:text+" (это живой кадр с моей камеры)"});
+      if(!resp.error) snapshots.push({img:frame, desc:text, time:new Date().toLocaleTimeString()});
+    } else {
+      resp = await jPost('/api/chat',{text});
+    }
+    if(resp.error){ setStatus("ошибка: "+resp.error); return null; }
+    setStatus("готово");
+    log("J: "+resp.reply.slice(0,120));
+    speak(resp.reply);
+    maybeCodeWindow(resp.reply);
+    return resp.reply;
+  }catch(e){ setStatus("нет связи с сервером"); log("нет связи — проверь SERVER_URL и туннель"); return null; }
+}
+
+function maybeCodeWindow(reply){
+  const m=reply.match(/```(\w*)\n([\s\S]*?)```/);
+  if(!m) return;
+  const w=makeWindow("код: "+(m[1]||"text"));
+  const pre=document.createElement('pre'); pre.textContent=m[2].trim(); w.querySelector('.wbd').appendChild(pre);
+}
+
+async function openSite(url){
+  if(!/^https?:/.test(url)) url="https://"+url;
+  const win=makeWindow("загрузка…");
+  const fr=document.createElement('iframe'); fr.src=url;
+  win.querySelector('.wbd').appendChild(fr);
+  fetch(SERVER_URL+'/api/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})})
+    .then(r=>r.json()).then(j=>{ if(j.title) win.querySelector('.t').textContent=j.title.slice(0,34); })
+    .catch(()=>{});
+  log("открываю: "+url);
+}
+
+async function searchWeb(q){
+  const win=makeWindow("поиск: "+q.slice(0,24));
+  win.querySelector('.wbd').textContent="ищу…";
+  try{
+    const r=await fetch(SERVER_URL+'/api/search?q='+encodeURIComponent(q));
+    const j=await r.json();
+    const bd=win.querySelector('.wbd'); bd.innerHTML="";
+    if(!j.results || !j.results.length){ bd.textContent="ничего не найдено"; return; }
+    j.results.forEach(res=>{
+      const a=document.createElement('a'); a.textContent=res.title; a.href="#";
+      const u=res.url;
+      a.onclick=e=>{e.preventDefault(); openSite(u);};
+      bd.appendChild(a);
     });
-    const d = await r.json();
-    addMsg(d.answer || d.error, 'bot');
-    speak(d.answer || '');
-  } catch(e){ addMsg('Ошибка зрения: ' + e.message, 'bot'); }
-  setStatus('готов');
+  }catch(e){ win.querySelector('.wbd').textContent="ошибка поиска"; }
 }
 
-/* ==================== Voice ==================== */
-function speak(text){
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text.replace(/https?:\/\/\S+/g, 'ссылка'));
-  u.lang = 'ru-RU'; u.rate = 1.05;
-  speechSynthesis.speak(u);
+function recallWindow(){
+  const win=makeWindow("память зрения");
+  const bd=win.querySelector('.wbd');
+  if(!snapshots.length){ bd.textContent="я пока ничего не видел"; return; }
+  const g=document.createElement('div'); g.className='grid';
+  snapshots.slice(-12).forEach(s=>{
+    const f=document.createElement('figure');
+    const im=document.createElement('img'); im.src=s.img;
+    const cap=document.createElement('figcaption'); cap.textContent=s.time;
+    f.append(im,cap); g.appendChild(f);
+  });
+  bd.appendChild(g);
 }
 
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, listening = false;
-const micBtn = document.getElementById('micBtn');
-
-function startRec(){
-  if (!SR){ addMsg('Распознавание речи не поддерживается браузером.', 'bot'); return; }
-  rec = new SR();
-  rec.lang = 'ru-RU'; rec.interimResults = false;
-  rec.onresult = e => {
-    const text = e.results[0][0].transcript;
-    addMsg('🎙 ' + text, 'user');
-    handleCommand(text);
-  };
-  rec.onend = () => { listening = false; micBtn.classList.remove('rec'); };
-  rec.onerror = () => { listening = false; micBtn.classList.remove('rec'); };
-  rec.start();
-  listening = true; micBtn.classList.add('rec');
-  setStatus('слушаю…');
-}
-
-/* ==================== Command router ==================== */
-function handleCommand(text){
-  const t = text.trim();
-  const lower = t.toLowerCase();
-  const mSearch = lower.match(/^(найди|поиск|загугли|поищи)\s+(.+)/);
-  const mOpen = lower.match(/^(открой|зайди на|покажи сайт)\s+(.+)/);
-
-  if (mSearch){ doSearch(mSearch[2]); return; }
-  if (mOpen){
-    let url = mOpen[2].trim();
-    if (!/^https?:\/\//.test(url)) url = 'https://' + url;
-    openSite(url); return;
+/* ---------- команды ---------- */
+async function handleCommand(cmd){
+  log("команда: "+cmd);
+  if(/открой|зайди на|открыть/.test(cmd)){
+    const m=cmd.match(/(?:открой|зайди на|открыть)\s+([\w.\-]+(?:\.[a-z]{2,})?(?:\/\S*)?)/i);
+    if(m){ openSite(m[1]); speak("Открываю "+m[1]); return; }
   }
-  if (/что ты видишь|что видишь|сфотографируй|смотри/.test(lower)){
-    if (stream){ captureAndAnalyze(t); } else { toggleCam(); }
+  if(/найди|поищи|погугли/.test(cmd)){
+    const q=cmd.replace(/найди|поищи|погугли/gi,'').trim();
+    if(q){ searchWeb(q); return; }
+  }
+  if(/что ты видишь|что видишь|посмотри/.test(cmd)){
+    const r=await askJarvis("Опиши подробно, что ты видишь сейчас на моей камере.", true);
     return;
   }
-  sendChat(t);
+  if(/что ты видел|покажи где|память/.test(cmd)){ recallWindow(); speak("Вот что я запомнил."); return; }
+  if(/забудь всё|очисти память/.test(cmd)){
+    await jPost('/api/forget',{}); snapshots.length=0; speak("Память очищена, сэр."); return;
+  }
+  /* код/модель — Jarvis сам выдаст блок кода, откроется окном */
+  askJarvis(cmd, false);
 }
 
-/* ==================== Events ==================== */
-document.getElementById('sendBtn').onclick = () => {
-  const inp = document.getElementById('input');
-  const t = inp.value.trim();
-  if (!t) return;
-  inp.value = '';
-  handleCommand(t);
-};
-document.getElementById('input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('sendBtn').click();
-});
-document.getElementById('camBtn').onclick = () => {
-  if (stream) captureAndAnalyze();
-  else toggleCam();
-};
-micBtn.onclick = () => listening ? rec?.stop() : startRec();
+$('#send').onclick=()=>{ const t=$('#inp').value.trim(); if(t){ $('#inp').value=""; handleCommand(t); } };
+$('#inp').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#send').click(); });
 
-addMsg('JARVIS онлайн. Говори или пиши. Команды: «найди …», «открой …», «что ты видишь».', 'bot');
-fetch(API + '/health').then(r => r.json()).then(() => setStatus('бэкенд подключён'))
-  .catch(() => setStatus('⚠ бэкенд недоступен — проверь TUNNEL_URL'));
+log("J.A.R.V.I.S. готов. Скажите «Джарвис…»");
+setStatus("онлайн — свайп вправо: смена камеры");
+startRecog();
 </script>
 </body>
 </html>
-
