@@ -2,848 +2,339 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#04060b">
-<title>JARVIS • LIVE STREAM</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>JARVIS</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root {
-    --cyan: #00f0ff;
-    --line: rgba(0, 240, 255, 0.30);
-    --glass: rgba(8, 16, 26, 0.55);
-    --text: #dff7ff;
-    --dim: #7fa8b8;
-    --amber: #ffc46b;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; overflow: hidden; background: #04060b; color: var(--text);
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-    touch-action: pan-y;
-  }
-  .hide { display: none !important; }
-
-  #cam {
-    position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh;
-    object-fit: cover; filter: brightness(0.92) saturate(1.05); background: #04060b;
-  }
-  #cam.mirror { transform: scaleX(-1); }
-  #vignette {
-    position: fixed; inset: 0; pointer-events: none; z-index: 5;
-    background:
-      linear-gradient(180deg, rgba(2,6,12,0.72) 0%, transparent 18%, transparent 74%, rgba(2,6,12,0.82) 100%),
-      radial-gradient(ellipse at center, transparent 46%, rgba(2,6,12,0.62) 100%);
-  }
-
-  #hud {
-    position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 14px; z-index: 30;
-    display: flex; align-items: center; gap: 8px;
-    font-size: 11px; letter-spacing: 0.22em; color: var(--cyan);
-    text-shadow: 0 0 10px rgba(0,240,255,0.7);
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan);
-    box-shadow: 0 0 10px var(--cyan); animation: pulse 2s ease-in-out infinite; }
-  .dot.talk { background: #7dffd4; box-shadow: 0 0 12px #7dffd4; animation-duration: 0.7s; }
-  .dot.think { background: var(--amber); box-shadow: 0 0 12px var(--amber); animation-duration: 0.9s; }
-  .dot.off { background: #5a6b74; box-shadow: none; animation: none; }
-  #statusText { color: var(--dim); letter-spacing: 0.18em; }
-  #taskBadge { color: var(--amber); border: 1px solid rgba(255,196,107,0.5);
-    padding: 2px 7px; border-radius: 999px; font-size: 9px; letter-spacing: 0.16em; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-
-  #player {
-    position: fixed; top: calc(env(safe-area-inset-top) + 40px); left: 50%; z-index: 60;
-    width: min(94vw, 560px); padding: 10px 12px;
-    display: flex; align-items: center; gap: 8px;
-    background: var(--glass); border: 1px solid var(--line); border-radius: 16px;
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 0 24px rgba(0,240,255,0.14), inset 0 0 18px rgba(0,240,255,0.05);
-    transform: translate(-50%, -180%); transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.25, 1);
-  }
-  #player.show { transform: translate(-50%, 0); }
-  .pbtn {
-    min-width: 36px; height: 36px; padding: 0 8px; border-radius: 12px; cursor: pointer;
-    border: 1px solid var(--line); background: rgba(0,240,255,0.07); color: var(--cyan);
-    font-size: 12px; font-family: inherit;
-  }
-  .pbtn:active { background: rgba(0,240,255,0.22); }
-  #btnPlay { min-width: 42px; height: 42px; font-size: 14px; border-radius: 50%;
-    box-shadow: 0 0 14px rgba(0,240,255,0.35); }
-  #seek { flex: 1; appearance: none; -webkit-appearance: none; height: 4px; border-radius: 2px;
-    background: rgba(0,240,255,0.22); outline: none; accent-color: var(--cyan); }
-  #seek::-webkit-slider-thumb { appearance: none; -webkit-appearance: none;
-    width: 18px; height: 18px; border-radius: 50%; background: var(--cyan);
-    box-shadow: 0 0 12px var(--cyan); cursor: pointer; }
-  #seek::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%;
-    background: var(--cyan); box-shadow: 0 0 12px var(--cyan); cursor: pointer; }
-  #timeLabel { font-size: 11px; color: var(--dim); min-width: 76px; text-align: right;
-    font-variant-numeric: tabular-nums; }
-
-  #caption {
-    position: fixed; bottom: 118px; left: 50%; transform: translateX(-50%); z-index: 35;
-    max-width: 86vw; padding: 8px 16px; border-radius: 999px; text-align: center;
-    background: var(--glass); border: 1px solid var(--line);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    font-size: 13px; color: #bfefff; text-shadow: 0 0 8px rgba(0,240,255,0.4);
-    opacity: 0; transition: opacity 0.3s; pointer-events: none;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  #caption.show { opacity: 1; }
-
-  .win {
-    position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
-    display: flex; flex-direction: column; overflow: hidden;
-    background: var(--glass); border: 1px solid var(--line); border-radius: 18px;
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 0 30px rgba(0,240,255,0.16), inset 0 0 22px rgba(0,240,255,0.04);
-  }
-  .win::before {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0,240,255,0.9), transparent);
-    animation: scan 4.5s linear infinite;
-  }
-  @keyframes scan { 0% { transform: translateX(-55%); } 100% { transform: translateX(55%); } }
-  #chatWin { bottom: 108px; width: min(94vw, 430px); height: min(58vh, 520px); }
-  #webWin { top: 96px; width: min(96vw, 620px); height: min(62vh, 560px); }
-  .winHead {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 12px; border-bottom: 1px solid var(--line);
-    background: rgba(0,240,255,0.05);
-  }
-  .winTitle { font-size: 11px; letter-spacing: 0.24em; color: var(--cyan);
-    text-shadow: 0 0 10px rgba(0,240,255,0.6); overflow: hidden;
-    white-space: nowrap; text-overflow: ellipsis; max-width: 60%; }
-  .winBtns { display: flex; gap: 6px; }
-  .wbtn { width: 28px; height: 28px; border-radius: 9px; cursor: pointer;
-    border: 1px solid var(--line); background: transparent; color: var(--cyan);
-    font-size: 13px; line-height: 1; font-family: inherit; }
-  .wbtn:active { background: rgba(0,240,255,0.22); }
-
-  #msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex;
-    flex-direction: column; gap: 8px; }
-  #msgs::-webkit-scrollbar { width: 4px; }
-  #msgs::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.3); border-radius: 2px; }
-  .msg { max-width: 84%; padding: 9px 12px; border-radius: 14px; font-size: 14px;
-    line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
-  .msg.user { align-self: flex-end; color: #eaffff;
-    background: rgba(0,240,255,0.14); border: 1px solid rgba(0,240,255,0.35);
-    border-bottom-right-radius: 4px; }
-  .msg.jarvis { align-self: flex-start; color: var(--text);
-    background: rgba(10,20,32,0.72); border: 1px solid rgba(0,240,255,0.18);
-    border-bottom-left-radius: 4px; }
-  .msg.imgmsg { padding: 6px; max-width: 92%; }
-  .msg.imgmsg img { display: block; width: 100%; border-radius: 10px; }
-  .msg.imgmsg .lab { padding: 6px 6px 2px; font-size: 11px; letter-spacing: 0.08em; color: var(--cyan); }
-  .msg.typing { display: flex; gap: 5px; align-items: center; padding: 12px 14px; }
-  .msg.typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan);
-    animation: pulse 1s ease-in-out infinite; }
-  .msg.typing span:nth-child(2) { animation-delay: 0.2s; }
-  .msg.typing span:nth-child(3) { animation-delay: 0.4s; }
-  #attachChip { margin: 0 10px 6px; padding: 6px 10px; display: flex;
-    justify-content: space-between; align-items: center; gap: 8px;
-    border: 1px dashed rgba(0,240,255,0.4); border-radius: 10px;
-    font-size: 12px; color: #bfefff; }
-  #attachName { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  #attachDel { border: 0; background: none; color: var(--cyan); font-size: 13px; cursor: pointer; }
-  .inputRow { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
-  #txt { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 12px; outline: none;
-    background: rgba(4,10,18,0.6); border: 1px solid rgba(0,240,255,0.25);
-    color: var(--text); font-size: 14px; font-family: inherit; }
-  #txt:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,240,255,0.25); }
-  #txt::placeholder { color: var(--dim); }
-  #btnPlus, #btnSend { width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
-    border: 1px solid var(--line); background: rgba(0,240,255,0.08);
-    color: var(--cyan); font-size: 18px; font-family: inherit; }
-  #btnPlus:active, #btnSend:active { background: rgba(0,240,255,0.25); }
-
-  #webHint { padding: 6px 12px; font-size: 11px; color: var(--dim);
-    border-bottom: 1px solid rgba(0,240,255,0.12); }
-  #webFrame { flex: 1; width: 100%; border: 0; background: #0a121c; }
-
-  .sideTab {
-    position: fixed; right: 0; z-index: 45; display: none; cursor: pointer;
-    padding: 12px 10px; border-radius: 12px 0 0 12px; font-size: 16px;
-    background: var(--glass); border: 1px solid var(--line); border-right: 0;
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 0 18px rgba(0,240,255,0.4); animation: tabGlow 2.2s ease-in-out infinite;
-  }
-  .sideTab.show { display: block; }
-  #chatTab { top: 36%; }
-  #webTab { top: 50%; }
-  @keyframes tabGlow {
-    0%,100% { box-shadow: 0 0 12px rgba(0,240,255,0.3); }
-    50% { box-shadow: 0 0 26px rgba(0,240,255,0.65); }
-  }
-
-  #dock { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 18px);
-    left: 50%; transform: translateX(-50%); z-index: 50;
-    display: flex; align-items: center; gap: 16px; }
-  #btnRing {
-    position: relative; width: 68px; height: 68px; border-radius: 50%; cursor: pointer;
-    border: 2px solid rgba(0,240,255,0.7);
-    background: radial-gradient(circle at 50% 50%, rgba(0,240,255,0.14), rgba(4,10,18,0.62));
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 0 22px rgba(0,240,255,0.35), inset 0 0 14px rgba(0,240,255,0.2);
-  }
-  #btnRing::before { content: ""; position: absolute; inset: -7px; border-radius: 50%;
-    border: 1px dashed rgba(0,240,255,0.35); animation: spin 14s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #btnRing .core { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px;
-    margin: -6px 0 0 -6px; border-radius: 50%; background: var(--cyan);
-    box-shadow: 0 0 14px var(--cyan); animation: pulse 2.4s ease-in-out infinite; }
-  #btnRing.listening { animation: ringBreath 2.4s ease-in-out infinite; }
-  #btnRing.speaking { animation: ringBreath 0.8s ease-in-out infinite; }
-  #btnRing.thinking .core { background: var(--amber); box-shadow: 0 0 14px var(--amber); }
-  #btnRing.muted { border-color: rgba(140,160,170,0.4); box-shadow: none; animation: none; }
-  #btnRing.muted .core { background: #5a6b74; box-shadow: none; animation: none; }
-  @keyframes ringBreath {
-    0%,100% { box-shadow: 0 0 16px rgba(0,240,255,0.3), inset 0 0 12px rgba(0,240,255,0.15); }
-    50% { box-shadow: 0 0 34px rgba(0,240,255,0.7), inset 0 0 20px rgba(0,240,255,0.3); }
-  }
-  #btnMute { width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    background: var(--glass); border: 1px solid var(--line); color: var(--cyan);
-    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 0 14px rgba(0,240,255,0.2); }
-  #btnMute.muted { color: #6b8a97; border-color: rgba(140,160,170,0.35); box-shadow: none; }
-
-  @media (max-height: 620px) {
-    #chatWin { height: 52vh; bottom: 100px; }
-    #webWin { height: 56vh; top: 88px; }
-  }
+:root{
+  --bg:#050a12; --panel:#0a1626; --line:#123a5c; --accent:#00d4ff;
+  --accent2:#ffaa00; --text:#cfe9ff; --dim:#5a7a99;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 800px at 50% -10%,#0b2038 0%,var(--bg) 60%);
+  color:var(--text); font-family:'Segoe UI',Roboto,monospace; height:100vh;
+  overflow:hidden; display:flex; flex-direction:column;
+}
+#header{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-bottom:1px solid var(--line); background:rgba(10,22,38,.9);
+}
+#core{
+  width:38px;height:38px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#7ff0ff,#0077aa 60%,#002233);
+  box-shadow:0 0 18px var(--accent),0 0 40px rgba(0,212,255,.35);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+#title{font-size:18px;letter-spacing:3px;color:var(--accent);font-weight:700}
+#status{font-size:11px;color:var(--dim)}
+#chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:85%;padding:9px 12px;border-radius:12px;font-size:14px;line-height:1.4;
+  border:1px solid var(--line); white-space:pre-wrap; word-break:break-word}
+.msg.user{align-self:flex-end;background:#0d2b45;border-color:#1c5a86}
+.msg.bot{align-self:flex-start;background:var(--panel)}
+.msg .link{display:block;color:var(--accent);margin-top:4px;word-break:break-all}
+#camWrap{display:none;position:relative;margin:0 12px;border:1px solid var(--line);
+  border-radius:10px;overflow:hidden;background:#000}
+#cam{display:block;width:100%;max-height:180px;object-fit:cover}
+#camClose{position:absolute;top:6px;right:8px;background:rgba(0,0,0,.6);color:#fff;
+  border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+#inputBar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);
+  background:rgba(10,22,38,.95)}
+#input{flex:1;background:#071525;border:1px solid var(--line);border-radius:10px;
+  color:var(--text);padding:10px 12px;font-size:14px;outline:none}
+.btn{background:#0d2b45;border:1px solid var(--accent);color:var(--accent);
+  border-radius:10px;padding:10px 13px;font-size:16px;cursor:pointer}
+.btn:active{background:#154e77}
+.btn.rec{border-color:#ff3355;color:#ff3355;animation:pulse 1s infinite}
+/* === floating windows manager (Windows-style) === */
+.win{position:fixed;left:8px;top:80px;width:calc(100vw - 24px);max-height:70vh;
+  background:rgba(6,16,28,.97);border:1px solid var(--accent);border-radius:10px;
+  box-shadow:0 8px 30px rgba(0,0,0,.7);display:flex;flex-direction:column;z-index:50;
+  animation:open .18s ease}
+@keyframes open{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.winbar{display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:grab;
+  background:#0d2b45;border-bottom:1px solid var(--line);border-radius:9px 9px 0 0;
+  touch-action:none;user-select:none}
+.winbar .wt{flex:1;font-size:13px;color:var(--accent);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.wbtn{width:28px;height:24px;border:none;border-radius:5px;font-size:13px;cursor:pointer;
+  background:#123a5c;color:var(--text)}
+.wbtn.x{background:#7a1020}
+.winbody{overflow-y:auto;padding:10px;font-size:13px}
+.resItem{padding:8px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;
+  background:var(--panel)}
+.resItem a{color:var(--accent);font-size:14px;display:block;margin-bottom:4px}
+.resItem p{color:var(--dim);font-size:12px}
+.webframe{width:100%;height:50vh;border:none;background:#fff;border-radius:6px}
+/* minimized dock at the RIGHT edge */
+#dock{position:fixed;right:0;top:30%;display:flex;flex-direction:column;gap:6px;z-index:60}
+.dockBtn{writing-mode:vertical-rl;transform:rotate(180deg);
+  background:#0d2b45;border:1px solid var(--accent);border-right:none;
+  border-radius:8px 0 0 8px;color:var(--accent);padding:10px 4px;font-size:11px;
+  max-height:110px;overflow:hidden;cursor:pointer}
 </style>
 </head>
 <body>
-
-<video id="cam" autoplay playsinline muted></video>
-<div id="vignette"></div>
-<canvas id="grab" class="hide"></canvas>
-
-<div id="hud">
-  <span class="dot" id="liveDot"></span>
-  <span>JARVIS</span>
-  <span id="statusText">ЗАПУСК</span>
-  <span id="taskBadge" class="hide">ЗАДАЧА</span>
+<div id="header">
+  <div id="core"></div>
+  <div>
+    <div id="title">J.A.R.V.I.S.</div>
+    <div id="status">готов</div>
+  </div>
 </div>
 
-<div id="player">
-  <button class="pbtn" id="btnPlay">▶</button>
-  <button class="pbtn" id="btnBack">−10</button>
-  <button class="pbtn" id="btnFwd">+10</button>
-  <input type="range" id="seek" min="0" max="100" step="0.1" value="0">
-  <span id="timeLabel">0:00 / 0:00</span>
-  <audio id="tts" preload="auto"></audio>
+<div id="chat"></div>
+
+<div id="camWrap">
+  <video id="cam" autoplay playsinline muted></video>
+  <button id="camClose">✕</button>
 </div>
 
-<div id="caption"></div>
-
-<section id="chatWin" class="win hide">
-  <div class="winHead">
-    <span class="winTitle">ДИАЛОГ</span>
-    <div class="winBtns">
-      <button class="wbtn" id="chatMin">—</button>
-      <button class="wbtn" id="chatClose">✕</button>
-    </div>
-  </div>
-  <div id="msgs"></div>
-  <div id="attachChip" class="hide">
-    <span id="attachName"></span>
-    <button id="attachDel">✕</button>
-  </div>
-  <div class="inputRow">
-    <button id="btnPlus">+</button>
-    <input id="txt" type="text" placeholder="Сообщение Джарвису…" autocomplete="off">
-    <button id="btnSend">➤</button>
-  </div>
-  <input type="file" id="fileInput" class="hide">
-</section>
-
-<section id="webWin" class="win hide">
-  <div class="winHead">
-    <span class="winTitle" id="webTitle">ВЕБ-ПОИСК</span>
-    <div class="winBtns">
-      <button class="wbtn" id="webOpen">↗</button>
-      <button class="wbtn" id="webMin">—</button>
-      <button class="wbtn" id="webClose">✕</button>
-    </div>
-  </div>
-  <div id="webHint">Если сайт блокирует встраивание — откройте его кнопкой ↗ в новой вкладке.</div>
-  <iframe id="webFrame" src="about:blank" allow="fullscreen"></iframe>
-</section>
-
-<div id="chatTab" class="sideTab">💬</div>
-<div id="webTab" class="sideTab">🌐</div>
-
-<div id="dock">
-  <button id="btnMute" title="Пауза микрофона и камеры">
-    <svg viewBox="0 0 24 24" width="18" height="18">
-      <rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
-      <path d="M5 11a7 7 0 0 0 14 0" fill="none" stroke="currentColor" stroke-width="1.6"></path>
-      <line x1="12" y1="18" x2="12" y2="21" stroke="currentColor" stroke-width="1.6"></line>
-      <line id="muteSlash" x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="1.8" style="display:none"></line>
-    </svg>
-  </button>
-  <button id="btnRing" title="Окно чата"><span class="core"></span></button>
+<div id="inputBar">
+  <button class="btn" id="micBtn" title="Голос">🎙</button>
+  <button class="btn" id="camBtn" title="Зрение">📷</button>
+  <input id="input" placeholder="Спроси что-нибудь…" autocomplete="off">
+  <button class="btn" id="sendBtn">➤</button>
 </div>
+
+<div id="dock"></div>
 
 <script>
-const API_BASE = "https://alexey.pythonanywhere.com";
+/* ==================== SETTINGS ==================== */
+const TUNNEL_URL = "https://PASTE-YOUR-TUNNEL-URL.trycloudflare.com"; // <- your HTTPS tunnel to Termux
+const API = TUNNEL_URL.replace(/\/$/, "");
+const tg = window.Telegram?.WebApp;
+tg?.ready(); tg?.expand();
 
-var SILENT_WAV = "data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+/* ==================== UI helpers ==================== */
+const chat = document.getElementById('chat');
+const statusEl = document.getElementById('status');
+let history = [];
 
-function $(id) { return document.getElementById(id); }
-
-var cam = $("cam"), grab = $("grab"), ctx = grab.getContext("2d");
-var liveDot = $("liveDot"), statusText = $("statusText"), caption = $("caption"), taskBadge = $("taskBadge");
-var player = $("player"), tts = $("tts"), btnPlay = $("btnPlay");
-var btnBack = $("btnBack"), btnFwd = $("btnFwd"), seek = $("seek"), timeLabel = $("timeLabel");
-var chatWin = $("chatWin"), webWin = $("webWin"), chatTab = $("chatTab"), webTab = $("webTab");
-var msgs = $("msgs"), txt = $("txt"), btnSend = $("btnSend"), btnPlus = $("btnPlus");
-var fileInput = $("fileInput"), attachChip = $("attachChip"), attachName = $("attachName"), attachDel = $("attachDel");
-var webFrame = $("webFrame"), webTitle = $("webTitle"), webOpen = $("webOpen");
-var ring = $("btnRing"), btnMute = $("btnMute"), muteSlash = $("muteSlash");
-
-var stream = null, rec = null, recWanted = true;
-var muted = false, speaking = false, busy = false, seeking = false, watching = false;
-var currentFrame = "", attachedFile = null, currentUrl = "";
-var queue = [], zTop = 40, captionTimer = null;
-var audioUnlocked = false, unlocking = false;
-var taskActive = false, lastSay = "", followUntil = 0;
-var cams = [], camIdx = 0, visualMem = [], ruVoice = null;
-var WAKE_RE = /(джарвис|жарвис|джарвисс|jarvis)/i;
-
-try {
-  if (window.Telegram && window.Telegram.WebApp) {
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
-    try {
-      window.Telegram.WebApp.setHeaderColor("#04060b");
-      window.Telegram.WebApp.setBackgroundColor("#04060b");
-    } catch (e2) {}
-  }
-} catch (e) {}
-
-function setStatus(text, mode) {
-  statusText.textContent = text;
-  liveDot.className = "dot " + (mode || "");
-}
-function idleStatus() {
-  if (muted) { setStatus("ПАУЗА", "off"); }
-  else if (Date.now() < followUntil) { setStatus("ДИАЛОГ", ""); }
-  else { setStatus("СЛУШАЮ • ЖДУ ИМЯ", ""); }
-}
-function showCaption(text, autohide) {
-  caption.textContent = text;
-  caption.classList.add("show");
-  if (captionTimer) { clearTimeout(captionTimer); captionTimer = null; }
-  if (autohide) {
-    captionTimer = setTimeout(function () { caption.classList.remove("show"); }, 3000);
-  }
+function setStatus(t){ statusEl.textContent = t; }
+function addMsg(text, cls){
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.textContent = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+  return d;
 }
 
-/* ---------- Запасной голос браузера ---------- */
-function pickVoice() {
-  if (!window.speechSynthesis) { return; }
-  var voices = window.speechSynthesis.getVoices();
-  var fallback = null;
-  for (var i = 0; i < voices.length; i++) {
-    var v = voices[i];
-    if (/ru/i.test(v.lang)) {
-      if (/male|dmitry|муж|pavel|юрий/i.test(v.name)) { ruVoice = v; return; }
-      if (!fallback) { fallback = v; }
-    }
-  }
-  if (!ruVoice) { ruVoice = fallback; }
-}
-if (window.speechSynthesis) {
-  pickVoice();
-  window.speechSynthesis.onvoiceschanged = pickVoice;
-}
-function speakLocal(text) {
-  if (!window.speechSynthesis || !text) { return; }
-  try {
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = "ru-RU";
-    u.pitch = 0.8;
-    u.rate = 1.0;
-    if (ruVoice) { u.voice = ruVoice; }
-    u.onstart = function () {
-      speaking = true; stopRec();
-      ring.classList.add("speaking");
-      setStatus("ГОВОРЮ", "talk");
-    };
-    u.onend = function () {
-      speaking = false;
-      ring.classList.remove("speaking");
-      if (!muted) { startRec(); }
-      idleStatus();
-    };
-    u.onerror = u.onend;
-    window.speechSynthesis.speak(u);
-  } catch (e) {}
+/* ==================== Floating window manager ==================== */
+const dock = document.getElementById('dock');
+let winCount = 0;
+
+function createWindow(title, bodyHTML, opts = {}){
+  const id = 'win' + (++winCount);
+  const win = document.createElement('div');
+  win.className = 'win';
+  win.id = id;
+  win.style.top = (70 + winCount * 24) + 'px';
+  win.style.zIndex = 50 + winCount;
+  win.innerHTML = `
+    <div class="winbar">
+      <span class="wt">${title}</span>
+      <button class="wbtn min" title="Свернуть">_</button>
+      <button class="wbtn x" title="Закрыть">✕</button>
+    </div>
+    <div class="winbody">${bodyHTML}</div>`;
+  document.body.appendChild(win);
+
+  const bar = win.querySelector('.winbar');
+  bar.querySelector('.x').onclick = () => { win.remove(); dockBtn?.remove(); };
+  const dockBtn = document.createElement('button');
+  dockBtn.className = 'dockBtn'; dockBtn.textContent = title;
+  dockBtn.onclick = () => { win.style.display = 'flex'; dockBtn.remove(); };
+  bar.querySelector('.min').onclick = () => {
+    win.style.display = 'none'; dock.appendChild(dockBtn);
+  };
+
+  /* drag by title bar */
+  let sx, sy, ox, oy, drag = false;
+  bar.addEventListener('pointerdown', e => {
+    drag = true; sx = e.clientX; sy = e.clientY;
+    ox = win.offsetLeft; oy = win.offsetTop;
+    bar.setPointerCapture(e.pointerId);
+  });
+  bar.addEventListener('pointermove', e => {
+    if (!drag) return;
+    win.style.left = Math.max(0, Math.min(innerWidth - 60, ox + e.clientX - sx)) + 'px';
+    win.style.top  = Math.max(50, Math.min(innerHeight - 80, oy + e.clientY - sy)) + 'px';
+  });
+  bar.addEventListener('pointerup', () => drag = false);
+  return win;
 }
 
-/* ---------- Разблокировка звука ---------- */
-function unlockAudio() {
-  if (audioUnlocked) { return; }
-  audioUnlocked = true;
-  unlocking = true;
-  try {
-    tts.muted = true;
-    tts.src = SILENT_WAV;
-    var p = tts.play();
-    if (p && p.then) {
-      p.then(function () {
-        tts.pause();
-        tts.removeAttribute("src");
-        tts.muted = false;
-        setTimeout(function () { unlocking = false; }, 300);
-      }).catch(function () { tts.muted = false; unlocking = false; });
-    } else { tts.muted = false; unlocking = false; }
-  } catch (e) { tts.muted = false; unlocking = false; }
-}
-document.addEventListener("pointerdown", unlockAudio, { once: true });
-
-/* ---------- Камера + свайп-переворот ---------- */
-function applyStream(s) {
-  stream = s;
-  cam.srcObject = s;
-  cam.play().catch(function () {});
-  var front = false;
-  try {
-    var tr = s.getVideoTracks();
-    if (tr.length) {
-      var st = tr.item(0).getSettings ? tr.item(0).getSettings() : {};
-      front = st.facingMode === "user";
-    }
-  } catch (e) {}
-  cam.classList.toggle("mirror", front);
-  idleStatus();
-}
-function startCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setStatus("КАМЕРА НЕДОСТУПНА", "off");
+function showResults(query, results){
+  if (!results.length){
+    createWindow('Поиск: ' + query, '<p>Ничего не найдено.</p>');
     return;
   }
-  navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }
-  }).then(applyStream).catch(function () { setStatus("НЕТ ДОСТУПА К КАМЕРЕ", "off"); });
-  listCams();
-}
-function listCams() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) { return; }
-  navigator.mediaDevices.enumerateDevices().then(function (devices) {
-    cams = [];
-    for (var i = 0; i < devices.length; i++) {
-      if (devices[i].kind === "videoinput") { cams.push(devices[i]); }
-    }
-  }).catch(function () {});
-}
-function flipCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { return; }
-  if (!cams.length) { listCams(); showCaption("Камеры ещё не перечислены, попробуйте свайп ещё раз", true); return; }
-  camIdx = (camIdx + 1) % cams.length;
-  var dev = cams[camIdx];
-  if (stream) {
-    var old = stream.getTracks();
-    for (var i = 0; i < old.length; i++) { old[i].stop(); }
-  }
-  navigator.mediaDevices.getUserMedia({
-    audio: false,
-    video: { deviceId: { exact: dev.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
-  }).then(function (s) {
-    applyStream(s);
-    var label = dev.label || ("камера " + (camIdx + 1));
-    showCaption("КАМЕРА " + (camIdx + 1) + "/" + cams.length + " • " + label.toUpperCase(), true);
-  }).catch(function () { showCaption("Эта камера недоступна", true); });
-}
-var touchX = 0, touchY = 0, touchT = 0;
-document.addEventListener("touchstart", function (e) {
-  var t = e.changedTouches.item(0);
-  touchX = t.clientX; touchY = t.clientY; touchT = Date.now();
-}, { passive: true });
-document.addEventListener("touchend", function (e) {
-  var t = e.changedTouches.item(0);
-  var dx = t.clientX - touchX, dy = t.clientY - touchY;
-  var inWin = e.target.closest && e.target.closest(".win, #dock, #player, input, button");
-  if (!inWin && Math.abs(dx) > 60 && Math.abs(dy) < 80 && Date.now() - touchT < 600) {
-    flipCamera();
-  }
-}, { passive: true });
-
-/* ---------- Кадр в память каждые 1.5 с ---------- */
-setInterval(function () {
-  if (muted || !stream || cam.readyState < 2) { return; }
-  var w = cam.videoWidth, h = cam.videoHeight;
-  if (!w || !h) { return; }
-  var scale = Math.min(1, 1280 / w);
-  grab.width = Math.round(w * scale);
-  grab.height = Math.round(h * scale);
-  ctx.drawImage(cam, 0, 0, grab.width, grab.height);
-  currentFrame = grab.toDataURL("image/jpeg", 0.8);
-}, 1500);
-
-/* ---------- Непрерывное наблюдение (/watch) ---------- */
-setInterval(function () {
-  if (muted || watching || !currentFrame || document.hidden) { return; }
-  watching = true;
-  var fd = new FormData();
-  fd.append("image", currentFrame);
-  fd.append("voice", taskActive ? "true" : "false");
-  fetch(API_BASE + "/watch", { method: "POST", body: fd })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      taskActive = !!data.task;
-      taskBadge.classList.toggle("hide", !taskActive);
-      if (data.say && data.say !== lastSay) {
-        lastSay = data.say;
-        showCaption(data.say, true);
-        addMsg("jarvis", data.say);
-        if (data.has_audio) { playVoice(); } else { speakLocal(data.say); }
-      }
-      if (!taskActive && data.objects && data.objects.length && currentFrame) {
-        visualMem.push({ t: Date.now(), frame: currentFrame, objects: data.objects, box: data.box || [] });
-        if (visualMem.length > 10) { visualMem.shift(); }
-      }
-      watching = false;
-    })
-    .catch(function () { watching = false; });
-}, 5000);
-
-/* ---------- Распознавание речи + обращение по имени ---------- */
-var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-function startRec() {
-  if (!rec || !recWanted || muted || speaking || document.hidden) { return; }
-  try { rec.start(); } catch (e) {}
-}
-function stopRec() {
-  if (!rec) { return; }
-  try { rec.stop(); } catch (e) {}
-}
-function setupRecognition() {
-  if (!SR) {
-    recWanted = false;
-    showCaption("Распознавание речи не поддерживается — используйте чат.", true);
-    return;
-  }
-  rec = new SR();
-  rec.lang = "ru-RU";
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.maxAlternatives = 1;
-  rec.onstart = function () { ring.classList.add("listening"); };
-  rec.onresult = function (event) {
-    var finalText = "", interim = "";
-    for (var i = event.resultIndex; i < event.results.length; i++) {
-      var res = event.results.item(i);
-      var alt = res.item(0);
-      if (res.isFinal) { finalText += alt.transcript + " "; }
-      else { interim += alt.transcript; }
-    }
-    interim = interim.trim();
-    if (interim) { showCaption(interim, false); }
-    finalText = finalText.trim();
-    if (!finalText) { return; }
-    var addressed = WAKE_RE.test(finalText) || Date.now() < followUntil;
-    if (!addressed) { return; }
-    var clean = finalText.replace(WAKE_RE, "").replace(/^[,.\s-]+/, "").trim();
-    if (!clean) { clean = "Да, сэр?"; }
-    showCaption(clean, true);
-    enqueue(clean, null);
-  };
-  rec.onend = function () {
-    ring.classList.remove("listening");
-    if (recWanted && !muted && !speaking) { setTimeout(startRec, 350); }
-  };
-  rec.onerror = function (event) {
-    if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-      recWanted = false;
-      setStatus("МИКРОФОН ЗАПРЕЩЁН", "off");
-    }
-  };
+  const html = results.map(r => `
+    <div class="resItem">
+      <a href="${r.url}" target="_blank">${r.title}</a>
+      <p>${r.snippet || ''}</p>
+    </div>`).join('');
+  createWindow('🔎 ' + query, html);
 }
 
-/* ---------- Mute ---------- */
-btnMute.onclick = function () {
-  unlockAudio();
-  muted = !muted;
-  btnMute.classList.toggle("muted", muted);
-  ring.classList.toggle("muted", muted);
-  muteSlash.style.display = muted ? "" : "none";
-  if (stream) {
-    var tracks = stream.getTracks();
-    for (var i = 0; i < tracks.length; i++) { tracks[i].enabled = !muted; }
-  }
-  if (muted) {
-    stopRec();
-    cam.pause();
-    setStatus("ПАУЗА", "off");
-    showCaption("Микрофон и камера на паузе", true);
-  } else {
-    cam.play().catch(function () {});
-    startRec();
-    idleStatus();
-  }
-};
-
-/* ---------- Окна ---------- */
-function showWin(win, tab) {
-  win.classList.remove("hide");
-  tab.classList.remove("show");
-  zTop += 1;
-  win.style.zIndex = zTop;
-}
-function minimizeWin(win, tab) { win.classList.add("hide"); tab.classList.add("show"); }
-function closeWin(win, tab) { win.classList.add("hide"); tab.classList.remove("show"); }
-function openChat() { showWin(chatWin, chatTab); msgs.scrollTop = msgs.scrollHeight; }
-function openWeb(url) {
-  currentUrl = url;
-  webFrame.src = url;
-  try { webTitle.textContent = "ВЕБ • " + new URL(url).hostname; }
-  catch (e) { webTitle.textContent = "ВЕБ-ОКНО"; }
-  showWin(webWin, webTab);
-}
-$("chatMin").onclick = function () { minimizeWin(chatWin, chatTab); };
-$("chatClose").onclick = function () { closeWin(chatWin, chatTab); };
-chatTab.onclick = function () { openChat(); };
-$("webMin").onclick = function () { minimizeWin(webWin, webTab); };
-$("webClose").onclick = function () { closeWin(webWin, webTab); webFrame.src = "about:blank"; };
-webTab.onclick = function () { showWin(webWin, webTab); };
-webOpen.onclick = function () { if (currentUrl) { window.open(currentUrl, "_blank"); } };
-chatWin.addEventListener("pointerdown", function () { zTop += 1; chatWin.style.zIndex = zTop; });
-webWin.addEventListener("pointerdown", function () { zTop += 1; webWin.style.zIndex = zTop; });
-ring.onclick = function () {
-  unlockAudio();
-  if (chatWin.classList.contains("hide")) { openChat(); }
-  else { minimizeWin(chatWin, chatTab); }
-};
-
-/* ---------- Сообщения ---------- */
-function addMsg(role, text) {
-  var div = document.createElement("div");
-  div.className = "msg " + role;
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
-function addImageMsg(src, label) {
-  var div = document.createElement("div");
-  div.className = "msg jarvis imgmsg";
-  var img = document.createElement("img");
-  img.src = src;
-  var lab = document.createElement("div");
-  lab.className = "lab";
-  lab.textContent = label;
-  div.appendChild(img);
-  div.appendChild(lab);
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-function showTyping() {
-  var div = document.createElement("div");
-  div.className = "msg jarvis typing";
-  div.appendChild(document.createElement("span"));
-  div.appendChild(document.createElement("span"));
-  div.appendChild(document.createElement("span"));
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
+function openSite(url){
+  createWindow(url, `<iframe class="webframe" src="${url}" sandbox="allow-scripts allow-same-origin"></iframe>`);
 }
 
-/* ---------- Обводка потерянной вещи на кадре памяти ---------- */
-function annotate(mark) {
-  var needle = mark.toLowerCase();
-  var entry = null;
-  for (var i = visualMem.length - 1; i >= 0; i--) {
-    var joined = visualMem[i].objects.join(" ").toLowerCase();
-    if (joined.indexOf(needle) >= 0 || needle.indexOf(joined.split(" ").shift()) >= 0) {
-      entry = visualMem[i];
-      break;
-    }
-  }
-  if (!entry) { return; }
-  var img = new Image();
-  img.onload = function () {
-    var c = document.createElement("canvas");
-    c.width = img.width; c.height = img.height;
-    var g = c.getContext("2d");
-    g.drawImage(img, 0, 0);
-    var b = entry.box.slice();
-    var x = 0.2, y = 0.2, w = 0.6, h = 0.6;
-    if (b.length >= 4) {
-      x = Number(b.shift()) / 100; y = Number(b.shift()) / 100;
-      w = Number(b.shift()) / 100; h = Number(b.shift()) / 100;
-      if (!(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= 1.2 && y + h <= 1.2)) {
-        x = 0.2; y = 0.2; w = 0.6; h = 0.6;
-      }
-    }
-    g.strokeStyle = "#00f0ff";
-    g.lineWidth = Math.max(3, c.width / 220);
-    g.shadowColor = "#00f0ff";
-    g.shadowBlur = 18;
-    g.strokeRect(x * c.width, y * c.height, w * c.width, h * c.height);
-    g.shadowBlur = 0;
-    g.fillStyle = "#00f0ff";
-    g.font = Math.max(14, c.width / 34) + "px Segoe UI, sans-serif";
-    var when = new Date(entry.t);
-    var hh = when.getHours(), mm = when.getMinutes();
-    g.fillText(mark.toUpperCase() + " • " + hh + ":" + (mm < 10 ? "0" : "") + mm,
-      x * c.width, Math.max(20, y * c.height - 8));
-    addImageMsg(c.toDataURL("image/jpeg", 0.85), "ВИДЕЛ ЗДЕСЬ • " + mark);
-    openChat();
-  };
-  img.src = entry.frame;
-}
-
-/* ---------- Очередь /ask ---------- */
-function enqueue(text, file) { queue.push({ text: text, file: file }); pump(); }
-function pump() {
-  if (busy || queue.length === 0) { return; }
-  busy = true;
-  var job = queue.shift();
-  var label = job.text;
-  if (job.file) { label = label + "  📎 " + job.file.name; }
-  addMsg("user", label);
-  var typing = showTyping();
-  setStatus("ДУМАЮ", "think");
-  ring.classList.add("thinking");
-
-  var fd = new FormData();
-  fd.append("text", job.text);
-  fd.append("image", currentFrame || "");
-  fd.append("voice", "true");
-  if (job.file) { fd.append("file", job.file, job.file.name); }
-
-  function finish() {
-    busy = false;
-    ring.classList.remove("thinking");
-    if (!speaking) { idleStatus(); }
-    pump();
-  }
-
-  fetch(API_BASE + "/ask", { method: "POST", body: fd })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      typing.remove();
-      addMsg("jarvis", data.reply || "…");
-      followUntil = Date.now() + 12000;
-      taskActive = !!data.task;
-      taskBadge.classList.toggle("hide", !taskActive);
-      openChat();
-      if (data.mark) { annotate(data.mark); }
-      if (data.action_url) { openWeb(data.action_url); }
-      if (data.has_audio) { playVoice(); } else { speakLocal(data.reply || ""); }
-      finish();
-    })
-    .catch(function () {
-      typing.remove();
-      addMsg("jarvis", "Канал связи с сервером недоступен, сэр. Проверьте соединение.");
-      finish();
+/* ==================== Chat ==================== */
+async function sendChat(text){
+  addMsg(text, 'user');
+  history.push({role: 'user', content: text});
+  setStatus('думаю…');
+  try {
+    const r = await fetch(API + '/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: text, history: history.slice(0, -1)})
     });
-}
-
-/* ---------- Плеер ---------- */
-function fmt(s) {
-  if (!isFinite(s) || s < 0) { s = 0; }
-  s = Math.floor(s);
-  var m = Math.floor(s / 60);
-  var sec = s % 60;
-  return m + ":" + (sec < 10 ? "0" : "") + sec;
-}
-function playVoice() {
-  tts.src = API_BASE + "/audio?t=" + Date.now();
-  player.classList.add("show");
-  var p = tts.play();
-  if (p && p.catch) { p.catch(function () { btnPlay.textContent = "▶"; }); }
-}
-tts.onplay = function () {
-  if (unlocking) { return; }
-  speaking = true;
-  stopRec();
-  ring.classList.add("speaking");
-  btnPlay.textContent = "❚❚";
-  player.classList.add("show");
-  setStatus("ГОВОРЮ", "talk");
-};
-function onVoiceStop() {
-  if (unlocking) { return; }
-  speaking = false;
-  ring.classList.remove("speaking");
-  btnPlay.textContent = "▶";
-  if (!muted) { startRec(); }
-  idleStatus();
-}
-tts.onpause = onVoiceStop;
-tts.onended = onVoiceStop;
-tts.onloadedmetadata = function () {
-  seek.max = String(isFinite(tts.duration) ? tts.duration : 0);
-  timeLabel.textContent = fmt(tts.currentTime) + " / " + fmt(tts.duration);
-};
-tts.ontimeupdate = function () {
-  if (!seeking && isFinite(tts.duration) && tts.duration > 0) { seek.value = String(tts.currentTime); }
-  timeLabel.textContent = fmt(tts.currentTime) + " / " + fmt(tts.duration);
-};
-seek.addEventListener("input", function () {
-  seeking = true;
-  var v = parseFloat(seek.value);
-  if (isFinite(v)) { try { tts.currentTime = v; } catch (e) {} }
-});
-seek.addEventListener("change", function () { seeking = false; });
-btnPlay.onclick = function () {
-  if (tts.paused) { tts.play().catch(function () {}); } else { tts.pause(); }
-};
-btnBack.onclick = function () { tts.currentTime = Math.max(0, tts.currentTime - 10); };
-btnFwd.onclick = function () {
-  var d = isFinite(tts.duration) ? tts.duration : tts.currentTime + 10;
-  tts.currentTime = Math.min(d, tts.currentTime + 10);
-};
-
-/* ---------- Файлы и текст ---------- */
-function clearAttach() {
-  attachedFile = null;
-  fileInput.value = "";
-  attachChip.classList.add("hide");
-}
-btnPlus.onclick = function () { fileInput.click(); };
-fileInput.onchange = function () {
-  var f = fileInput.files && fileInput.files.item(0);
-  if (f) {
-    attachedFile = f;
-    attachName.textContent = "📎 " + f.name;
-    attachChip.classList.remove("hide");
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    addMsg(d.answer, 'bot');
+    speak(d.answer);
+    history.push({role: 'assistant', content: d.answer});
+  } catch(e){
+    addMsg('Ошибка связи с бэкендом: ' + e.message, 'bot');
   }
-};
-attachDel.onclick = clearAttach;
-function sendText() {
-  var t = txt.value.trim();
-  if (!t && !attachedFile) { return; }
-  unlockAudio();
-  followUntil = Date.now() + 12000;
-  enqueue(t || "Проанализируй прикреплённый файл.", attachedFile);
-  txt.value = "";
-  clearAttach();
+  setStatus('готов');
 }
-btnSend.onclick = sendText;
-txt.addEventListener("keydown", function (e) {
-  if (e.key === "Enter") { e.preventDefault(); sendText(); }
-});
 
-document.addEventListener("visibilitychange", function () {
-  if (document.hidden) { stopRec(); } else { startRec(); idleStatus(); }
-});
-setInterval(idleStatus, 4000);
+/* ==================== Web search ==================== */
+async function doSearch(q){
+  setStatus('ищу в интернете…');
+  addMsg('🔎 ' + q, 'user');
+  try {
+    const r = await fetch(API + '/api/search?q=' + encodeURIComponent(q));
+    const d = await r.json();
+    showResults(d.query || q, d.results || []);
+    if (d.results?.length){
+      addMsg('Нашёл ' + d.results.length + ' результатов — открыл окно.', 'bot');
+    } else {
+      addMsg('Ничего не найдено.', 'bot');
+    }
+  } catch(e){
+    addMsg('Ошибка поиска: ' + e.message, 'bot');
+  }
+  setStatus('готов');
+}
 
-/* ---------- Старт ---------- */
-setupRecognition();
-startCamera();
-startRec();
-addMsg("jarvis", "Системы активны, сэр. Обращайтесь по имени: «Джарвис, …». Свайп вбок перевернёт камеру.");
-showCaption("Скажите «Джарвис, …» — я слушаю.", true);
-idleStatus();
+/* ==================== Vision ==================== */
+const camWrap = document.getElementById('camWrap');
+const cam = document.getElementById('cam');
+let stream = null;
+
+async function toggleCam(){
+  if (stream){
+    stream.getTracks().forEach(t => t.stop());
+    stream = null; camWrap.style.display = 'none';
+    return;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}});
+    cam.srcObject = stream;
+    camWrap.style.display = 'block';
+  } catch(e){ addMsg('Нет доступа к камере: ' + e.message, 'bot'); }
+}
+document.getElementById('camClose').onclick = toggleCam;
+
+async function captureAndAnalyze(prompt){
+  if (!stream) return;
+  setStatus('смотрю…');
+  const c = document.createElement('canvas');
+  c.width = cam.videoWidth; c.height = cam.videoHeight;
+  c.getContext('2d').drawImage(cam, 0, 0);
+  const b64 = c.toDataURL('image/jpeg', 0.7);
+  try {
+    const r = await fetch(API + '/api/vision', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({image: b64, prompt: prompt || 'Опиши, что ты видишь, и ответь голосом кратко.'})
+    });
+    const d = await r.json();
+    addMsg(d.answer || d.error, 'bot');
+    speak(d.answer || '');
+  } catch(e){ addMsg('Ошибка зрения: ' + e.message, 'bot'); }
+  setStatus('готов');
+}
+
+/* ==================== Voice ==================== */
+function speak(text){
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/https?:\/\/\S+/g, 'ссылка'));
+  u.lang = 'ru-RU'; u.rate = 1.05;
+  speechSynthesis.speak(u);
+}
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+const micBtn = document.getElementById('micBtn');
+
+function startRec(){
+  if (!SR){ addMsg('Распознавание речи не поддерживается браузером.', 'bot'); return; }
+  rec = new SR();
+  rec.lang = 'ru-RU'; rec.interimResults = false;
+  rec.onresult = e => {
+    const text = e.results[0][0].transcript;
+    addMsg('🎙 ' + text, 'user');
+    handleCommand(text);
+  };
+  rec.onend = () => { listening = false; micBtn.classList.remove('rec'); };
+  rec.onerror = () => { listening = false; micBtn.classList.remove('rec'); };
+  rec.start();
+  listening = true; micBtn.classList.add('rec');
+  setStatus('слушаю…');
+}
+
+/* ==================== Command router ==================== */
+function handleCommand(text){
+  const t = text.trim();
+  const lower = t.toLowerCase();
+  const mSearch = lower.match(/^(найди|поиск|загугли|поищи)\s+(.+)/);
+  const mOpen = lower.match(/^(открой|зайди на|покажи сайт)\s+(.+)/);
+
+  if (mSearch){ doSearch(mSearch[2]); return; }
+  if (mOpen){
+    let url = mOpen[2].trim();
+    if (!/^https?:\/\//.test(url)) url = 'https://' + url;
+    openSite(url); return;
+  }
+  if (/что ты видишь|что видишь|сфотографируй|смотри/.test(lower)){
+    if (stream){ captureAndAnalyze(t); } else { toggleCam(); }
+    return;
+  }
+  sendChat(t);
+}
+
+/* ==================== Events ==================== */
+document.getElementById('sendBtn').onclick = () => {
+  const inp = document.getElementById('input');
+  const t = inp.value.trim();
+  if (!t) return;
+  inp.value = '';
+  handleCommand(t);
+};
+document.getElementById('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('sendBtn').click();
+});
+document.getElementById('camBtn').onclick = () => {
+  if (stream) captureAndAnalyze();
+  else toggleCam();
+};
+micBtn.onclick = () => listening ? rec?.stop() : startRec();
+
+addMsg('JARVIS онлайн. Говори или пиши. Команды: «найди …», «открой …», «что ты видишь».', 'bot');
+fetch(API + '/health').then(r => r.json()).then(() => setStatus('бэкенд подключён'))
+  .catch(() => setStatus('⚠ бэкенд недоступен — проверь TUNNEL_URL'));
 </script>
 </body>
 </html>
+
