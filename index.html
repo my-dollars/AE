@@ -83,7 +83,14 @@
    НАСТРОЙКА: вставь сюда HTTPS-адрес туннеля из Termux
    (выдаёт cloudflared: https://xxxx.trycloudflare.com)
    ========================================================= */
-const SERVER_URL = "https://95e58a7c5dce9a.app.lhr.life";
+const ROUTER_URL = "https://" + "raw." + "://githubusercontent.com";
+
+async function getServerUrl() {
+  const res = await fetch(ROUTER_URL + "?t=" + Date.now());
+  const data = await res.json();
+  return data.url;
+}
+
 
 if (window.Telegram && Telegram.WebApp) Telegram.WebApp.expand();
 
